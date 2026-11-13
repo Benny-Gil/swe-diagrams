@@ -622,7 +622,9 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
         let quiet_group = change && it.status == 0;
         if let Some(svg) = svg_vendor::group_box(&d.items, i, quiet_group, ox + l.x[i], oy + l.y[i], l.bw[i], l.bh[i]) {
             f.style(svg_vendor::STYLE);
+            open_part(&mut f.body, "group", &it.id, it.status);
             f.body.push_str(&svg);
+            f.body.push_str("</g>");
             continue;
         }
         let mut class = String::from("g");
@@ -719,6 +721,7 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
                 if it.status > 0 {
                     f.badge(it.status, x + w - 2, y + 2);
                 }
+                f.body.push_str("</g>");
                 continue;
             }
             let mut tx = x + 12;

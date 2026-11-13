@@ -178,3 +178,17 @@ fn the_icons_command_prints_the_names_that_match() {
     assert_eq!(code, Some(1));
     assert!(err.starts_with("usage: swe-diagrams icons"), "{err}");
 }
+
+#[test]
+fn each_vendor_fixture_gives_a_png_in_both_themes() {
+    // The PNG reader needs well-formed XML, so an open group tag fails here.
+    let dir = cache("png", &["aws.zip", "azure.zip", "gcp-core.zip", "gcp-category.zip"]);
+    for name in ["vendor-aws", "vendor-azure", "vendor-gcp"] {
+        let path = spec(&format!("fixtures/{name}.sd"));
+        let r = swe_diagrams::render_path(&fs::read_to_string(&path).unwrap(), Some(&path), &offline(&dir)).unwrap();
+        for theme in [swe_diagrams::Theme::Light, swe_diagrams::Theme::Dark] {
+            let svg = swe_diagrams::apply_theme(&r.svg, theme);
+            swe_diagrams::png(&svg, 1.0).unwrap_or_else(|e| panic!("{name} {theme:?}: {e}"));
+        }
+    }
+}
