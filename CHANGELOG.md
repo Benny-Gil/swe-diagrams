@@ -22,6 +22,11 @@ This file lists the changes in each version. The project uses
 
 ### Changed
 
+- A class member line that starts with `#` is a protected member, not
+  a comment.
+- Text widths come from the bundled Geist faces, with a margin for
+  fallback faces, so a long title or label does not clip.
+
 - The README shows pictures and install steps first. The diagram language
   is in the language reference only.
 

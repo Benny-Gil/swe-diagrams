@@ -1,0 +1,1 @@
+ok class nodes=2 edges=1

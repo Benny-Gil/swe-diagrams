@@ -1,0 +1,12 @@
+class "Visibility marks"   # + public, - private, # protected, ~ package
+repo "Repository" :abstract
+  # conn Pool
+  - cache Map
+  ~ name str
+  + find(id) Row
+  # query(sql) Rows   # a comment after the member
+users "UserRepository"
+  - table str
+  #mapRow(row) User
+  + byEmail(email) User
+users --|> repo

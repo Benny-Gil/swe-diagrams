@@ -361,8 +361,9 @@ mem ..|> store
 A member line with `(` is a method. The other member lines are fields. The
 record shows the fields, then the methods, each in its own section. The
 harness keeps the text of a member line as it is, so write a visibility
-mark at the start: `+`, `-`, or `~`. A `#` starts a comment, so put a
-protected member in quotes: `"# origin Point"`.
+mark at the start: `+` (public), `-` (private), `#` (protected), or `~`
+(package). In a class member line, a `#` at the start is the protected
+mark. In all other places, a `#` starts a comment.
 
 The kinds are `:class` (the default), `:interface`, `:abstract`, and
 `:enum`. The kind shows above the name, for example `«interface»`. An
