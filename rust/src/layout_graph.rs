@@ -44,8 +44,11 @@ pub struct GraphLayout {
     pub y: Vec<i64>,
     pub bw: Vec<i64>,
     pub bh: Vec<i64>,
-    /// The size of the icon tile across the layers. 0 for an item with no tile.
+    /// The size of the icon tile across the layers. For a node with no tile,
+    /// the cross size of the shape.
     pub tile: Vec<i64>,
+    /// Cross room before the shape of a node, for example for a loop.
+    pub pre: Vec<i64>,
     pub edges: Vec<GEdge>,
 }
 
@@ -553,6 +556,9 @@ struct Graph<'a> {
     tile: Vec<bool>,
     text_h: Vec<i64>,
     tsize: Vec<i64>,
+    // Cross room before and after the shape of a node with no tile.
+    pre: Vec<i64>,
+    post: Vec<i64>,
     // Lists for each container. Container c is stored at c + 1, the root at 0.
     local: Vec<Vec<usize>>,
     ins: Vec<Vec<Seg>>,
@@ -680,9 +686,14 @@ impl Graph<'_> {
             let si = w.in_e.get(v).len() as i64 * SLOT;
             let i = w.li[v];
             if !self.tile[i] {
-                w.lcs[v] = w.lcs[v].max(so).max(si);
-                w.ibs[v] = w.lcs[v];
-                w.obs[v] = w.lcs[v];
+                let (pre, post) = (self.pre[i], self.post[i]);
+                let core = (w.lcs[v] - pre - post).max(so).max(si);
+                w.lcs[v] = pre + core + post;
+                w.ib[v] = pre;
+                w.ob[v] = pre;
+                w.ibs[v] = core;
+                w.obs[v] = core;
+                self.tsize[i] = core;
             } else if down {
                 // Edges come in at the top of the tile and go out below the
                 // text, in the width of the tile.
@@ -926,6 +937,8 @@ pub fn layout_graph(d: &Diagram) -> GraphLayout {
     let mut cs = vec![0i64; n];
     let mut tile = vec![false; n];
     let mut text_h = vec![0i64; n];
+    let mut pre = vec![0i64; n];
+    let mut post = vec![0i64; n];
     for (i, it) in items.iter().enumerate() {
         if it.group {
             continue;
@@ -934,6 +947,7 @@ pub fn layout_graph(d: &Diagram) -> GraphLayout {
         let (mut w, h);
         if svg_shapes::draws(d.dtype) {
             (w, h) = svg_shapes::size(d, i);
+            (pre[i], post[i]) = svg_shapes::room(d, i);
         } else if !tiles {
             // A card has a status mark at the left.
             w = (tw + 28 + 22).max(96);
@@ -946,7 +960,7 @@ pub fn layout_graph(d: &Diagram) -> GraphLayout {
         }
         w += w & 1;
         ms[i] = if down { h } else { w };
-        cs[i] = if down { w } else { h };
+        cs[i] = if down { w } else { h } + pre[i] + post[i];
     }
     let label_w: Vec<i64> =
         d.edges.iter().map(|e| if e.label.is_empty() { 0 } else { measure_mono(&e.label, 105) }).collect();
@@ -1124,6 +1138,8 @@ pub fn layout_graph(d: &Diagram) -> GraphLayout {
         tile,
         text_h,
         tsize: vec![0; n],
+        pre,
+        post,
         local,
         ins,
         outs,
@@ -1160,6 +1176,7 @@ pub fn layout_graph(d: &Diagram) -> GraphLayout {
         bw: if down { g.cs.clone() } else { g.ms.clone() },
         bh: if down { g.ms.clone() } else { g.cs.clone() },
         tile: g.tsize.clone(),
+        pre: g.pre.clone(),
         edges: Vec::with_capacity(ne),
     };
 

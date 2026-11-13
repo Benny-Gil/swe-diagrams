@@ -446,13 +446,22 @@ pub(crate) fn card_text(label: &str, sub: &str, status: usize, cx: i64, cy: i64)
     )
 }
 
+/// The box of the shape of item `i`, without the room for a loop.
+fn shape_box(d: &Diagram, l: &GraphLayout, i: usize) -> [i64; 4] {
+    if d.down {
+        [l.x[i] + l.pre[i], l.y[i], l.tile[i], l.bh[i]]
+    } else {
+        [l.x[i], l.y[i] + l.pre[i], l.bw[i], l.tile[i]]
+    }
+}
+
 /// Moves the end of the route `p` at item `i` from the box side to the
 /// outline of a slanted shape. The end keeps room for the arrowhead.
 fn to_outline(d: &Diagram, l: &GraphLayout, i: usize, p: &mut [i64]) {
     if !svg_shapes::slanted(d, i) {
         return;
     }
-    let b = [l.x[i], l.y[i], l.bw[i], l.bh[i]];
+    let b = shape_box(d, l, i);
     let on_box = |x: i64, y: i64| x >= b[0] && x <= b[0] + b[2] && y >= b[1] && y <= b[1] + b[3];
     let z = p.len();
     // (end, the point before it)
@@ -497,8 +506,25 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
         t => t.name().to_string(),
     };
     let mut f = Frame::new(&d.title, kicker);
+    // When the layers go down, the label of an edge that leaves the left
+    // half of a node goes at the left of the line, so the labels of two
+    // edges that leave one node do not touch. The canvas grows to the left.
+    let left: Vec<bool> = l
+        .edges
+        .iter()
+        .map(|ge| {
+            let e = &d.edges[ge.edge];
+            ge.label_w > 0 && d.down && svg_shapes::draws(d.dtype) && left_of_centre(l, &ge.pts, e.from, e.to)
+        })
+        .collect();
+    let shift =
+        l.edges.iter().zip(&left).filter(|p| *p.1).map(|(ge, _)| 8 + ge.label_w - ge.label_x).max().unwrap_or(0).max(0);
     let (ox, oy) = f.origin();
-    let mut inner_w = l.w;
+    let ox = ox + shift;
+    let mut inner_w = l.w + shift;
+    if d.dtype == DiagramType::State {
+        f.style(svg_shapes::STATE_STYLE);
+    }
     if d.dtype == DiagramType::Deps {
         f.line_names[1] = "import";
         f.line_names[2] = "type-only / dev";
@@ -600,10 +626,27 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
             continue;
         }
         if svg_shapes::draws(d.dtype) {
-            let (shape, bx, by) = svg_shapes::node(d, i, x, y, w, h);
+            let [sx, sy, sw, sh] = shape_box(d, l, i);
+            let (shape, bx, by) = svg_shapes::node(d, i, sx + ox, sy + oy, sw, sh);
             f.body.push_str(&shape);
             if it.status > 0 {
                 f.badge(it.status, bx, by);
+            }
+            if let Some(k) = svg_shapes::first_loop(d, i) {
+                let e = &d.edges[k];
+                let lm = if e.main { " lm" } else { "" };
+                if e.status > 0 {
+                    f.used[e.status] = true;
+                }
+                let [sx, sy, sw, sh] = shape_box(d, l, i);
+                f.body.push_str(&svg_shapes::self_loop(
+                    d,
+                    i,
+                    [sx + ox, sy + oy, sw, sh],
+                    &edge_class("e", e.main, e.dashed, e.status),
+                    &edge_class("a", e.main, false, e.status),
+                    lm,
+                ));
             }
             continue;
         }
@@ -682,7 +725,7 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
         }
     }
 
-    for ge in &l.edges {
+    for (k, ge) in l.edges.iter().enumerate() {
         if ge.label_w == 0 {
             continue;
         }
@@ -691,8 +734,7 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
         // Across the layers the label sits above the line. Along a vertical
         // line it sits at the right of the line.
         let (mut ls, mut dx, dy) = if d.down { (" ls", 8, 4) } else { ("", 0, -7) };
-        if d.down && svg_shapes::draws(d.dtype) && left_of_centre(l, &ge.pts, e.from, e.to) {
-            // Two edges that leave one node get their labels on opposite sides.
+        if left[k] {
             (ls, dx) = (" le", -8);
             f.style(LABEL_END_STYLE);
         }
@@ -704,7 +746,7 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
             esc(&e.label)
         );
         if d.down && dx > 0 {
-            inner_w = inner_w.max(ge.label_x + 8 + ge.label_w);
+            inner_w = inner_w.max(shift + ge.label_x + 8 + ge.label_w);
         }
     }
     f.finish(inner_w, l.h)

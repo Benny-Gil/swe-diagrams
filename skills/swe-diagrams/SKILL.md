@@ -40,6 +40,7 @@ Otherwise use a temporary directory.
 | What are the steps of the work, and where is the work now? | `plan` |
 | What imports what? Is there an import cycle? | `deps` |
 | What are the steps and the decisions of a process? | `flow` |
+| What states can a thing be in, and what changes the state? | `state` |
 
 ## The language
 

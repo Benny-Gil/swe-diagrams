@@ -47,6 +47,7 @@ Put spaces around an arrow. Write `a -> b`, not `a->b`.
 | `plan` | Tasks, phases, and the order of the work | down |
 | `deps` | Modules and packages, and what each one imports | down |
 | `flow` | The steps and the decisions of a process | down |
+| `state` | The states of a thing, and the events that change the state | right |
 
 In `seq`, each node is a participant and each edge is a message. The order of
 the lines is the order in time. `a -> a` is a message to self. `seq` has no
@@ -114,6 +115,39 @@ is an error in `flow`.
 
 Put the answer of a decision on each edge that leaves it, for example
 `ok -> ship "yes"`. The diamond is as wide as its label needs.
+
+### state
+
+```
+state "Order"
+init :initial
+draft "Draft"
+paid "Paid" done
+shipped "Shipped" wip
+closed :final
+init -> draft
+draft -> paid "pay"
+draft -> draft "edit"
+paid -> shipped "ship [stock > 0]"
+shipped -> closed
+```
+
+Each node is a state, and each edge is a transition. Write the label of a
+transition as the event, an optional `[guard]`, and an optional `/ action`,
+for example `"timer [tries < 3] / retry"`. The harness does not parse the
+label. The arrows are `->` and `-->`.
+
+| Kind | Shape |
+|---|---|
+| `:state` | A rounded card. This is the default. |
+| `:initial` | A filled dot, with no label |
+| `:final` | A dot in a ring, with no label |
+| `:choice` | A small diamond, with no label |
+
+`a -> a` is a self-transition. Only `state` and `seq` allow it. The loop is
+on the top side of the card, with the label above it. When the layers go
+down, the loop is on the right side. Two self-transitions on one state
+share one loop, and the labels join with a comma.
 
 ## Edges
 

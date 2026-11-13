@@ -5,14 +5,20 @@
 use std::fmt::Write;
 
 use crate::model::{idiv, Diagram, DiagramType, Item};
-use crate::svg::{card_text, st};
+use crate::svg::{card_text, esc, st};
 use crate::text::{measure, measure_mono};
 
 const SKEW: i64 = 14; // horizontal offset of the top side of an `:io` shape
+const LOOP: i64 = 26; // height of a self-transition loop
+const LOOP_W: i64 = 24; // width of a self-transition loop on the right side
+
+/// The style rules of the state dots, light theme then dark theme.
+pub const STATE_STYLE: (&str, &str) =
+    (".dt{fill:#192029}.ri{fill:none;stroke:#192029;stroke-width:1.5}", ".dt{fill:#e8ebf1}.ri{stroke:#e8ebf1}");
 
 /// True for the types that this module draws.
 pub fn draws(t: DiagramType) -> bool {
-    matches!(t, DiagramType::Deps | DiagramType::Flow)
+    matches!(t, DiagramType::Deps | DiagramType::Flow | DiagramType::State)
 }
 
 /// The kind word of an item.
@@ -32,6 +38,18 @@ fn text_h(it: &Item) -> i64 {
     }
 }
 
+/// The labels of the self-transitions of item `i`, joined, or empty.
+pub fn loop_label(d: &Diagram, i: usize) -> String {
+    let labels: Vec<&str> =
+        d.edges.iter().filter(|e| e.from == i && e.to == i && !e.label.is_empty()).map(|e| e.label.as_str()).collect();
+    labels.join(", ")
+}
+
+/// The first self-transition of item `i`.
+pub fn first_loop(d: &Diagram, i: usize) -> Option<usize> {
+    d.edges.iter().position(|e| e.from == i && e.to == i)
+}
+
 /// Width and height of the shape of item `i`.
 pub fn size(d: &Diagram, i: usize) -> (i64, i64) {
     let it = &d.items[i];
@@ -47,15 +65,40 @@ pub fn size(d: &Diagram, i: usize) -> (i64, i64) {
             let ih = th - 20;
             ((idiv(tw * h + h - ih - 1, h - ih) + 16).max(96), h)
         }
+        (DiagramType::State, "initial") => (22, 22),
+        (DiagramType::State, "final") => (26, 26),
+        (DiagramType::State, "choice") => (30, 30),
+        (DiagramType::State, _) => {
+            let mut w = (tw + 36).max(88);
+            if !d.down && first_loop(d, i).is_some() {
+                w = w.max(measure_mono(&loop_label(d, i), 105) + 12);
+            }
+            (w, th)
+        }
         _ => ((tw + 32).max(96), th),
     };
     (w + (w & 1), h + (h & 1))
 }
 
+/// Cross room before and after the shape. A self-transition needs room on
+/// the top side, or on the right side when the layers go down.
+pub fn room(d: &Diagram, i: usize) -> (i64, i64) {
+    if d.dtype != DiagramType::State || first_loop(d, i).is_none() {
+        return (0, 0);
+    }
+    let label = loop_label(d, i);
+    if d.down {
+        let lw = if label.is_empty() { 0 } else { measure_mono(&label, 105) + 8 };
+        (0, LOOP_W + 8 + lw)
+    } else {
+        (LOOP + if label.is_empty() { 4 } else { 18 }, 0)
+    }
+}
+
 /// True for a shape with slanted sides, where an edge end must move to the
 /// outline.
 pub fn slanted(d: &Diagram, i: usize) -> bool {
-    matches!((d.dtype, kind(d, &d.items[i])), (DiagramType::Flow, "decision" | "io"))
+    matches!((d.dtype, kind(d, &d.items[i])), (DiagramType::Flow, "decision" | "io") | (DiagramType::State, "choice"))
 }
 
 /// Main distance from the side of the box `b` to the outline, at the edge
@@ -109,10 +152,12 @@ pub fn node(d: &Diagram, i: usize, x: i64, y: i64, w: i64, h: i64) -> (String, i
             rect(&mut out, "", idiv(h, 2));
             out.push_str(&text);
         }
-        (DiagramType::Flow, "decision") => {
+        (DiagramType::Flow, "decision") | (DiagramType::State, "choice") => {
             let pts = format!("M{cx} {y}L{} {cy}L{cx} {}L{x} {cy}z", x + w, y + h);
             poly(&mut out, &pts);
-            out.push_str(&text);
+            if d.dtype == DiagramType::Flow {
+                out.push_str(&text);
+            }
             return (out, x + idiv(3 * w, 4), y + idiv(h, 4));
         }
         (DiagramType::Flow, "io") => {
@@ -129,10 +174,83 @@ pub fn node(d: &Diagram, i: usize, x: i64, y: i64, w: i64, h: i64) -> (String, i
             rect(&mut out, "", 4);
             out.push_str(&text);
         }
+        (DiagramType::State, "initial") => {
+            let _ = write!(out, "<circle class=\"dt\" cx=\"{cx}\" cy=\"{cy}\" r=\"{}\"/>", idiv(w, 2) - 2);
+            return (out, x + w, y);
+        }
+        (DiagramType::State, "final") => {
+            let r = idiv(w, 2);
+            let _ = write!(
+                out,
+                "<circle class=\"ri\" cx=\"{cx}\" cy=\"{cy}\" r=\"{}\"/><circle class=\"dt\" cx=\"{cx}\" cy=\"{cy}\" r=\"{}\"/>",
+                r - 1,
+                r - 6
+            );
+            return (out, x + w, y);
+        }
+        (DiagramType::State, _) => {
+            rect(&mut out, "", 16);
+            out.push_str(&text);
+        }
         _ => {
             rect(&mut out, "", 8);
             out.push_str(&text);
         }
     }
     (out, badge.0, badge.1)
+}
+
+/// The loop of the self-transitions of item `i`, on the shape box `b`.
+/// The classes give the colour of the line and of the arrowhead.
+pub fn self_loop(d: &Diagram, i: usize, b: [i64; 4], line: &str, head: &str, lm: &str) -> String {
+    let [x, y, w, h] = b;
+    let label = loop_label(d, i);
+    let mut out = String::new();
+    if d.down {
+        // The loop is on the right side, and the label is at its right.
+        let r = x + w;
+        let cy = y + idiv(h, 2);
+        let _ = write!(
+            out,
+            "<path class=\"{line}\" d=\"M{r} {}C{} {} {} {} {} {}\"/><path class=\"{head}\" d=\"M{} {}l7 -3v6z\"/>",
+            cy - 9,
+            r + LOOP_W + 4,
+            cy - 18,
+            r + LOOP_W + 4,
+            cy + 18,
+            r + 9,
+            cy + 9,
+            r + 2,
+            cy + 9
+        );
+        if !label.is_empty() {
+            let _ = write!(
+                out,
+                "<text class=\"el ls mo{lm}\" x=\"{}\" y=\"{}\">{}</text>",
+                r + LOOP_W + 8,
+                cy + 4,
+                esc(&label)
+            );
+        }
+    } else {
+        // The loop is on the top side, and the label is above it.
+        let cx = x + idiv(w, 2);
+        let _ = write!(
+            out,
+            "<path class=\"{line}\" d=\"M{} {y}C{} {} {} {} {} {}\"/><path class=\"{head}\" d=\"M{} {}l-3 -7h6z\"/>",
+            cx - 9,
+            cx - 18,
+            y - LOOP - 4,
+            cx + 18,
+            y - LOOP - 4,
+            cx + 9,
+            y - 9,
+            cx + 9,
+            y - 2
+        );
+        if !label.is_empty() {
+            let _ = write!(out, "<text class=\"el mo{lm}\" x=\"{cx}\" y=\"{}\">{}</text>", y - LOOP - 2, esc(&label));
+        }
+    }
+    out
 }
