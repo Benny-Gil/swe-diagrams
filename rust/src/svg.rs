@@ -111,7 +111,7 @@ const CSS: &str = concat!(
 );
 
 /// Status badges, drawn around the origin. Index = status.
-const BADGES: [&str; 7] = [
+pub(crate) const BADGES: [&str; 7] = [
     "<circle r=\"7.4\" class=\"bq\"/>",
     "<circle r=\"8\" class=\"b s1\"/><path class=\"k\" d=\"M-3.6 .3l2.5 2.5 4.7-5.3\"/>",
     "<circle r=\"8\" class=\"b s2\"/><circle r=\"4.2\" class=\"k\"/><path class=\"kf\" d=\"M0-4.2a4.2 4.2 0 0 1 0 8.4z\"/>",

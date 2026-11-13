@@ -185,3 +185,13 @@ fn png_needs_an_output_file_and_writes_one() {
     assert_eq!(out.status.code(), Some(0), "{}", text(&out.stderr));
     assert!(fs::read(&target).unwrap().starts_with(b"\x89PNG\r\n\x1a\n"));
 }
+
+#[test]
+fn the_html_extension_writes_a_page() {
+    let target = tmp("cli-output.html");
+    let out = run(&["render", spec("fixtures/arch-checkout.sd").to_str().unwrap(), "-o", &target]);
+    assert_eq!(out.status.code(), Some(0), "{}", text(&out.stderr));
+    let page = fs::read_to_string(&target).unwrap();
+    assert!(page.starts_with("<!doctype html>"));
+    assert!(page.contains("id=\"sd-data\""));
+}

@@ -386,7 +386,63 @@ children.
 swe-diagrams render diagram.sd -o diagram.svg
 swe-diagrams render - < diagram.sd > diagram.svg
 swe-diagrams render diagram.sd -o diagram.svg --icons ./icons --offline
+swe-diagrams render diagram.sd -o diagram.html
+swe-diagrams render diagram.sd -o diagram.png --theme dark --scale 3
 ```
+
+The options:
+
+| Option | Effect |
+|---|---|
+| `-o <file>` | Writes the output to the file. Without `-o`, the output goes to standard output. |
+| `--format <F>` | Sets the format: `svg`, `html`, `png`, `txt`, `gif`, or `mp4`. |
+| `--theme <T>` | Sets the palette: `auto`, `light`, or `dark`. |
+| `--scale <N>` | Sets the pixel scale of a PNG, from 0.1 to 16. The default is 2. |
+| `--icons <dir>` | Looks for logos in the directory first. |
+| `--offline` | Does not use the network for logos. |
+
+## Output formats
+
+Without `--format`, the extension of `-o` gives the format. An unknown
+extension gives SVG. Without `-o`, the format is SVG.
+
+| Format | Output | Theme default |
+|---|---|---|
+| `svg` | One SVG file. It works in a README, a pull request, and a browser. | `auto` |
+| `html` | One page with the SVG, a stylesheet, and a script. It loads nothing from the network. | `auto` |
+| `png` | A PNG image. It needs `-o`. | `light` |
+| `txt`, `gif`, `mp4` | Not ready. The command gives an error. | |
+
+The themes:
+
+- `auto` keeps the light palette and the dark palette. The viewer picks
+  one with its colour setting.
+- `light` removes the dark palette.
+- `dark` always uses the dark palette.
+
+The HTML page also follows the `data-theme` attribute (`light` or `dark`)
+on its root element. The attribute wins over the system setting. In the
+page:
+
+- Drag to pan. Use the wheel, a pinch, or the `+` and `-` keys to zoom.
+  The `0` key and the "fit" button show all of the diagram.
+- Hover over a node: its edges and its neighbours stay bright, and the
+  rest dims.
+- Click a status in the legend: only the parts with that status stay
+  bright. Click it again to clear it.
+- The arrow keys step through the diagram: the messages of a `seq`, and
+  the nodes of the other types in line order. `Escape` clears the step.
+
+The PNG uses the bundled fonts Geist and JetBrains Mono, and no system
+font, so each machine gives the same picture.
+
+In the SVG and the HTML, each part is in a group with data attributes:
+`data-k` (`node`, `group`, `edge`, or `msg`), `data-id` and `data-s` (the
+status word) for a node or a group, and `data-i`, `data-from`, and
+`data-to` for an edge or a message. The line of an edge has the class
+`rt`.
+
+## Summary and errors
 
 On success, the harness prints one summary line:
 

@@ -72,6 +72,19 @@ The agent writes the diagram source and runs `swe-diagrams render`. You get
 an SVG file that works in a README, a pull request, or a browser. It has a
 light theme and a dark theme.
 
+The extension of the output file sets the format:
+
+```bash
+swe-diagrams render plan.sd -o plan.svg    # SVG, light and dark theme
+swe-diagrams render plan.sd -o plan.html   # page with pan, zoom, and highlights
+swe-diagrams render plan.sd -o plan.png    # PNG image, light theme
+swe-diagrams render plan.sd -o plan.png --theme dark --scale 3
+```
+
+The HTML page is one file that loads nothing from the network, so it also
+works as a Claude artifact. The PNG uses bundled fonts (Geist and JetBrains
+Mono, SIL Open Font License), so each machine gives the same picture.
+
 To write a diagram by hand, read the
 [language reference](skills/swe-diagrams/references/language.md).
 

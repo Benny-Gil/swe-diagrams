@@ -10,6 +10,15 @@ This file lists the changes in each version. The project uses
 - Easy install: steps for an agent (`docs/install.md`), a Claude Code
   plugin, an install script, and prebuilt binaries for each release.
 - A CI check for each pull request.
+- Output formats: `--format svg|html|png`, or the extension of `-o`.
+- HTML output: one self-contained page with pan, zoom, a fit button,
+  hover highlights, a status filter in the legend, and arrow-key steps.
+  The page follows `prefers-color-scheme` and the `data-theme` attribute.
+- PNG output with resvg and bundled fonts (Geist, JetBrains Mono).
+  `--scale` sets the pixel scale.
+- `--theme auto|light|dark` sets the palette of each format.
+- Each part of the SVG is in a group with `data-k` and other data
+  attributes, so a script can find it.
 
 ### Changed
 

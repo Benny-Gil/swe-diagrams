@@ -5,7 +5,7 @@ use crate::icons::{resolve, Icon, IconOptions};
 use crate::layout_graph::layout_graph;
 use crate::layout_seq::layout_seq;
 use crate::layout_timeline::layout_timeline;
-use crate::model::{DiagramError, DiagramType};
+use crate::model::{Diagram, DiagramError, DiagramType};
 use crate::parse::parse;
 use crate::svg::{change_counts, render_graph, render_seq};
 use crate::svg_timeline::render_timeline;
@@ -13,6 +13,31 @@ use crate::svg_timeline::render_timeline;
 pub struct Rendered {
     pub svg: String,
     pub summary: String,
+    pub dtype: DiagramType,
+    pub title: String,
+    /// The parts in the order of the diagram, for a viewer that steps
+    /// through them.
+    pub order: Vec<Step>,
+}
+
+/// One part in the order of a diagram.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum Step {
+    /// A sequence message: the edge index.
+    Msg(usize),
+    /// A node: the id.
+    Node(String),
+}
+
+/// A sequence steps through its messages. The other types step through
+/// their nodes in line order.
+fn order(d: &Diagram) -> Vec<Step> {
+    if d.dtype == DiagramType::Seq {
+        return (0..d.edges.len()).map(Step::Msg).collect();
+    }
+    let mut nodes: Vec<&crate::model::Item> = d.items.iter().filter(|it| !it.group).collect();
+    nodes.sort_by_key(|it| it.line);
+    nodes.into_iter().map(|it| Step::Node(it.id.clone())).collect()
 }
 
 pub fn render(src: &str, opts: &IconOptions) -> Result<Rendered, DiagramError> {
@@ -57,5 +82,5 @@ pub fn render(src: &str, opts: &IconOptions) -> Result<Rendered, DiagramError> {
         summary.push_str(" noicon=");
         summary.push_str(&missing.join(","));
     }
-    Ok(Rendered { svg, summary })
+    Ok(Rendered { svg, summary, dtype: d.dtype, title: d.title.clone(), order: order(&d) })
 }
