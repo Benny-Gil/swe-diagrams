@@ -6,6 +6,7 @@
 pub mod cycles;
 pub mod html;
 pub mod icons;
+pub mod labels;
 pub mod layout_graph;
 pub mod layout_seq;
 pub mod layout_timeline;

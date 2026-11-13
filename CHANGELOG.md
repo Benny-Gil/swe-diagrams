@@ -24,6 +24,10 @@ This file lists the changes in each version. The project uses
 
 - A class member line that starts with `#` is a protected member, not
   a comment.
+- In a layout that goes down, an edge label takes the free side of its
+  line, or moves along the line, so it does not sit on another line. A
+  node gets a wider port for a label with no free place. A group grows
+  to hold the labels of its edges.
 - Text widths come from the bundled Geist faces, with a margin for
   fallback faces, so a long title or label does not clip.
 

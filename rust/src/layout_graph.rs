@@ -8,6 +8,7 @@
 
 use std::collections::HashMap;
 
+use crate::labels;
 use crate::model::{idiv, rdiv, Diagram};
 use crate::records::{record_size, LEAD, RUN};
 use crate::svg_shapes;
@@ -33,6 +34,9 @@ pub struct GEdge {
     /// Centre of the label.
     pub label_x: i64,
     pub label_y: i64,
+    /// The side of the line that holds the label: -1 before it, 0 on it,
+    /// 1 after it. In a layout from left to right, 1 is above the line.
+    pub label_side: i64,
     pub arrow_start: bool,
     pub arrow_end: bool,
 }
@@ -139,6 +143,7 @@ struct Layers {
     efirst: Vec<bool>,
     etrack: Vec<i64>,
     slot: Vec<i64>,              // cross room for the source end
+    sside: Vec<i64>,             // where the line is in the slot: -1 end, 0 middle, 1 start
     chains: Vec<(usize, usize)>, // ranges of layer edges
 
     lay: Groups,      // nodes of each layer, in cross order
@@ -184,6 +189,7 @@ impl Layers {
         self.efirst.clear();
         self.etrack.clear();
         self.slot.clear();
+        self.sside.clear();
         self.chains.clear();
     }
 
@@ -339,7 +345,13 @@ impl Layers {
             let mut at = self.ob[v] + idiv(self.obs[v] - total, 2);
             for &(_, le) in &keyed {
                 let s = self.slot[le];
-                self.esp[le] = at + (s >> 1);
+                // A wide slot holds a label at one side of the line.
+                self.esp[le] = at
+                    + match self.sside[le] {
+                        1 => SLOT >> 1,
+                        -1 => s - (SLOT >> 1),
+                        _ => s >> 1,
+                    };
                 at += s;
             }
             keyed.clear();
@@ -580,8 +592,11 @@ struct Graph<'a> {
     lab_cont: Vec<Option<usize>>,
     lab_m: Vec<i64>,
     lab_c: Vec<i64>,
+    lab_side: Vec<i64>,
     root_m: i64,
     root_c: i64,
+    /// A `dataflow` label is a pill. It sits on its line when it can.
+    pill: bool,
     // Straight runs at the two ends of an edge. Records need room for marks.
     run: i64,
     lead: i64,
@@ -608,7 +623,9 @@ impl Graph<'_> {
 
     /// Adds the layer edges of edge `e` from node `s` to node `t`, with one
     /// thin node in each layer between them.
-    fn link(&self, w: &mut Layers, e: usize, s: usize, t: usize) {
+    /// `wide` lists the edges that get a wide slot for the label, with the
+    /// side of the label.
+    fn link(&self, w: &mut Layers, e: usize, s: usize, t: usize, wide: &[(usize, i64)]) {
         let start = w.es.len();
         let last = w.ll[t];
         let mut prev = s;
@@ -618,7 +635,10 @@ impl Graph<'_> {
             let first = w.lk[prev] == CHILD && w.li[prev] == self.lend[e];
             let sp = self.fixed_port(w, prev, e, 1);
             let tp = self.fixed_port(w, next, e, 0);
-            let slot = SLOT;
+            let (slot, sside) = match wide.iter().find(|p| p.0 == e) {
+                Some(&(_, side)) if first => (SLOT + self.label_ext(e) + 4, side),
+                _ => (SLOT, 0),
+            };
             w.es.push(prev);
             w.et.push(next);
             w.ee.push(e);
@@ -632,10 +652,111 @@ impl Graph<'_> {
             w.efirst.push(first);
             w.etrack.push(-1);
             w.slot.push(slot);
+            w.sside.push(sside);
             prev = next;
         }
         debug_assert!(w.es.len() > start, "the target layer is after the source layer");
         w.chains.push((start, w.es.len()));
+    }
+
+    /// Cross size of the label of edge `e`. A pill has a border.
+    fn label_ext(&self, e: usize) -> i64 {
+        self.label_w[e] + if self.pill { 14 } else { 0 }
+    }
+
+    /// The route points of each chain of the container, in (main, cross)
+    /// coordinates of the container. `starts` gets the start of each chain.
+    fn chain_points(&self, w: &Layers, msize: i64, pts: &mut Vec<i64>, starts: &mut Vec<usize>) {
+        let pm = &self.pm;
+        // The main position where an edge leaves a node, and where it enters.
+        let exit_m = |v: usize| match w.lk[v] {
+            CHILD => pm[w.li[v]] + w.lms[v] - w.inset[v],
+            PASS => w.lmain[w.ll[v]] + w.lsize[w.ll[v]],
+            _ => 0,
+        };
+        let entry_m = |v: usize| match w.lk[v] {
+            CHILD => pm[w.li[v]] + w.inset[v],
+            PASS => w.lmain[w.ll[v]],
+            _ => msize,
+        };
+        for &(first, end) in &w.chains {
+            starts.push(pts.len());
+            pts.push(exit_m(w.es[first]));
+            pts.push(w.lpos[w.es[first]] + w.esp[first]);
+            for le in first..end {
+                let c1 = w.lpos[w.es[le]] + w.esp[le];
+                let c2 = w.lpos[w.et[le]] + w.etp[le];
+                if c1 != c2 {
+                    pts.extend_from_slice(&[w.etrack[le], c1, w.etrack[le], c2]);
+                }
+                pts.extend_from_slice(&[entry_m(w.et[le]), c2]);
+                if w.lk[w.et[le]] == PASS {
+                    pts.extend_from_slice(&[exit_m(w.et[le]), c2]);
+                }
+            }
+        }
+    }
+
+    /// Places the labels of the container when the layers go down. The
+    /// result lists the labels with no clear place, with the side that a
+    /// wide slot must hold. `range` gets the cross range of the labels.
+    fn place_labels(&mut self, c: Option<usize>, w: &Layers, msize: i64, range: &mut (i64, i64)) -> Vec<(usize, i64)> {
+        let mut pts = Vec::new();
+        let mut starts = Vec::new();
+        self.chain_points(w, msize, &mut pts, &mut starts);
+        starts.push(pts.len());
+        let routes: Vec<&[i64]> = (0..w.chains.len()).map(|k| &pts[starts[k]..starts[k + 1]]).collect();
+        let kids: &[usize] = match c {
+            None => &self.d.roots,
+            Some(c) => &self.d.items[c].children,
+        };
+        let boxes: Vec<labels::Rect> = kids
+            .iter()
+            .map(|&k| labels::Rect {
+                m0: self.pm[k],
+                m1: self.pm[k] + self.ms[k],
+                c0: self.pc[k],
+                c1: self.pc[k] + self.cs[k],
+            })
+            .collect();
+        let mut wants = Vec::new();
+        let mut edges = Vec::new();
+        for (k, &(first, _)) in w.chains.iter().enumerate() {
+            let e = w.ee[first];
+            if !w.efirst[first] || self.label_w[e] == 0 {
+                continue;
+            }
+            let r = routes[k];
+            let (lo, hi) = (r[0].min(r[2]), r[0].max(r[2]));
+            let line = r[1];
+            // A line at the left of the node centre gets its label at the left.
+            let v = w.es[first];
+            let pref = if line < w.lpos[v] + (w.lcs[v] >> 1) { -1 } else { 1 };
+            let sides = if self.pill { vec![0, pref, -pref] } else { vec![pref, -pref] };
+            let margin = labels::HALF + 2;
+            wants.push(labels::Want {
+                line,
+                m: self.lab_m[e],
+                lo: lo + margin,
+                hi: hi - margin,
+                w: self.label_ext(e),
+                sides,
+                route: k,
+            });
+            edges.push(e);
+        }
+        let placed = labels::place(&wants, &routes, &boxes);
+        let mut bad = Vec::new();
+        for ((e, want), p) in edges.into_iter().zip(&wants).zip(&placed) {
+            self.lab_m[e] = p.m;
+            self.lab_side[e] = p.side;
+            range.0 = range.0.min(p.rect.c0);
+            range.1 = range.1.max(p.rect.c1);
+            if !p.clear {
+                bad.push((e, want.sides[0]));
+            }
+        }
+        bad
     }
 
     fn layout_container(&mut self, c: Option<usize>, w: &mut Layers) {
@@ -658,72 +779,6 @@ impl Graph<'_> {
         let max_rank = kids.iter().map(|&k| self.rank[k]).max().unwrap_or(0);
         let off = usize::from(has_w);
         let nl = off + max_rank + 1 + usize::from(has_e);
-
-        w.reset();
-        for &k in kids {
-            self.ln_of[k] = w.add_node(CHILD, k, self.rank[k] + off, self.ms[k], self.cs[k], !items[k].group);
-        }
-        for sg in &self.ins[cslot] {
-            let p = w.add_node(PORT_IN, sg.e, 0, 0, 0, false);
-            if let Some(child) = sg.child {
-                self.link(w, sg.e, p, self.ln_of[child]);
-            }
-        }
-        for &e in &self.local[cslot] {
-            self.link(w, e, self.ln_of[self.cl[e]], self.ln_of[self.cr[e]]);
-        }
-        for sg in &self.outs[cslot] {
-            let p = w.add_node(PORT_OUT, sg.e, nl - 1, 0, 0, false);
-            if let Some(child) = sg.child {
-                self.link(w, sg.e, self.ln_of[child], p);
-            }
-        }
-        let nn = w.lk.len();
-        w.index(nl);
-
-        // Room for the edge ends on each leaf.
-        for v in 0..nn {
-            if !w.leaf[v] {
-                continue;
-            }
-            let so: i64 = w.out_e.get(v).iter().map(|&le| w.slot[le]).sum();
-            let si = w.in_e.get(v).len() as i64 * SLOT;
-            let i = w.li[v];
-            if !self.tile[i] {
-                let (pre, post) = (self.pre[i], self.post[i]);
-                let core = (w.lcs[v] - pre - post).max(so).max(si);
-                w.lcs[v] = pre + core + post;
-                w.ib[v] = pre;
-                w.ob[v] = pre;
-                w.ibs[v] = core;
-                w.obs[v] = core;
-                self.tsize[i] = core;
-            } else if down {
-                // Edges come in at the top of the tile and go out below the
-                // text, in the width of the tile.
-                let tw = TILE.max(si).max(so);
-                w.lcs[v] = w.lcs[v].max(tw);
-                w.ib[v] = idiv(w.lcs[v] - tw, 2);
-                w.ibs[v] = tw;
-                w.ob[v] = w.ib[v];
-                w.obs[v] = tw;
-                self.tsize[i] = tw;
-            } else {
-                // Edges join the sides of the tile. The text is below the tile.
-                let th = TILE.max(so).max(si);
-                w.lcs[v] = th + self.text_h[i];
-                w.ibs[v] = th;
-                w.obs[v] = th;
-                w.inset[v] = idiv(w.lms[v] - TILE, 2);
-                self.tsize[i] = th;
-            }
-            self.cs[i] = w.lcs[v];
-        }
-
-        w.order_layers();
-        w.place_ports();
-        w.place_cross();
-
         let root = c.is_none();
         let pad_ms = if root {
             0
@@ -741,129 +796,238 @@ impl Graph<'_> {
             HEAD
         };
         let pad_ce = if root { 0 } else { PAD };
-        let mut csize = pad_cs + pad_ce;
-        if nn > 0 {
-            let mut lo = w.lpos[0];
-            let mut hi = w.lpos[0] + w.lcs[0];
-            for v in 1..nn {
-                lo = lo.min(w.lpos[v]);
-                hi = hi.max(w.lpos[v] + w.lcs[v]);
+
+        // A label with no clear place gets a wide slot at its line, and the
+        // layout runs one more time.
+        let mut wide: Vec<(usize, i64)> = Vec::new();
+        let (mut csize, mut msize);
+        let mut lab_range;
+        loop {
+            w.reset();
+            for &k in kids {
+                self.ln_of[k] = w.add_node(CHILD, k, self.rank[k] + off, self.ms[k], self.cs[k], !items[k].group);
             }
-            let mut shift = pad_cs - lo;
-            if let (true, true, Some(c)) = (down, has_w, c) {
-                // An edge that comes in through the top border must not cross
-                // the group label.
-                let mut first = hi;
-                for v in 0..nn {
-                    if w.lk[v] == PORT_IN && w.lpos[v] < first {
-                        first = w.lpos[v];
+            for sg in &self.ins[cslot] {
+                let p = w.add_node(PORT_IN, sg.e, 0, 0, 0, false);
+                if let Some(child) = sg.child {
+                    self.link(w, sg.e, p, self.ln_of[child], &wide);
+                }
+            }
+            for &e in &self.local[cslot] {
+                self.link(w, e, self.ln_of[self.cl[e]], self.ln_of[self.cr[e]], &wide);
+            }
+            for sg in &self.outs[cslot] {
+                let p = w.add_node(PORT_OUT, sg.e, nl - 1, 0, 0, false);
+                if let Some(child) = sg.child {
+                    self.link(w, sg.e, self.ln_of[child], p, &wide);
+                }
+            }
+            let nn = w.lk.len();
+            w.index(nl);
+
+            // Room for the edge ends on each leaf.
+            for v in 0..nn {
+                if !w.leaf[v] {
+                    continue;
+                }
+                let so: i64 = w.out_e.get(v).iter().map(|&le| w.slot[le]).sum();
+                let si = w.in_e.get(v).len() as i64 * SLOT;
+                let i = w.li[v];
+                if !self.tile[i] {
+                    let (pre, post) = (self.pre[i], self.post[i]);
+                    let core = (w.lcs[v] - pre - post).max(so).max(si);
+                    w.lcs[v] = pre + core + post;
+                    w.ib[v] = pre;
+                    w.ob[v] = pre;
+                    w.ibs[v] = core;
+                    w.obs[v] = core;
+                    self.tsize[i] = core;
+                } else if down {
+                    // Edges come in at the top of the tile and go out below the
+                    // text, in the width of the tile.
+                    let tw = TILE.max(si).max(so);
+                    w.lcs[v] = w.lcs[v].max(tw);
+                    w.ib[v] = idiv(w.lcs[v] - tw, 2);
+                    w.ibs[v] = tw;
+                    w.ob[v] = w.ib[v];
+                    w.obs[v] = tw;
+                    self.tsize[i] = tw;
+                } else {
+                    // Edges join the sides of the tile. The text is below the tile.
+                    let th = TILE.max(so).max(si);
+                    w.lcs[v] = th + self.text_h[i];
+                    w.ibs[v] = th;
+                    w.obs[v] = th;
+                    w.inset[v] = idiv(w.lms[v] - TILE, 2);
+                    self.tsize[i] = th;
+                }
+                self.cs[i] = w.lcs[v];
+            }
+
+            w.order_layers();
+            w.place_ports();
+            w.place_cross();
+
+            csize = pad_cs + pad_ce;
+            if nn > 0 {
+                let mut lo = w.lpos[0];
+                let mut hi = w.lpos[0] + w.lcs[0];
+                for v in 1..nn {
+                    lo = lo.min(w.lpos[v]);
+                    hi = hi.max(w.lpos[v] + w.lcs[v]);
+                }
+                let mut shift = pad_cs - lo;
+                if let (true, true, Some(c)) = (down, has_w, c) {
+                    // An edge that comes in through the top border must not cross
+                    // the group label.
+                    let mut first = hi;
+                    for v in 0..nn {
+                        if w.lk[v] == PORT_IN && w.lpos[v] < first {
+                            first = w.lpos[v];
+                        }
+                    }
+                    let need = group_label_w(&items[c]) + 24;
+                    if first + shift < need {
+                        shift = need - first;
                     }
                 }
-                let need = group_label_w(&items[c]) + 24;
-                if first + shift < need {
-                    shift = need - first;
+                for p in &mut w.lpos {
+                    *p += shift;
                 }
+                csize = hi + shift + pad_ce;
             }
-            for p in &mut w.lpos {
-                *p += shift;
-            }
-            csize = hi + shift + pad_ce;
-        }
 
-        // Main coordinates. Each gap holds a label zone, the jog tracks, and a
-        // straight run for the arrow.
-        w.lmain.clear();
-        w.lmain.resize(nl, 0);
-        w.lsize.clear();
-        w.lsize.resize(nl, 0);
-        for v in 0..nn {
-            let l = w.ll[v];
-            if w.lms[v] > w.lsize[l] {
-                w.lsize[l] = w.lms[v];
-            }
-        }
-        let mut downs = std::mem::take(&mut w.keyed);
-        let mut ups = std::mem::take(&mut w.keyed2);
-        let mut m = if has_w { 0 } else { pad_ms };
-        for l in 0..nl {
-            w.lmain[l] = m;
-            m += w.lsize[l];
-            if l == nl - 1 {
-                break;
-            }
-            downs.clear();
-            ups.clear();
-            let mut label_main = 0;
-            for &le in w.by_layer.get(l) {
-                let c1 = w.lpos[w.es[le]] + w.esp[le];
-                let c2 = w.lpos[w.et[le]] + w.etp[le];
-                if c2 > c1 {
-                    downs.push((c1, le));
-                } else if c2 < c1 {
-                    ups.push((c1, le));
+            // Main coordinates. Each gap holds a label zone, the jog tracks, and a
+            // straight run for the arrow.
+            w.lmain.clear();
+            w.lmain.resize(nl, 0);
+            w.lsize.clear();
+            w.lsize.resize(nl, 0);
+            for v in 0..nn {
+                let l = w.ll[v];
+                if w.lms[v] > w.lsize[l] {
+                    w.lsize[l] = w.lms[v];
                 }
-                if w.efirst[le] && self.label_w[w.ee[le]] > 0 {
-                    let lm = if down { 16 } else { self.label_w[w.ee[le]] };
-                    if lm > label_main {
-                        label_main = lm;
+            }
+            let mut downs = std::mem::take(&mut w.keyed);
+            let mut ups = std::mem::take(&mut w.keyed2);
+            let mut m = if has_w { 0 } else { pad_ms };
+            for l in 0..nl {
+                w.lmain[l] = m;
+                m += w.lsize[l];
+                if l == nl - 1 {
+                    break;
+                }
+                downs.clear();
+                ups.clear();
+                let mut label_main = 0;
+                for &le in w.by_layer.get(l) {
+                    let c1 = w.lpos[w.es[le]] + w.esp[le];
+                    let c2 = w.lpos[w.et[le]] + w.etp[le];
+                    if c2 > c1 {
+                        downs.push((c1, le));
+                    } else if c2 < c1 {
+                        ups.push((c1, le));
+                    }
+                    if w.efirst[le] && self.label_w[w.ee[le]] > 0 {
+                        let lm = if down { 16 } else { self.label_w[w.ee[le]] };
+                        if lm > label_main {
+                            label_main = lm;
+                        }
+                    }
+                }
+                // This track order keeps two jogs in the same direction from crossing.
+                downs.sort_by_key(|p| std::cmp::Reverse(p.0));
+                ups.sort_by_key(|p| p.0);
+                let jogs = (downs.len() + ups.len()) as i64;
+                let track_zone = if jogs > 0 { (jogs + 1) * TRACK } else { 0 };
+                let label_zone = if label_main > 0 { label_main + 24 } else { 0 };
+                let mut min_gap = MIN_GAP;
+                if has_w && l == 0 {
+                    min_gap = pad_ms;
+                }
+                if has_e && l + 2 == nl {
+                    min_gap = pad_me;
+                }
+                let gap = min_gap.max(self.lead + label_zone + track_zone + self.run);
+                let mut track = m + gap - track_zone - self.run;
+                for &(_, le) in downs.iter().chain(ups.iter()) {
+                    track += TRACK;
+                    w.etrack[le] = track;
+                }
+                for &le in w.by_layer.get(l) {
+                    let e = w.ee[le];
+                    if w.efirst[le] && self.label_w[e] > 0 {
+                        self.lab_cont[e] = c;
+                        self.lab_m[e] = m + self.lead + idiv(gap - self.lead - track_zone - self.run, 2);
+                        self.lab_c[e] = w.lpos[w.es[le]] + w.esp[le];
+                        self.lab_side[e] = i64::from(!self.pill);
+                    }
+                }
+                m += gap;
+            }
+            w.keyed = downs;
+            w.keyed2 = ups;
+            msize = if has_e { m } else { m + pad_me };
+
+            // The box must be wide enough for the group label.
+            if let Some(c) = c {
+                let need = group_label_w(&items[c]) + 28;
+                if down {
+                    if csize < need {
+                        csize = need;
+                    }
+                } else if msize < need {
+                    msize = need;
+                    if has_e {
+                        w.lmain[nl - 1] = msize;
                     }
                 }
             }
-            // This track order keeps two jogs in the same direction from crossing.
-            downs.sort_by_key(|p| std::cmp::Reverse(p.0));
-            ups.sort_by_key(|p| p.0);
-            let jogs = (downs.len() + ups.len()) as i64;
-            let track_zone = if jogs > 0 { (jogs + 1) * TRACK } else { 0 };
-            let label_zone = if label_main > 0 { label_main + 24 } else { 0 };
-            let mut min_gap = MIN_GAP;
-            if has_w && l == 0 {
-                min_gap = pad_ms;
-            }
-            if has_e && l + 2 == nl {
-                min_gap = pad_me;
-            }
-            let gap = min_gap.max(self.lead + label_zone + track_zone + self.run);
-            let mut track = m + gap - track_zone - self.run;
-            for &(_, le) in downs.iter().chain(ups.iter()) {
-                track += TRACK;
-                w.etrack[le] = track;
-            }
-            for &le in w.by_layer.get(l) {
-                let e = w.ee[le];
-                if w.efirst[le] && self.label_w[e] > 0 {
-                    self.lab_cont[e] = c;
-                    self.lab_m[e] = m + self.lead + idiv(gap - self.lead - track_zone - self.run, 2);
-                    self.lab_c[e] = w.lpos[w.es[le]] + w.esp[le];
-                }
-            }
-            m += gap;
-        }
-        w.keyed = downs;
-        w.keyed2 = ups;
-        let mut msize = if has_e { m } else { m + pad_me };
 
-        // The box must be wide enough for the group label.
-        if let Some(c) = c {
-            let need = group_label_w(&items[c]) + 28;
-            if down {
-                if csize < need {
-                    csize = need;
-                }
-            } else if msize < need {
-                msize = need;
-                if has_e {
-                    w.lmain[nl - 1] = msize;
-                }
-            }
-        }
-
-        for v in 0..nn {
-            let l = w.ll[v];
-            match (w.lk[v], c) {
-                (CHILD, _) => {
+            for v in 0..nn {
+                if w.lk[v] == CHILD {
+                    let l = w.ll[v];
                     self.pm[w.li[v]] = w.lmain[l] + idiv(w.lsize[l] - w.lms[v], 2);
                     self.pc[w.li[v]] = w.lpos[v];
                 }
+            }
+
+            lab_range = (i64::MAX, i64::MIN);
+            if !down {
+                break;
+            }
+            let bad = self.place_labels(c, w, msize, &mut lab_range);
+            if bad.is_empty() || !wide.is_empty() {
+                break;
+            }
+            wide = bad;
+        }
+
+        // The container holds its labels: a label at the side of a line can
+        // reach past the nodes.
+        if lab_range.0 <= lab_range.1 {
+            let margin = if root { 0 } else { 12 };
+            let extra = (margin - lab_range.0).max(0);
+            if extra > 0 {
+                for p in &mut w.lpos {
+                    *p += extra;
+                }
+                for &k in kids {
+                    self.pc[k] += extra;
+                }
+                for (e, lc) in self.lab_c.iter_mut().enumerate() {
+                    if self.lab_cont[e] == c && self.label_w[e] > 0 {
+                        *lc += extra;
+                    }
+                }
+                csize += extra;
+            }
+            csize = csize.max(lab_range.1 + extra + margin);
+        }
+
+        for v in 0..w.lk.len() {
+            match (w.lk[v], c) {
                 (PORT_IN, Some(c)) => {
                     self.ports[c].insert(w.li[v] * 2, w.lpos[v] + (w.lcs[v] >> 1));
                 }
@@ -874,37 +1038,15 @@ impl Graph<'_> {
             }
         }
 
-        // The main position where an edge leaves a node, and where it enters.
-        let pm = &self.pm;
-        let exit_m = |v: usize| match w.lk[v] {
-            CHILD => pm[w.li[v]] + w.lms[v] - w.inset[v],
-            PASS => w.lmain[w.ll[v]] + w.lsize[w.ll[v]],
-            _ => 0,
-        };
-        let entry_m = |v: usize| match w.lk[v] {
-            CHILD => pm[w.li[v]] + w.inset[v],
-            PASS => w.lmain[w.ll[v]],
-            _ => msize,
-        };
-        let pts = &mut self.piece_pts;
-        for &(first, end) in &w.chains {
-            self.piece_start.push(pts.len());
-            pts.push(exit_m(w.es[first]));
-            pts.push(w.lpos[w.es[first]] + w.esp[first]);
-            for le in first..end {
-                let c1 = w.lpos[w.es[le]] + w.esp[le];
-                let c2 = w.lpos[w.et[le]] + w.etp[le];
-                if c1 != c2 {
-                    pts.extend_from_slice(&[w.etrack[le], c1, w.etrack[le], c2]);
-                }
-                pts.extend_from_slice(&[entry_m(w.et[le]), c2]);
-                if w.lk[w.et[le]] == PASS {
-                    pts.extend_from_slice(&[exit_m(w.et[le]), c2]);
-                }
-            }
+        let mut pts = std::mem::take(&mut self.piece_pts);
+        let mut starts = std::mem::take(&mut self.piece_start);
+        self.chain_points(w, msize, &mut pts, &mut starts);
+        for &(first, _) in &w.chains {
             self.piece_edge.push(w.ee[first]);
             self.piece_cont.push(c);
         }
+        self.piece_pts = pts;
+        self.piece_start = starts;
 
         match c {
             None => {
@@ -1179,8 +1321,10 @@ pub fn layout_graph(d: &Diagram) -> GraphLayout {
         lab_cont: vec![None; ne],
         lab_m: vec![0; ne],
         lab_c: vec![0; ne],
+        lab_side: vec![0; ne],
         root_m: 0,
         root_c: 0,
+        pill: d.dtype == crate::model::DiagramType::Dataflow,
         run: if d.dtype.has_members() { RUN } else { ARROW },
         lead: if d.dtype.has_members() { LEAD } else { 0 },
     };
@@ -1257,6 +1401,7 @@ pub fn layout_graph(d: &Diagram) -> GraphLayout {
             label_w: g.label_w[e],
             label_x: 0,
             label_y: 0,
+            label_side: g.lab_side[e],
             arrow_start: rev[e] || edge.bidir,
             arrow_end: !rev[e] || edge.bidir,
         };
@@ -1270,4 +1415,52 @@ pub fn layout_graph(d: &Diagram) -> GraphLayout {
         out.edges.push(ge);
     }
     out
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::labels::label_rect;
+    use crate::parse::parse;
+
+    /// The label boxes of a layout that goes down, in (y, x) order like
+    /// `label_rect`, with the edge index.
+    fn label_boxes(src: &str) -> (Diagram, GraphLayout, Vec<(usize, labels::Rect)>) {
+        let d = parse(src).unwrap();
+        let l = layout_graph(&d);
+        let pill = if d.dtype == crate::model::DiagramType::Dataflow { 14 } else { 0 };
+        let boxes = l
+            .edges
+            .iter()
+            .filter(|ge| ge.label_w > 0)
+            .map(|ge| (ge.edge, label_rect(ge.label_x, ge.label_y, ge.label_w + pill, ge.label_side)))
+            .collect();
+        (d, l, boxes)
+    }
+
+    #[test]
+    fn a_label_does_not_sit_on_another_line() {
+        let src = include_str!("../../spec/fixtures/state-connection.sd");
+        let (_, l, boxes) = label_boxes(src);
+        for (e, r) in boxes {
+            for ge in l.edges.iter().filter(|ge| ge.edge != e) {
+                for s in ge.pts.as_chunks::<2>().0.windows(2) {
+                    let ([x1, y1], [x2, y2]) = (s[0], s[1]);
+                    let crosses = x1.min(x2) < r.c1 && r.c0 <= x1.max(x2) && y1.min(y2) < r.m1 && r.m0 <= y1.max(y2);
+                    assert!(!crosses, "the label of edge {e} is on the line of edge {}", ge.edge);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn a_label_stays_in_its_group() {
+        let src = include_str!("../../spec/fixtures/dataflow-billing.sd");
+        let (d, l, boxes) = label_boxes(src);
+        let g = d.items.iter().position(|it| it.group).unwrap();
+        let from_group = |e: usize| d.items[d.edges[e].from].parent == Some(g);
+        for (e, r) in boxes.into_iter().filter(|p| from_group(p.0)) {
+            assert!(r.c0 > l.x[g] && r.c1 < l.x[g] + l.bw[g], "the label of edge {e} crosses the group border");
+        }
+    }
 }

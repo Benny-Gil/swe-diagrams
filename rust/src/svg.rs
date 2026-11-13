@@ -513,17 +513,6 @@ fn to_outline(d: &Diagram, l: &GraphLayout, i: usize, p: &mut [i64]) {
     p[k + m] += inset * (p[k + m] - p[j + m]).signum();
 }
 
-/// True when the route `p` starts in the left half of its first node.
-fn left_of_centre(l: &GraphLayout, p: &[i64], from: usize, to: usize) -> bool {
-    let i =
-        if p[1] >= l.y[from] && p[1] <= l.y[from] + l.bh[from] && p[0] >= l.x[from] && p[0] <= l.x[from] + l.bw[from] {
-            from
-        } else {
-            to
-        };
-    p[0] < l.x[i] + idiv(l.bw[i], 2)
-}
-
 /// The count of the nodes and groups with `add`, `mod`, and `del`.
 pub fn change_counts(d: &Diagram) -> [usize; 3] {
     let mut out = [0; 3];
@@ -556,44 +545,6 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
         t => t.name().to_string(),
     };
     let mut f = Frame::new(&d.title, kicker);
-    // When the layers go down, the label of an edge that leaves the left
-    // half of a node goes at the left of the line, so the labels of two
-    // edges that leave one node do not touch. The canvas grows to the left.
-    // A dataflow pill stays on its line, unless it touches another pill.
-    let pill = d.dtype == DiagramType::Dataflow;
-    let pill_w = |ge: &crate::layout_graph::GEdge| if pill { ge.label_w + 14 } else { ge.label_w };
-    let touches = |a: &crate::layout_graph::GEdge| {
-        l.edges.iter().any(|b| {
-            !std::ptr::eq(a, b) && b.label_w > 0 && b.label_y == a.label_y && {
-                (a.label_x - b.label_x).abs() < idiv(pill_w(a) + pill_w(b), 2) + 8
-            }
-        })
-    };
-    // -1: at the left of the line, 0: on the line, 1: at the right.
-    let side: Vec<i64> = l
-        .edges
-        .iter()
-        .map(|ge| {
-            let e = &d.edges[ge.edge];
-            if ge.label_w == 0 || !d.down || !svg_shapes::draws(d.dtype) || (pill && !touches(ge)) {
-                return i64::from(!pill);
-            }
-            if left_of_centre(l, &ge.pts, e.from, e.to) {
-                -1
-            } else {
-                1
-            }
-        })
-        .collect();
-    let shift = l
-        .edges
-        .iter()
-        .zip(&side)
-        .filter(|p| *p.1 < 0)
-        .map(|(ge, _)| 8 + pill_w(ge) - ge.label_x)
-        .max()
-        .unwrap_or(0)
-        .max(0);
     let records = d.dtype.has_members();
     if records {
         f.style((crate::records::LIGHT, crate::records::DARK));
@@ -603,8 +554,6 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
         }
     }
     let (ox, oy) = f.origin();
-    let ox = ox + shift;
-    let mut inner_w = l.w + shift;
     if d.dtype == DiagramType::State {
         f.style(svg_shapes::STATE_STYLE);
     }
@@ -863,7 +812,7 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
         f.body.push_str("</g>");
     }
 
-    for (k, ge) in l.edges.iter().enumerate() {
+    for ge in &l.edges {
         if ge.label_w == 0 {
             continue;
         }
@@ -873,9 +822,8 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
         if d.dtype == DiagramType::Dataflow {
             // The label is the data that moves, in a pill on the line.
             let (mut cx, cy) = (ge.label_x + ox, ge.label_y + oy);
-            if d.down && side[k] != 0 {
-                cx += side[k] * (8 + idiv(pill_w(ge), 2));
-                inner_w = inner_w.max(shift + ge.label_x + 8 + pill_w(ge));
+            if d.down && ge.label_side != 0 {
+                cx += ge.label_side * (8 + idiv(ge.label_w + 14, 2));
             }
             let _ = write!(
                 f.body,
@@ -891,9 +839,13 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
         }
         // Across the layers the label sits above the line. Along a vertical
         // line it sits at the right of the line.
-        let (mut ls, mut dx, dy) = if d.down { (" ls", 8, 4) } else { ("", 0, -7) };
-        if side[k] < 0 {
-            (ls, dx) = (" le", -8);
+        let (ls, dx, dy) = match (d.down, ge.label_side) {
+            (false, _) => ("", 0, -7),
+            (true, 0) => ("", 0, 4),
+            (true, s) if s < 0 => (" le", -8, 4),
+            _ => (" ls", 8, 4),
+        };
+        if ls == " le" {
             f.style(LABEL_END_STYLE);
         }
         let _ = write!(
@@ -905,11 +857,8 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
             esc(&e.label)
         );
         f.body.push_str("</g>");
-        if d.down && dx > 0 {
-            inner_w = inner_w.max(shift + ge.label_x + 8 + ge.label_w);
-        }
     }
-    f.finish(inner_w, l.h)
+    f.finish(l.w, l.h)
 }
 
 pub fn render_seq(d: &Diagram, l: &SeqLayout) -> String {
