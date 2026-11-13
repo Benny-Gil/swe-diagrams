@@ -4,7 +4,7 @@
 
 use std::fmt::Write;
 
-use crate::model::{idiv, DiagramType, Edge, Item, Member};
+use crate::model::{idiv, Diagram, DiagramType, Edge, Item, Member, CLASS_ARROWS};
 use crate::svg::{esc, quiet, route_path, st};
 use crate::text::{measure, measure_mono};
 
@@ -39,6 +39,10 @@ pub const LIGHT: &str = concat!(
     ".rw.s5{fill:#b06d08;fill-opacity:.1}",
     ".rw.s6{fill:#cc3340;fill-opacity:.1}",
 );
+/// A hollow class mark has the paper colour, so the line does not show
+/// through. Only a class diagram gets these rules.
+pub const CLASS_LIGHT: &str = ".e.mk{fill:#f8fafd}";
+pub const CLASS_DARK: &str = ".e.mk{fill:#0e1217}";
 pub const DARK: &str = concat!(
     ".rh{fill:#fff;fill-opacity:.05}",
     ".rl{stroke:#3c434c}",
@@ -308,8 +312,12 @@ fn shorten(p: &mut [i64], end: bool, cut: i64) {
 /// Draws the line of an edge between records, and its end marks. `p` holds
 /// absolute points. `to_first` is true when the route starts at `e.to`.
 pub fn draw_edge(out: &mut String, dt: DiagramType, e: &Edge, p: &[i64], to_first: bool) {
+    draw_line(out, dt, e, e.status, p, to_first);
+}
+
+fn draw_line(out: &mut String, dt: DiagramType, e: &Edge, status: usize, p: &[i64], to_first: bool) {
     let z = p.len();
-    let s = st(e.status);
+    let s = st(status);
     let line = format!("e{s}");
     let fill = format!("a{s}");
     let (from_mark, to_mark) = marks(dt, e);
@@ -326,6 +334,29 @@ pub fn draw_edge(out: &mut String, dt: DiagramType, e: &Edge, p: &[i64], to_firs
     let _ = write!(out, "<path class=\"e{dash}{s}\" d=\"{}\"/>", route_path(&pts, false, false));
     out.push_str(&start_svg);
     out.push_str(&end_svg);
+}
+
+/// The legend of the class relations, in the order of `CLASS_ARROWS`. Each
+/// entry is a sample line from (0, 0) to (34, 0), and its name. The legend
+/// shows only when the diagram uses two or more relations.
+pub fn class_legend(d: &Diagram) -> Vec<(String, &'static str)> {
+    const NAMES: [&str; 6] = ["extends", "implements", "made of", "has", "uses", "depends on"];
+    if d.dtype != DiagramType::Class {
+        return Vec::new();
+    }
+    let used: Vec<usize> =
+        (0..CLASS_ARROWS.len()).filter(|&k| d.edges.iter().any(|e| e.arrow == CLASS_ARROWS[k])).collect();
+    if used.len() < 2 {
+        return Vec::new();
+    }
+    let mut out = Vec::new();
+    for k in used {
+        let e = d.edges.iter().find(|e| e.arrow == CLASS_ARROWS[k]).expect("the arrow is in use");
+        let mut svg = String::new();
+        draw_line(&mut svg, d.dtype, e, 0, &[0, 0, 34, 0], false);
+        out.push((svg, NAMES[k]));
+    }
+    out
 }
 
 #[cfg(test)]
@@ -366,6 +397,16 @@ mod tests {
         let d = parse("class\na --|> b\nc *-- a\nc o-- b\na ..> c\n").unwrap();
         let got: Vec<(&str, &str)> = d.edges.iter().map(|e| marks(d.dtype, e)).collect();
         assert_eq!(got, [("", "triangle"), ("diamond", ""), ("hollow", ""), ("", "open")]);
+    }
+
+    #[test]
+    fn the_class_legend_needs_two_relations() {
+        let one = parse("class\na --|> b\nc --|> b\n").unwrap();
+        assert!(class_legend(&one).is_empty());
+        let two = parse("class\na o-- b\nc --|> b\n").unwrap();
+        let names: Vec<&str> = class_legend(&two).iter().map(|g| g.1).collect();
+        assert_eq!(names, ["extends", "has"]);
+        assert!(class_legend(&two)[1].0.contains("e mk"));
     }
 
     #[test]

@@ -188,6 +188,8 @@ struct Frame {
     marks: Vec<(&'static str, &'static str)>,
     /// More style rules, light then dark. Only a diagram that uses them gets them.
     styles: Vec<(&'static str, &'static str)>,
+    /// Legend entries with a drawn sample: the SVG from (0, 0) to (34, 0), and the name.
+    glyphs: Vec<(String, &'static str)>,
 }
 
 impl Frame {
@@ -202,6 +204,7 @@ impl Frame {
             sources: Vec::new(),
             marks: Vec::new(),
             styles: Vec::new(),
+            glyphs: Vec::new(),
         }
     }
 
@@ -263,6 +266,17 @@ impl Frame {
                 );
                 lx += 36 + measure_mono(names[k], 100) + 24;
             }
+        }
+        for (svg, name) in &self.glyphs {
+            let _ = write!(
+                legend,
+                "<g transform=\"translate({} {})\">{svg}</g><text class=\"lg mo\" x=\"{}\" y=\"{}\">{name}</text>",
+                lx,
+                ly - 3,
+                lx + 40,
+                ly
+            );
+            lx += 40 + measure_mono(name, 100) + 24;
         }
         for &(class, name) in &self.marks {
             let _ = write!(
@@ -464,6 +478,10 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
     let records = d.dtype.has_members();
     if records {
         f.style((crate::records::LIGHT, crate::records::DARK));
+        f.glyphs = crate::records::class_legend(d);
+        if d.dtype == DiagramType::Class {
+            f.style((crate::records::CLASS_LIGHT, crate::records::CLASS_DARK));
+        }
     }
     let (ox, oy) = f.origin();
     let mut inner_w = l.w;
