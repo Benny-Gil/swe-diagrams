@@ -1,0 +1,18 @@
+change "Add search to the catalog"   # groups, logos from spec/icons, quiet parts, dir down
+dir down
+user "Shopper" "browser" :actor
+group cloud "Cloud" :vendor @orbit
+  web "Web app" "next.js" @orbit mod
+  api "Catalog API" "go"
+  idx "Indexer" "worker" add
+  group data "Data"
+    db "Catalog db" :store @prism
+    search "Search" "opensearch" :store add
+legacy "Legacy feed" :ext @ghost del
+user => web "search"
+web => api "query" mod
+api -> db
+api -> search "full text" add
+db --> idx "change stream" add
+idx -> search "index" add
+legacy --> api "nightly import" del

@@ -1,0 +1,21 @@
+deps "Crate graph of the harness"   # two cycles, type-only links, dir right
+dir right
+main "main.rs" "binary"
+group lib "src"
+  render "render.rs"
+  parse "parse.rs"
+  model "model.rs"
+  svg "svg.rs" mod
+  shapes "svg_shapes.rs" add
+  layout "layout_graph.rs"
+  text "text.rs"
+serde "serde" :ext plan
+main -> render
+render -> parse -> model
+render -> layout -> model
+render -> svg -> layout
+svg -> shapes -> svg
+svg -> text
+layout -> text
+model --> serde "derive"
+model --> parse "types"

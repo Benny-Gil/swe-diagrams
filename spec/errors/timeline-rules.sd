@@ -1,0 +1,7 @@
+timeline "No edges and flat phases"
+group p1 "Phase 1"
+  a "Spec" "Nov 3" done
+  group p2 "Inner"
+    b "Build"
+a -> b
+c "Ship" :decision

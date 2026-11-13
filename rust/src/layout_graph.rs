@@ -1,4 +1,4 @@
-//! Layered layout for graph diagrams (arch, plan).
+//! Layered layout for graph diagrams (all types other than seq).
 //!
 //! Each container (the root, or a group) gets its own layered layout, from the
 //! deepest group up. An edge that leaves a group gets a port on the border of
@@ -8,7 +8,9 @@
 
 use std::collections::HashMap;
 
-use crate::model::{idiv, rdiv, Diagram, DiagramType};
+use crate::model::{idiv, rdiv, Diagram};
+use crate::records::{record_size, LEAD, RUN};
+use crate::svg_shapes;
 use crate::text::{measure, measure_mono};
 
 const NODE_GAP: i64 = 28; // cross gap between two real nodes
@@ -43,8 +45,11 @@ pub struct GraphLayout {
     pub y: Vec<i64>,
     pub bw: Vec<i64>,
     pub bh: Vec<i64>,
-    /// The size of the icon tile across the layers. 0 for an item with no tile.
+    /// The size of the icon tile across the layers. For a node with no tile,
+    /// the cross size of the shape.
     pub tile: Vec<i64>,
+    /// Cross room before the shape of a node, for example for a loop.
+    pub pre: Vec<i64>,
     pub edges: Vec<GEdge>,
 }
 
@@ -552,6 +557,9 @@ struct Graph<'a> {
     tile: Vec<bool>,
     text_h: Vec<i64>,
     tsize: Vec<i64>,
+    // Cross room before and after the shape of a node with no tile.
+    pre: Vec<i64>,
+    post: Vec<i64>,
     // Lists for each container. Container c is stored at c + 1, the root at 0.
     local: Vec<Vec<usize>>,
     ins: Vec<Vec<Seg>>,
@@ -574,6 +582,9 @@ struct Graph<'a> {
     lab_c: Vec<i64>,
     root_m: i64,
     root_c: i64,
+    // Straight runs at the two ends of an edge. Records need room for marks.
+    run: i64,
+    lead: i64,
 }
 
 /// Width of the label of a group, with its icon.
@@ -679,9 +690,14 @@ impl Graph<'_> {
             let si = w.in_e.get(v).len() as i64 * SLOT;
             let i = w.li[v];
             if !self.tile[i] {
-                w.lcs[v] = w.lcs[v].max(so).max(si);
-                w.ibs[v] = w.lcs[v];
-                w.obs[v] = w.lcs[v];
+                let (pre, post) = (self.pre[i], self.post[i]);
+                let core = (w.lcs[v] - pre - post).max(so).max(si);
+                w.lcs[v] = pre + core + post;
+                w.ib[v] = pre;
+                w.ob[v] = pre;
+                w.ibs[v] = core;
+                w.obs[v] = core;
+                self.tsize[i] = core;
             } else if down {
                 // Edges come in at the top of the tile and go out below the
                 // text, in the width of the tile.
@@ -806,8 +822,8 @@ impl Graph<'_> {
             if has_e && l + 2 == nl {
                 min_gap = pad_me;
             }
-            let gap = min_gap.max(label_zone + track_zone + ARROW);
-            let mut track = m + gap - track_zone - ARROW;
+            let gap = min_gap.max(self.lead + label_zone + track_zone + self.run);
+            let mut track = m + gap - track_zone - self.run;
             for &(_, le) in downs.iter().chain(ups.iter()) {
                 track += TRACK;
                 w.etrack[le] = track;
@@ -816,7 +832,7 @@ impl Graph<'_> {
                 let e = w.ee[le];
                 if w.efirst[le] && self.label_w[e] > 0 {
                     self.lab_cont[e] = c;
-                    self.lab_m[e] = m + idiv(gap - track_zone - ARROW, 2);
+                    self.lab_m[e] = m + self.lead + idiv(gap - self.lead - track_zone - self.run, 2);
                     self.lab_c[e] = w.lpos[w.es[le]] + w.esp[le];
                 }
             }
@@ -919,20 +935,31 @@ pub fn layout_graph(d: &Diagram) -> GraphLayout {
     let n = items.len();
     let ne = d.edges.len();
     let down = d.down;
-    let is_plan = d.dtype == DiagramType::Plan;
+    let tiles = d.dtype.has_tiles();
 
     let mut ms = vec![0i64; n];
     let mut cs = vec![0i64; n];
     let mut tile = vec![false; n];
     let mut text_h = vec![0i64; n];
+    let mut pre = vec![0i64; n];
+    let mut post = vec![0i64; n];
     for (i, it) in items.iter().enumerate() {
         if it.group {
             continue;
         }
+        if d.dtype.has_members() {
+            let (w, h) = record_size(d.dtype, it);
+            ms[i] = if down { h } else { w };
+            cs[i] = if down { w } else { h };
+            continue;
+        }
         let tw = measure(&it.label, 13, true).max(measure_mono(&it.sub, 95));
         let (mut w, h);
-        if is_plan {
-            // A task is a card with a status mark at the left.
+        if svg_shapes::draws(d.dtype) {
+            (w, h) = svg_shapes::size(d, i);
+            (pre[i], post[i]) = svg_shapes::room(d, i);
+        } else if !tiles {
+            // A card has a status mark at the left.
             w = (tw + 28 + 22).max(96);
             h = if it.sub.is_empty() { 38 } else { 52 };
         } else {
@@ -943,7 +970,7 @@ pub fn layout_graph(d: &Diagram) -> GraphLayout {
         }
         w += w & 1;
         ms[i] = if down { h } else { w };
-        cs[i] = if down { w } else { h };
+        cs[i] = if down { w } else { h } + pre[i] + post[i];
     }
     let label_w: Vec<i64> =
         d.edges.iter().map(|e| if e.label.is_empty() { 0 } else { measure_mono(&e.label, 105) }).collect();
@@ -959,6 +986,12 @@ pub fn layout_graph(d: &Diagram) -> GraphLayout {
     let mut pa: Vec<usize> = Vec::new();
     let mut pb: Vec<usize> = Vec::new();
     for (e, edge) in d.edges.iter().enumerate() {
+        if edge.from == edge.to {
+            // A self-transition does not take part in the layering.
+            ca[e] = edge.from;
+            cb[e] = edge.from;
+            continue;
+        }
         pa.clear();
         pb.clear();
         let mut p = Some(edge.from);
@@ -988,6 +1021,12 @@ pub fn layout_graph(d: &Diagram) -> GraphLayout {
 
     // Break cycles: a depth-first search reverses each edge that closes a
     // cycle. The stack holds a node and the position in its edge list.
+    // A parent class goes above its children, so the layering sees the
+    // edge of `a --|> b` from b to a.
+    let flip: Vec<bool> = d.edges.iter().map(|e| matches!(e.arrow, "--|>" | "..|>")).collect();
+    for e in (0..ne).filter(|&e| flip[e]) {
+        std::mem::swap(&mut ca[e], &mut cb[e]);
+    }
     let mut rev = vec![false; ne];
     let mut state = vec![0u8; n];
     let mut adj = Groups::default();
@@ -1016,6 +1055,11 @@ pub fn layout_graph(d: &Diagram) -> GraphLayout {
                 stack.push((v, adj.start[v]));
             }
         }
+    }
+
+    for e in (0..ne).filter(|&e| flip[e]) {
+        std::mem::swap(&mut ca[e], &mut cb[e]);
+        rev[e] = !rev[e];
     }
 
     let mut lend = vec![0usize; ne]; // the end on the low-rank side
@@ -1088,6 +1132,9 @@ pub fn layout_graph(d: &Diagram) -> GraphLayout {
     // Border ports. An edge end inside a group leaves each group between the
     // end and the lowest common container.
     for e in 0..ne {
+        if d.edges[e].from == d.edges[e].to {
+            continue;
+        }
         for (end, list) in [(lend[e], &mut outs), (rend[e], &mut ins)] {
             let mut cur = end;
             if items[cur].group {
@@ -1112,6 +1159,8 @@ pub fn layout_graph(d: &Diagram) -> GraphLayout {
         tile,
         text_h,
         tsize: vec![0; n],
+        pre,
+        post,
         local,
         ins,
         outs,
@@ -1132,6 +1181,8 @@ pub fn layout_graph(d: &Diagram) -> GraphLayout {
         lab_c: vec![0; ne],
         root_m: 0,
         root_c: 0,
+        run: if d.dtype.has_members() { RUN } else { ARROW },
+        lead: if d.dtype.has_members() { LEAD } else { 0 },
     };
     g.layout_container(None, &mut Layers::default());
     g.piece_start.push(g.piece_pts.len());
@@ -1148,6 +1199,7 @@ pub fn layout_graph(d: &Diagram) -> GraphLayout {
         bw: if down { g.cs.clone() } else { g.ms.clone() },
         bh: if down { g.ms.clone() } else { g.cs.clone() },
         tile: g.tsize.clone(),
+        pre: g.pre.clone(),
         edges: Vec::with_capacity(ne),
     };
 
@@ -1165,6 +1217,9 @@ pub fn layout_graph(d: &Diagram) -> GraphLayout {
     let mut order: Vec<usize> = Vec::new();
     let mut raw: Vec<i64> = Vec::new();
     for (e, edge) in d.edges.iter().enumerate() {
+        if edge.from == edge.to {
+            continue;
+        }
         order.clear();
         order.extend_from_slice(by_edge.get(e));
         order.sort_by_key(|&p| g.piece_pts[g.piece_start[p]]);

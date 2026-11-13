@@ -1,0 +1,11 @@
+state "Order"   # the example of the design
+init :initial
+draft "Draft"
+paid "Paid" done
+shipped "Shipped" wip
+closed :final
+init -> draft
+draft -> paid "pay"
+draft -> draft "edit"
+paid -> shipped "ship [stock > 0]"
+shipped -> closed

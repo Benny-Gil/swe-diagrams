@@ -1,0 +1,2 @@
+deps "Only state allows a self-edge"
+a -> a

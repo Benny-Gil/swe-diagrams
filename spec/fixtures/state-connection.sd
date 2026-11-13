@@ -1,0 +1,19 @@
+state "Connection"   # a choice, two loops on one state, dir down
+dir down
+start :initial
+idle "Idle"
+connecting "Connecting" "dial + TLS"
+check :choice
+open "Open" wip
+backoff "Backoff" add
+closed :final
+start -> idle
+idle -> connecting "connect()"
+connecting -> check "done"
+check -> open "[ok]"
+check -> backoff "[error]"
+backoff -> connecting "timer / retries++"
+open -> open "message"
+open -> open "ping / pong"
+open -> idle "close()"
+idle -> closed "dispose()" del

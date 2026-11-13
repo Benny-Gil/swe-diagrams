@@ -1,0 +1,3 @@
+4: unknown flag 'unique'. Flags: pk fk uniq null
+5: write a field as: name type flags status
+7: unknown arrow '->'. Arrows of erd: a--b, with each end one of 1 ? * +

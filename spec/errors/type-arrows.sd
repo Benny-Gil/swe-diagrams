@@ -1,0 +1,5 @@
+deps "Arrows of another type"
+a -> b
+a => b
+b <-> c "both"
+c 1--* d

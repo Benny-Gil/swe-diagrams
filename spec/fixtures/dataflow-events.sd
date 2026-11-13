@@ -1,0 +1,10 @@
+dataflow "Event pipeline"   # the example of the design
+app "Web app" :source
+q "events" :queue
+etl "Normalize"
+wh "Warehouse" :store
+dash "Dashboards" :sink
+app -> q "click events"
+q -> etl "json"
+etl -> wh "rows"
+wh -> dash "sql"

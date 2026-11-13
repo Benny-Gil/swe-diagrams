@@ -1,0 +1,5 @@
+flow "Kinds of another type"
+a "Start" :start
+b "Store" :store
+c "Check" :decision
+d "Wait" :state

@@ -1,0 +1,16 @@
+dataflow "Usage billing"   # groups, a fan-out, statuses, dir down
+dir down
+meter "API gateway" "request log" :source
+group stream "Stream jobs"
+  agg "Aggregate" "per minute" done
+  price "Price" "plan rules" wip
+kafka "usage" "kafka topic" :queue
+ledger "Ledger" "postgres" :store
+s3 "Archive" "s3 bucket" :store add
+inv "Invoices" "stripe" :sink plan
+meter -> kafka "usage events"
+kafka -> agg "events"
+agg -> price "counts"
+agg --> s3 "raw minutes" add
+price -> ledger "line items"
+ledger -> inv "monthly total" plan

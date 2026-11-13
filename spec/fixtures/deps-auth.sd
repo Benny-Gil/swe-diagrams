@@ -1,0 +1,10 @@
+deps "Auth module imports"   # the example of the design
+group core "src/core"
+  session "session.ts"
+  token "token.ts"
+api "src/api/login.ts" mod
+jwt "jose" :ext
+api -> session
+session -> token
+token -> jwt
+token -> session del

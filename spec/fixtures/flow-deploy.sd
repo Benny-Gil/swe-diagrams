@@ -1,0 +1,19 @@
+flow "Deploy a release"   # all kinds, the main flow, statuses, dir right
+dir right
+push "Push a tag" :start done
+build "Build" "cargo build --release" :sub done
+tests "Tests green?" :decision wip
+canary "Canary to 1%" plan
+errs "Error rate above 0.5%?" :decision plan
+roll "Roll back" :sub plan
+notes "Write the release notes" :io plan
+live "Live" :end plan
+fix "Fix the build"
+push => build => tests
+tests => canary "yes"
+tests -> fix "no"
+fix --> push "new tag"
+canary => errs
+errs -> roll "yes"
+errs => notes "no"
+notes => live

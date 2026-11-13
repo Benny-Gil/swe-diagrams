@@ -5,10 +5,12 @@
 
 use std::fmt::Write;
 
+use crate::cycles::find_cycles;
 use crate::icons::Icon;
 use crate::layout_graph::GraphLayout;
 use crate::layout_seq::SeqLayout;
 use crate::model::{idiv, Diagram, DiagramType, STATUS_NAMES};
+use crate::svg_shapes;
 use crate::text::{measure, measure_mono};
 
 const CSS: &str = concat!(
@@ -133,11 +135,20 @@ const GLYPHS: [&str; 5] = [
     "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3z",
 ];
 
+/// An edge in a dependency cycle gets the colour of `del`.
+const CYCLE_STYLE: (&str, &str) =
+    (".e.cy{stroke:#cc3340}.a.cy{fill:#cc3340}", ".e.cy{stroke:#f0626c}.a.cy{fill:#f0626c}");
+
+/// In a change diagram, a part with no status is quiet.
+const QUIET_STYLE: (&str, &str) = (".q{opacity:.38}", "");
+
+const LABEL_END_STYLE: (&str, &str) = (".le{text-anchor:end}", "");
+
 const PAD: i64 = 24; // page padding
 const INNER: i64 = 32; // canvas padding
 const GAP: i64 = 4; // clear space between a line end and its target
 
-fn esc(s: &str) -> String {
+pub(crate) fn esc(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
     for ch in s.chars() {
         match ch {
@@ -151,7 +162,7 @@ fn esc(s: &str) -> String {
     out
 }
 
-fn st(status: usize) -> String {
+pub(crate) fn st(status: usize) -> String {
     if status > 0 {
         format!(" s{status}")
     } else {
@@ -160,7 +171,7 @@ fn st(status: usize) -> String {
 }
 
 /// The class of the text of a part with a status that makes the text quiet.
-fn quiet(status: usize) -> &'static str {
+pub(crate) fn quiet(status: usize) -> &'static str {
     match status {
         3 => " p3",
         6 => " p6",
@@ -169,24 +180,36 @@ fn quiet(status: usize) -> &'static str {
 }
 
 /// The frame that all diagram types share: page, header, canvas, legend.
-struct Frame {
-    body: String,
+pub(crate) struct Frame {
+    pub(crate) body: String,
     title: String,
     kicker: String,
-    used: [bool; 7],
+    pub(crate) used: [bool; 7],
     lines: [bool; 3], // main flow, connection, dashed
+    /// The legend names of the three line kinds.
+    line_names: [&'static str; 3],
     sources: Vec<String>,
+    /// More legend lines after the line kinds: the class of the line, and the name.
+    marks: Vec<(&'static str, &'static str)>,
+    /// More style rules, light then dark. Only a diagram that uses them gets them.
+    styles: Vec<(&'static str, &'static str)>,
+    /// Legend entries with a drawn sample: the SVG from (0, 0) to (34, 0), and the name.
+    glyphs: Vec<(String, &'static str)>,
 }
 
 impl Frame {
-    fn new(title: &str, kicker: String) -> Frame {
+    pub(crate) fn new(title: &str, kicker: String) -> Frame {
         Frame {
             body: String::new(),
             title: title.to_string(),
             kicker,
             used: [false; 7],
             lines: [false; 3],
+            line_names: ["main flow", "connection", "async / indirect"],
             sources: Vec::new(),
+            marks: Vec::new(),
+            styles: Vec::new(),
+            glyphs: Vec::new(),
         }
     }
 
@@ -199,16 +222,28 @@ impl Frame {
     }
 
     /// Origin of the diagram content.
-    fn origin(&self) -> (i64, i64) {
+    pub(crate) fn origin(&self) -> (i64, i64) {
         (PAD + INNER, self.top() + INNER)
     }
 
-    fn badge(&mut self, status: usize, x: i64, y: i64) {
+    fn style(&mut self, rules: (&'static str, &'static str)) {
+        if !self.styles.contains(&rules) {
+            self.styles.push(rules);
+        }
+    }
+
+    fn mark(&mut self, class: &'static str, name: &'static str) {
+        if !self.marks.contains(&(class, name)) {
+            self.marks.push((class, name));
+        }
+    }
+
+    pub(crate) fn badge(&mut self, status: usize, x: i64, y: i64) {
         self.used[status] = true;
         let _ = write!(self.body, "<use href=\"#b{status}\" x=\"{x}\" y=\"{y}\"/>");
     }
 
-    fn finish(self, inner_w: i64, inner_h: i64) -> String {
+    pub(crate) fn finish(self, inner_w: i64, inner_h: i64) -> String {
         let top = self.top();
         let ch = inner_h + 2 * INNER;
 
@@ -218,7 +253,7 @@ impl Frame {
         let mut lx = PAD;
         let kinds = self.lines.iter().filter(|&&b| b).count();
         if kinds > 1 {
-            let names = ["main flow", "connection", "async / indirect"];
+            let names = self.line_names;
             let classes = ["e em", "e", "e d"];
             for k in 0..3 {
                 if !self.lines[k] {
@@ -236,6 +271,28 @@ impl Frame {
                 );
                 lx += 36 + measure_mono(names[k], 100) + 24;
             }
+        }
+        for (svg, name) in &self.glyphs {
+            let _ = write!(
+                legend,
+                "<g transform=\"translate({} {})\">{svg}</g><text class=\"lg mo\" x=\"{}\" y=\"{}\">{name}</text>",
+                lx,
+                ly - 3,
+                lx + 40,
+                ly
+            );
+            lx += 40 + measure_mono(name, 100) + 24;
+        }
+        for &(class, name) in &self.marks {
+            let _ = write!(
+                legend,
+                "<path class=\"{class}\" d=\"M{} {}h30\"/><text class=\"lg mo\" x=\"{}\" y=\"{}\">{name}</text>",
+                lx,
+                ly - 3,
+                lx + 36,
+                ly
+            );
+            lx += 36 + measure_mono(name, 100) + 24;
         }
         for (s, name) in STATUS_NAMES.iter().enumerate().skip(1) {
             if !self.used[s] {
@@ -278,7 +335,18 @@ impl Frame {
         if !self.title.is_empty() {
             let _ = write!(out, " aria-label=\"{}\"", esc(&self.title));
         }
-        let _ = write!(out, "><style>{CSS}</style><defs>{defs}</defs>");
+        let _ = write!(out, "><style>{CSS}");
+        if !self.styles.is_empty() {
+            for (light, _) in &self.styles {
+                out.push_str(light);
+            }
+            out.push_str("@media(prefers-color-scheme:dark){");
+            for (_, dark) in &self.styles {
+                out.push_str(dark);
+            }
+            out.push('}');
+        }
+        let _ = write!(out, "</style><defs>{defs}</defs>");
         let _ = write!(out, "<rect class=\"pg\" width=\"{w}\" height=\"{h}\" rx=\"12\"/>");
         if !self.title.is_empty() {
             let _ = write!(out, "<text class=\"kk mo\" x=\"{PAD}\" y=\"36\">{}</text>", esc(&self.kicker));
@@ -312,7 +380,7 @@ impl Frame {
 
 /// A path with round corners through points on a right-angle route. The
 /// line stops short of both ends, and shorter where an arrowhead sits.
-fn route_path(p: &[i64], arrow_start: bool, arrow_end: bool) -> String {
+pub(crate) fn route_path(p: &[i64], arrow_start: bool, arrow_end: bool) -> String {
     let mut pts = p.to_vec();
     let z = pts.len();
     let cut_end = GAP + if arrow_end { 5 } else { 0 };
@@ -381,7 +449,7 @@ fn card(kind: usize, status: usize, x: i64, y: i64, w: i64, h: i64) -> String {
     )
 }
 
-fn card_text(label: &str, sub: &str, status: usize, cx: i64, cy: i64) -> String {
+pub(crate) fn card_text(label: &str, sub: &str, status: usize, cx: i64, cy: i64) -> String {
     let p = quiet(status);
     if sub.is_empty() {
         return format!("<text class=\"nm{p}\" x=\"{cx}\" y=\"{}\">{}</text>", cy + 5, esc(label));
@@ -395,18 +463,145 @@ fn card_text(label: &str, sub: &str, status: usize, cx: i64, cy: i64) -> String 
     )
 }
 
-pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> String {
-    let is_plan = d.dtype == DiagramType::Plan;
-    let kicker = if is_plan {
-        let total = d.items.iter().filter(|it| !it.group).count();
-        let done = d.items.iter().filter(|it| !it.group && it.status == 1).count();
-        format!("plan / {done} of {total} done")
+/// The box of the shape of item `i`, without the room for a loop.
+fn shape_box(d: &Diagram, l: &GraphLayout, i: usize) -> [i64; 4] {
+    if d.down {
+        [l.x[i] + l.pre[i], l.y[i], l.tile[i], l.bh[i]]
     } else {
-        "architecture".to_string()
+        [l.x[i], l.y[i] + l.pre[i], l.bw[i], l.tile[i]]
+    }
+}
+
+/// Moves the end of the route `p` at item `i` from the box side into the
+/// box, to the outline of a slanted shape. The last run gets longer, so the
+/// arrowhead keeps its gap.
+fn to_outline(d: &Diagram, l: &GraphLayout, i: usize, p: &mut [i64]) {
+    if !svg_shapes::slanted(d, i) {
+        return;
+    }
+    let b = shape_box(d, l, i);
+    let on_box = |x: i64, y: i64| x >= b[0] && x <= b[0] + b[2] && y >= b[1] && y <= b[1] + b[3];
+    let z = p.len();
+    // (end, the point before it)
+    let (k, j) = if on_box(p[0], p[1]) {
+        (0, 2)
+    } else if on_box(p[z - 2], p[z - 1]) {
+        (z - 2, z - 4)
+    } else {
+        return;
+    };
+    let m = usize::from(d.down); // index of the main coordinate
+    let inset = svg_shapes::outline_inset(d, i, b, p[k], p[k + 1]);
+    p[k + m] += inset * (p[k + m] - p[j + m]).signum();
+}
+
+/// True when the route `p` starts in the left half of its first node.
+fn left_of_centre(l: &GraphLayout, p: &[i64], from: usize, to: usize) -> bool {
+    let i =
+        if p[1] >= l.y[from] && p[1] <= l.y[from] + l.bh[from] && p[0] >= l.x[from] && p[0] <= l.x[from] + l.bw[from] {
+            from
+        } else {
+            to
+        };
+    p[0] < l.x[i] + idiv(l.bw[i], 2)
+}
+
+/// The count of the nodes and groups with `add`, `mod`, and `del`.
+pub fn change_counts(d: &Diagram) -> [usize; 3] {
+    let mut out = [0; 3];
+    for it in &d.items {
+        if (4..=6).contains(&it.status) {
+            out[it.status - 4] += 1;
+        }
+    }
+    out
+}
+
+pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> String {
+    let tiles = d.dtype.has_tiles();
+    let kicker = match d.dtype {
+        DiagramType::Plan => {
+            let total = d.items.iter().filter(|it| !it.group).count();
+            let done = d.items.iter().filter(|it| !it.group && it.status == 1).count();
+            format!("plan / {done} of {total} done")
+        }
+        DiagramType::Deps => "dependencies".to_string(),
+        DiagramType::State => "state machine".to_string(),
+        DiagramType::Dataflow => "data flow".to_string(),
+        DiagramType::Erd => "entities".to_string(),
+        DiagramType::Class => "classes".to_string(),
+        DiagramType::Arch => "architecture".to_string(),
+        DiagramType::Change => {
+            let [add, m, del] = change_counts(d);
+            format!("change / +{add} ~{m} -{del}")
+        }
+        t => t.name().to_string(),
     };
     let mut f = Frame::new(&d.title, kicker);
+    // When the layers go down, the label of an edge that leaves the left
+    // half of a node goes at the left of the line, so the labels of two
+    // edges that leave one node do not touch. The canvas grows to the left.
+    // A dataflow pill stays on its line, unless it touches another pill.
+    let pill = d.dtype == DiagramType::Dataflow;
+    let pill_w = |ge: &crate::layout_graph::GEdge| if pill { ge.label_w + 14 } else { ge.label_w };
+    let touches = |a: &crate::layout_graph::GEdge| {
+        l.edges.iter().any(|b| {
+            !std::ptr::eq(a, b) && b.label_w > 0 && b.label_y == a.label_y && {
+                (a.label_x - b.label_x).abs() < idiv(pill_w(a) + pill_w(b), 2) + 8
+            }
+        })
+    };
+    // -1: at the left of the line, 0: on the line, 1: at the right.
+    let side: Vec<i64> = l
+        .edges
+        .iter()
+        .map(|ge| {
+            let e = &d.edges[ge.edge];
+            if ge.label_w == 0 || !d.down || !svg_shapes::draws(d.dtype) || (pill && !touches(ge)) {
+                return i64::from(!pill);
+            }
+            if left_of_centre(l, &ge.pts, e.from, e.to) {
+                -1
+            } else {
+                1
+            }
+        })
+        .collect();
+    let shift = l
+        .edges
+        .iter()
+        .zip(&side)
+        .filter(|p| *p.1 < 0)
+        .map(|(ge, _)| 8 + pill_w(ge) - ge.label_x)
+        .max()
+        .unwrap_or(0)
+        .max(0);
+    let records = d.dtype.has_members();
+    if records {
+        f.style((crate::records::LIGHT, crate::records::DARK));
+        f.glyphs = crate::records::class_legend(d);
+        if d.dtype == DiagramType::Class {
+            f.style((crate::records::CLASS_LIGHT, crate::records::CLASS_DARK));
+        }
+    }
     let (ox, oy) = f.origin();
-    let mut inner_w = l.w;
+    let ox = ox + shift;
+    let mut inner_w = l.w + shift;
+    if d.dtype == DiagramType::State {
+        f.style(svg_shapes::STATE_STYLE);
+    }
+    if d.dtype == DiagramType::Dataflow {
+        f.style(svg_shapes::DATAFLOW_STYLE);
+    }
+    let change = d.dtype == DiagramType::Change;
+    if change {
+        f.style(QUIET_STYLE);
+    }
+    if d.dtype == DiagramType::Deps {
+        f.line_names[1] = "import";
+        f.line_names[2] = "type-only / dev";
+    }
+    let cycle = if d.dtype == DiagramType::Deps { find_cycles(d).edge } else { vec![false; d.edges.len()] };
 
     for (i, it) in d.items.iter().enumerate() {
         if !it.group {
@@ -421,6 +616,9 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
             class.push_str(" gn");
         }
         class.push_str(&st(it.status));
+        if change && it.status == 0 {
+            class.push_str(" q");
+        }
         let _ = write!(
             f.body,
             "<rect class=\"{class}\" x=\"{}\" y=\"{}\" width=\"{}\" height=\"{}\" rx=\"12\"/>",
@@ -433,10 +631,20 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
 
     for ge in &l.edges {
         let e = &d.edges[ge.edge];
-        let p: Vec<i64> = ge.pts.as_chunks::<2>().0.iter().flat_map(|c| [c[0] + ox, c[1] + oy]).collect();
+        let mut p: Vec<i64> = ge.pts.clone();
+        if svg_shapes::draws(d.dtype) {
+            to_outline(d, l, e.from, &mut p);
+            to_outline(d, l, e.to, &mut p);
+        }
+        let p: Vec<i64> = p.as_chunks::<2>().0.iter().flat_map(|c| [c[0] + ox, c[1] + oy]).collect();
         let z = p.len();
         if e.status > 0 {
             f.used[e.status] = true;
+        }
+        if records {
+            // The end marks tell the kind of a relation, so no line legend.
+            crate::records::draw_edge(&mut f.body, d.dtype, e, &p, ge.arrow_start);
+            continue;
         }
         f.lines[if e.main {
             0
@@ -445,13 +653,19 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
         } else {
             1
         }] = true;
-        let _ = write!(
-            f.body,
-            "<path class=\"{}\" d=\"{}\"/>",
-            edge_class("e", e.main, e.dashed, e.status),
-            route_path(&p, ge.arrow_start, ge.arrow_end)
-        );
-        let ac = edge_class("a", e.main, false, e.status);
+        let mut lc = edge_class("e", e.main, e.dashed, e.status);
+        let mut ac = edge_class("a", e.main, false, e.status);
+        if cycle[ge.edge] {
+            lc.push_str(" cy");
+            ac.push_str(" cy");
+            f.style(CYCLE_STYLE);
+            f.mark("e cy", "cycle");
+        }
+        let quiet_edge = change && e.status == 0;
+        if quiet_edge {
+            f.body.push_str("<g class=\"q\">");
+        }
+        let _ = write!(f.body, "<path class=\"{lc}\" d=\"{}\"/>", route_path(&p, ge.arrow_start, ge.arrow_end));
         if ge.arrow_end {
             let head = arrow_head(p[z - 2], p[z - 1], (p[z - 2] - p[z - 4]).signum(), (p[z - 1] - p[z - 3]).signum());
             let _ = write!(f.body, "<path class=\"{ac}\" d=\"{head}\"/>");
@@ -459,6 +673,9 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
         if ge.arrow_start {
             let head = arrow_head(p[0], p[1], (p[0] - p[2]).signum(), (p[1] - p[3]).signum());
             let _ = write!(f.body, "<path class=\"{ac}\" d=\"{head}\"/>");
+        }
+        if quiet_edge {
+            f.body.push_str("</g>");
         }
     }
 
@@ -488,21 +705,66 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
                 );
                 tx += 20;
             }
-            let gl = if it.vendor { "gl glv" } else { "gl" };
+            let gl = match (it.vendor, change && it.status == 0) {
+                (false, false) => "gl",
+                (true, false) => "gl glv",
+                (false, true) => "gl q",
+                (true, true) => "gl glv q",
+            };
             let _ = write!(f.body, "<text class=\"{gl}\" x=\"{tx}\" y=\"{}\">{}</text>", y + 24, esc(&it.label));
             if it.status > 0 {
                 f.badge(it.status, x + w - 2, y + 2);
             }
             continue;
         }
-        if is_plan {
-            f.body.push_str(&card(it.kind, it.status, x, y, w, h));
+        if records {
+            for s in crate::records::draw_record(&mut f.body, d.dtype, it, x, y, w, h) {
+                f.used[s] = true;
+            }
+            if it.status > 0 {
+                f.badge(it.status, x + w - 2, y + 2);
+            }
+            continue;
+        }
+        if svg_shapes::draws(d.dtype) {
+            let [sx, sy, sw, sh] = shape_box(d, l, i);
+            let (shape, bx, by) = svg_shapes::node(d, i, sx + ox, sy + oy, sw, sh);
+            f.body.push_str(&shape);
+            if it.status > 0 {
+                f.badge(it.status, bx, by);
+            }
+            if let Some(k) = svg_shapes::first_loop(d, i) {
+                let e = &d.edges[k];
+                let lm = if e.main { " lm" } else { "" };
+                if e.status > 0 {
+                    f.used[e.status] = true;
+                }
+                let [sx, sy, sw, sh] = shape_box(d, l, i);
+                f.body.push_str(&svg_shapes::self_loop(
+                    d,
+                    i,
+                    [sx + ox, sy + oy, sw, sh],
+                    &edge_class("e", e.main, e.dashed, e.status),
+                    &edge_class("a", e.main, false, e.status),
+                    lm,
+                ));
+            }
+            continue;
+        }
+        if !tiles {
+            // The plan card kinds are the arch kinds. Other types have their own.
+            let kind = if d.dtype == DiagramType::Plan { it.kind } else { 0 };
+            f.body.push_str(&card(kind, it.status, x, y, w, h));
             let cy = y + idiv(h, 2);
             f.badge(it.status, x + 18, cy);
             f.body.push_str(&card_text(&it.label, &it.sub, it.status, x + 11 + idiv(w, 2), cy));
             continue;
         }
 
+        let quiet_node = change && it.status == 0;
+        if quiet_node {
+            f.body.push_str("<g class=\"q\">");
+        }
         // An arch node: the tile, the icon, then the name and the role.
         let (tw, th) = if d.down { (l.tile[i], 60) } else { (60, l.tile[i]) };
         let tx = x + idiv(w - tw, 2);
@@ -566,26 +828,52 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
         if it.status > 0 {
             f.badge(it.status, tx + tw - 2, y + 2);
         }
+        if quiet_node {
+            f.body.push_str("</g>");
+        }
     }
 
-    for ge in &l.edges {
+    for (k, ge) in l.edges.iter().enumerate() {
         if ge.label_w == 0 {
             continue;
         }
         let e = &d.edges[ge.edge];
         let lm = if e.main { " lm" } else { "" };
+        if d.dtype == DiagramType::Dataflow {
+            // The label is the data that moves, in a pill on the line.
+            let (mut cx, cy) = (ge.label_x + ox, ge.label_y + oy);
+            if d.down && side[k] != 0 {
+                cx += side[k] * (8 + idiv(pill_w(ge), 2));
+                inner_w = inner_w.max(shift + ge.label_x + 8 + pill_w(ge));
+            }
+            let _ = write!(
+                f.body,
+                "<rect class=\"pl\" x=\"{}\" y=\"{}\" width=\"{}\" height=\"18\" rx=\"9\"/><text class=\"el ip mo{lm}\" x=\"{cx}\" y=\"{}\">{}</text>",
+                cx - idiv(ge.label_w, 2) - 7,
+                cy - 9,
+                ge.label_w + 14,
+                cy + 4,
+                esc(&e.label)
+            );
+            continue;
+        }
         // Across the layers the label sits above the line. Along a vertical
         // line it sits at the right of the line.
-        let (ls, dx, dy) = if d.down { (" ls", 8, 4) } else { ("", 0, -7) };
+        let (mut ls, mut dx, dy) = if d.down { (" ls", 8, 4) } else { ("", 0, -7) };
+        if side[k] < 0 {
+            (ls, dx) = (" le", -8);
+            f.style(LABEL_END_STYLE);
+        }
         let _ = write!(
             f.body,
-            "<text class=\"el mo{ls}{lm}\" x=\"{}\" y=\"{}\">{}</text>",
+            "<text class=\"el mo{ls}{lm}{}\" x=\"{}\" y=\"{}\">{}</text>",
+            if change && e.status == 0 { " q" } else { "" },
             ge.label_x + ox + dx,
             ge.label_y + oy + dy,
             esc(&e.label)
         );
-        if d.down {
-            inner_w = inner_w.max(ge.label_x + 8 + ge.label_w);
+        if d.down && dx > 0 {
+            inner_w = inner_w.max(shift + ge.label_x + 8 + ge.label_w);
         }
     }
     f.finish(inner_w, l.h)

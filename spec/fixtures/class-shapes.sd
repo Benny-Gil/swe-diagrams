@@ -1,0 +1,26 @@
+class "Shapes"
+shape "Shape" :abstract
+  "# origin Point"
+  + area() f64
+  + draw(canvas)
+circle "Circle"
+  - radius f64
+  + area() f64
+rect "Rect"
+  - width f64
+  - height f64 mod
+  + area() f64
+square "Square" add
+color "Color" :enum
+  Red
+  Green
+  Blue
+canvas "Canvas"
+  + paint(shape)
+legacy "LegacyPainter" del
+circle --|> shape
+rect --|> shape
+square --|> rect
+shape o-- color "fill"
+canvas ..> shape
+legacy -> canvas del

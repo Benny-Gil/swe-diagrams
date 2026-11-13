@@ -1,0 +1,1 @@
+ok erd nodes=3 edges=2

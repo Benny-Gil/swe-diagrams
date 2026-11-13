@@ -3,7 +3,9 @@
 use std::borrow::Cow;
 use std::collections::HashMap;
 
-use crate::model::{Diagram, DiagramError, DiagramType, Edge, Item, KINDS, STATUS_WORDS, TYPES};
+use crate::model::{
+    is_arrow_word, Diagram, DiagramError, DiagramType, Edge, Item, Member, ERD_FLAGS, STATUS_WORDS, TYPES,
+};
 
 enum Tok<'a> {
     Word(&'a str),
@@ -24,7 +26,7 @@ impl<'a> Tok<'a> {
     }
 
     fn is_arrow(&self) -> bool {
-        matches!(self, Tok::Word("->" | "=>" | "-->" | "<->"))
+        matches!(self, Tok::Word(w) if is_arrow_word(w))
     }
 
     fn text(&self) -> &str {
@@ -151,9 +153,36 @@ fn add(d: &mut Diagram, id: &str, group: bool, parent: Option<usize>, ln: usize,
         implicit,
         icon: String::new(),
         vendor: false,
+        members: Vec::new(),
     });
     attach(d, idx, parent);
     idx
+}
+
+/// Adds a member line to the item `owner`. `None` is an item with an error.
+fn add_member(d: &mut Diagram, owner: Option<usize>, toks: &[Tok], ln: usize, errs: &mut Vec<String>) {
+    let mut words: Vec<String> = toks.iter().map(|t| t.text().to_string()).collect();
+    let mut status = 0;
+    if words.len() > 1 {
+        if let Some(s) = status_of(&words[words.len() - 1]) {
+            status = s;
+            words.pop();
+        }
+    }
+    if d.dtype == DiagramType::Erd {
+        if words.len() < 2 {
+            errs.push(format!("{ln}: write a field as: name type flags status"));
+            return;
+        }
+        for w in &words[2..] {
+            if !ERD_FLAGS.contains(&w.as_str()) {
+                errs.push(format!("{ln}: unknown flag '{w}'. Flags: {}", ERD_FLAGS.join(" ")));
+            }
+        }
+    }
+    if let Some(owner) = owner {
+        d.items[owner].members.push(Member { text: words.join(" "), words, status, line: ln });
+    }
 }
 
 pub fn parse(src: &str) -> Result<Diagram, DiagramError> {
@@ -172,6 +201,9 @@ pub fn parse(src: &str) -> Result<Diagram, DiagramError> {
     let mut header = false;
     let mut toks: Vec<Tok> = Vec::new();
     let mut ends: Vec<usize> = Vec::new();
+    // The node of the last node line, and its indent. A line with more indent
+    // is a member line. The node is `None` when the node line has an error.
+    let mut member_of: Option<(Option<usize>, i64)> = None;
 
     // Some editors put a byte order mark at the start of the file.
     let src = src.strip_prefix('\u{feff}').unwrap_or(src);
@@ -193,7 +225,7 @@ pub fn parse(src: &str) -> Result<Diagram, DiagramError> {
                     d.dtype = DiagramType::Arch;
                 }
             }
-            d.down = d.dtype == DiagramType::Plan;
+            d.down = d.dtype.default_down();
             if toks.len() > 1 && toks[1].is_str() {
                 d.title = toks[1].text().to_string();
             }
@@ -204,12 +236,23 @@ pub fn parse(src: &str) -> Result<Diagram, DiagramError> {
         }
 
         let indent = indent_of(line);
+        if let Some((owner, base)) = member_of {
+            if indent > base {
+                add_member(&mut d, owner, &toks, ln, &mut errs);
+                continue;
+            }
+            member_of = None;
+        }
         while stack.len() > 1 && indent <= stack[stack.len() - 1].0 {
             stack.pop();
         }
         let cur = stack[stack.len() - 1].1;
 
         if toks.iter().any(Tok::is_arrow) {
+            if d.dtype == DiagramType::Timeline {
+                errs.push(format!("{ln}: a timeline diagram has no edges"));
+                continue;
+            }
             // id (arrow id)+ ["label"] [status]
             // The ids are the tokens 0, 2, 4, ... and the arrows are between them.
             let mut ids = 0;
@@ -235,6 +278,16 @@ pub fn parse(src: &str) -> Result<Diagram, DiagramError> {
             }
             if !ok || arrows == 0 || ids != arrows + 1 {
                 errs.push(format!("{ln}: write an edge as: a -> b \"label\" status"));
+                continue;
+            }
+            let allowed = d.dtype.arrows();
+            if let Some(bad) = toks[..k].iter().skip(1).step_by(2).find(|t| !allowed.contains(&t.text())) {
+                let list = if d.dtype == DiagramType::Erd {
+                    "a--b, with each end one of 1 ? * +".to_string()
+                } else {
+                    allowed.join(" ")
+                };
+                errs.push(format!("{ln}: unknown arrow '{}'. Arrows of {}: {list}", bad.text(), d.dtype.name()));
                 continue;
             }
             let mut label = "";
@@ -267,7 +320,8 @@ pub fn parse(src: &str) -> Result<Diagram, DiagramError> {
                 let from = ends[a];
                 let to = ends[a + 1];
                 if d.dtype != DiagramType::Seq {
-                    if from == to {
+                    // A state can have a transition to itself.
+                    if from == to && d.dtype != DiagramType::State {
                         errs.push(format!("{ln}: '{}' has an edge to itself", toks[2 * a].text()));
                         continue;
                     }
@@ -276,16 +330,18 @@ pub fn parse(src: &str) -> Result<Diagram, DiagramError> {
                         continue;
                     }
                 }
-                let arrow = toks[2 * a + 1].text();
+                let word = toks[2 * a + 1].text();
+                let arrow = allowed[allowed.iter().position(|&x| x == word).unwrap_or_default()];
                 d.edges.push(Edge {
                     from,
                     to,
                     label: label.to_string(),
-                    dashed: arrow == "-->",
+                    dashed: matches!(arrow, "-->" | "..|>" | "..>"),
                     bidir: arrow == "<->",
                     main: arrow == "=>",
                     status,
                     line: ln,
+                    arrow,
                 });
             }
             continue;
@@ -313,6 +369,14 @@ pub fn parse(src: &str) -> Result<Diagram, DiagramError> {
             errs.push(format!("{ln}: a seq diagram has no groups"));
             continue;
         }
+        if is_group && d.dtype == DiagramType::Timeline && cur.is_some() {
+            errs.push(format!("{ln}: a timeline group cannot hold a group"));
+            continue;
+        }
+        let has_members = d.dtype.has_members() && !is_group;
+        if has_members {
+            member_of = Some((None, indent));
+        }
         let idx = match by_id.get(id) {
             None => {
                 let new = add(&mut d, id, is_group, cur, ln, false);
@@ -332,6 +396,10 @@ pub fn parse(src: &str) -> Result<Diagram, DiagramError> {
                 continue;
             }
         };
+        if has_members {
+            member_of = Some((Some(idx), indent));
+        }
+        let kinds = d.dtype.kinds();
         let it = &mut d.items[idx];
         let mut strings = 0;
         for t in &toks[k..] {
@@ -350,12 +418,12 @@ pub fn parse(src: &str) -> Result<Diagram, DiagramError> {
             } else if let Some(name) = v.strip_prefix('@') {
                 it.icon = name.to_string();
             } else if let Some(name) = v.strip_prefix(':') {
-                match KINDS.iter().position(|&x| x == name) {
+                match kinds.iter().position(|&x| x == name) {
                     Some(kind) if !is_group => it.kind = kind,
                     None if is_group && name == "vendor" => it.vendor = true,
                     _ => {
-                        let kinds: Vec<String> = KINDS.iter().map(|x| format!(":{x}")).collect();
-                        errs.push(format!("{ln}: unknown kind '{v}'. Kinds: {}", kinds.join(" ")));
+                        let list: Vec<String> = kinds.iter().map(|x| format!(":{x}")).collect();
+                        errs.push(format!("{ln}: unknown kind '{v}'. Kinds: {}", list.join(" ")));
                     }
                 }
             } else {
@@ -427,5 +495,151 @@ mod tests {
         assert_eq!(d.items[0].parent, Some(2));
         assert!(!d.items[0].implicit);
         assert!(d.items[1].implicit);
+    }
+
+    #[test]
+    fn each_type_has_its_default_direction() {
+        for (t, down) in [
+            ("arch", false),
+            ("plan", true),
+            ("deps", true),
+            ("flow", true),
+            ("state", false),
+            ("dataflow", false),
+            ("change", false),
+            ("erd", false),
+            ("class", true),
+            ("timeline", false),
+        ] {
+            assert_eq!(parse(t).unwrap().down, down, "{t}");
+        }
+    }
+
+    #[test]
+    fn a_kind_is_an_index_in_the_kinds_of_the_type() {
+        let d = parse(
+            "flow
+a :decision
+b :io
+c
+",
+        )
+        .unwrap();
+        let kinds: Vec<&str> = d.items.iter().map(|it| d.dtype.kinds()[it.kind]).collect();
+        assert_eq!(kinds, ["decision", "io", "step"]);
+    }
+
+    #[test]
+    fn an_edge_keeps_its_arrow_word() {
+        let d = parse(
+            "class
+a ..|> b
+b *-- c --|> d
+d ..> e
+",
+        )
+        .unwrap();
+        let arrows: Vec<&str> = d.edges.iter().map(|e| e.arrow).collect();
+        assert_eq!(arrows, ["..|>", "*--", "--|>", "..>"]);
+        let dashed: Vec<bool> = d.edges.iter().map(|e| e.dashed).collect();
+        assert_eq!(dashed, [true, false, false, true]);
+    }
+
+    #[test]
+    fn erd_arrows_join_two_end_marks() {
+        let d = parse(
+            "erd
+users 1--* orders \"places\"
+orders ?--+ items
+",
+        )
+        .unwrap();
+        assert_eq!(d.edges[0].arrow, "1--*");
+        assert_eq!(d.edges[0].label, "places");
+        assert_eq!(d.edges[1].arrow, "?--+");
+    }
+
+    #[test]
+    fn a_state_can_have_a_transition_to_itself() {
+        let d = parse(
+            "state
+draft -> draft \"edit\"
+",
+        )
+        .unwrap();
+        assert_eq!(d.edges.len(), 1);
+        assert_eq!((d.edges[0].from, d.edges[0].to), (0, 0));
+        assert!(parse(
+            "flow
+a -> a
+"
+        )
+        .is_err());
+    }
+
+    #[test]
+    fn member_lines_go_to_the_node_above() {
+        let src = "erd
+group s \"Schema\"
+  users \"User\"
+    id uuid pk
+    email text uniq add
+  orders
+    id uuid pk
+users 1--* orders
+";
+        let d = parse(src).unwrap();
+        let users = &d.items[1];
+        assert_eq!(users.members.len(), 2);
+        assert_eq!(users.members[0].words, ["id", "uuid", "pk"]);
+        assert_eq!(users.members[1].text, "email text uniq");
+        assert_eq!(users.members[1].status, 4);
+        assert_eq!(users.members[1].line, 5);
+        assert_eq!(d.items[2].members.len(), 1);
+        assert_eq!(d.items[2].parent, Some(0));
+        assert_eq!(d.edges.len(), 1);
+    }
+
+    #[test]
+    fn a_class_member_keeps_its_text() {
+        let d = parse(
+            "class
+store :interface
+  + get(key) Value
+  + put(key, value)
+  - apply(f) -> Value
+",
+        )
+        .unwrap();
+        let texts: Vec<&str> = d.items[0].members.iter().map(|m| m.text.as_str()).collect();
+        assert_eq!(texts, ["+ get(key) Value", "+ put(key, value)", "- apply(f) -> Value"]);
+        assert!(d.edges.is_empty());
+    }
+
+    #[test]
+    fn only_erd_and_class_have_member_lines() {
+        // In arch, an indented line under a node is a node of the same group.
+        let d = parse(
+            "arch
+a
+  b
+",
+        )
+        .unwrap();
+        assert_eq!(d.items.len(), 2);
+        assert!(d.items[0].members.is_empty());
+    }
+
+    #[test]
+    fn a_timeline_has_no_edges() {
+        let err = parse(
+            "timeline
+a
+b
+a -> b
+",
+        )
+        .unwrap_err();
+        assert_eq!(err.errors, ["4: a timeline diagram has no edges"]);
     }
 }
