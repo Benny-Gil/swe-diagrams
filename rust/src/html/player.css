@@ -15,3 +15,5 @@
 .sd-pulse{animation:sd-pulse .5s ease-out;transform-box:fill-box;transform-origin:center}
 @keyframes sd-pulse{40%{transform:scale(1.08);opacity:.7}}
 @media (prefers-reduced-motion:reduce){.sd-pulse{animation:none}}
+/* Keep the bar off the legend and the credit line at the bottom of the diagram. */
+.sd-view{bottom:calc(60px + env(safe-area-inset-bottom,0px))}
