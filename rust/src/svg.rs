@@ -5,10 +5,12 @@
 
 use std::fmt::Write;
 
+use crate::cycles::find_cycles;
 use crate::icons::Icon;
 use crate::layout_graph::GraphLayout;
 use crate::layout_seq::SeqLayout;
 use crate::model::{idiv, Diagram, DiagramType, STATUS_NAMES};
+use crate::svg_shapes;
 use crate::text::{measure, measure_mono};
 
 const CSS: &str = concat!(
@@ -133,11 +135,15 @@ const GLYPHS: [&str; 5] = [
     "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3z",
 ];
 
+/// An edge in a dependency cycle gets the colour of `del`.
+const CYCLE_STYLE: (&str, &str) =
+    (".e.cy{stroke:#cc3340}.a.cy{fill:#cc3340}", ".e.cy{stroke:#f0626c}.a.cy{fill:#f0626c}");
+
 const PAD: i64 = 24; // page padding
 const INNER: i64 = 32; // canvas padding
 const GAP: i64 = 4; // clear space between a line end and its target
 
-fn esc(s: &str) -> String {
+pub(crate) fn esc(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
     for ch in s.chars() {
         match ch {
@@ -151,7 +157,7 @@ fn esc(s: &str) -> String {
     out
 }
 
-fn st(status: usize) -> String {
+pub(crate) fn st(status: usize) -> String {
     if status > 0 {
         format!(" s{status}")
     } else {
@@ -160,7 +166,7 @@ fn st(status: usize) -> String {
 }
 
 /// The class of the text of a part with a status that makes the text quiet.
-fn quiet(status: usize) -> &'static str {
+pub(crate) fn quiet(status: usize) -> &'static str {
     match status {
         3 => " p3",
         6 => " p6",
@@ -175,7 +181,13 @@ struct Frame {
     kicker: String,
     used: [bool; 7],
     lines: [bool; 3], // main flow, connection, dashed
+    /// The legend names of the three line kinds.
+    line_names: [&'static str; 3],
     sources: Vec<String>,
+    /// More legend lines after the line kinds: the class of the line, and the name.
+    marks: Vec<(&'static str, &'static str)>,
+    /// More style rules, light then dark. Only a diagram that uses them gets them.
+    styles: Vec<(&'static str, &'static str)>,
 }
 
 impl Frame {
@@ -186,7 +198,10 @@ impl Frame {
             kicker,
             used: [false; 7],
             lines: [false; 3],
+            line_names: ["main flow", "connection", "async / indirect"],
             sources: Vec::new(),
+            marks: Vec::new(),
+            styles: Vec::new(),
         }
     }
 
@@ -201,6 +216,18 @@ impl Frame {
     /// Origin of the diagram content.
     fn origin(&self) -> (i64, i64) {
         (PAD + INNER, self.top() + INNER)
+    }
+
+    fn style(&mut self, rules: (&'static str, &'static str)) {
+        if !self.styles.contains(&rules) {
+            self.styles.push(rules);
+        }
+    }
+
+    fn mark(&mut self, class: &'static str, name: &'static str) {
+        if !self.marks.contains(&(class, name)) {
+            self.marks.push((class, name));
+        }
     }
 
     fn badge(&mut self, status: usize, x: i64, y: i64) {
@@ -218,7 +245,7 @@ impl Frame {
         let mut lx = PAD;
         let kinds = self.lines.iter().filter(|&&b| b).count();
         if kinds > 1 {
-            let names = ["main flow", "connection", "async / indirect"];
+            let names = self.line_names;
             let classes = ["e em", "e", "e d"];
             for k in 0..3 {
                 if !self.lines[k] {
@@ -236,6 +263,17 @@ impl Frame {
                 );
                 lx += 36 + measure_mono(names[k], 100) + 24;
             }
+        }
+        for &(class, name) in &self.marks {
+            let _ = write!(
+                legend,
+                "<path class=\"{class}\" d=\"M{} {}h30\"/><text class=\"lg mo\" x=\"{}\" y=\"{}\">{name}</text>",
+                lx,
+                ly - 3,
+                lx + 36,
+                ly
+            );
+            lx += 36 + measure_mono(name, 100) + 24;
         }
         for (s, name) in STATUS_NAMES.iter().enumerate().skip(1) {
             if !self.used[s] {
@@ -278,7 +316,18 @@ impl Frame {
         if !self.title.is_empty() {
             let _ = write!(out, " aria-label=\"{}\"", esc(&self.title));
         }
-        let _ = write!(out, "><style>{CSS}</style><defs>{defs}</defs>");
+        let _ = write!(out, "><style>{CSS}");
+        if !self.styles.is_empty() {
+            for (light, _) in &self.styles {
+                out.push_str(light);
+            }
+            out.push_str("@media(prefers-color-scheme:dark){");
+            for (_, dark) in &self.styles {
+                out.push_str(dark);
+            }
+            out.push('}');
+        }
+        let _ = write!(out, "</style><defs>{defs}</defs>");
         let _ = write!(out, "<rect class=\"pg\" width=\"{w}\" height=\"{h}\" rx=\"12\"/>");
         if !self.title.is_empty() {
             let _ = write!(out, "<text class=\"kk mo\" x=\"{PAD}\" y=\"36\">{}</text>", esc(&self.kicker));
@@ -381,7 +430,7 @@ fn card(kind: usize, status: usize, x: i64, y: i64, w: i64, h: i64) -> String {
     )
 }
 
-fn card_text(label: &str, sub: &str, status: usize, cx: i64, cy: i64) -> String {
+pub(crate) fn card_text(label: &str, sub: &str, status: usize, cx: i64, cy: i64) -> String {
     let p = quiet(status);
     if sub.is_empty() {
         return format!("<text class=\"nm{p}\" x=\"{cx}\" y=\"{}\">{}</text>", cy + 5, esc(label));
@@ -414,6 +463,11 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
     let mut f = Frame::new(&d.title, kicker);
     let (ox, oy) = f.origin();
     let mut inner_w = l.w;
+    if d.dtype == DiagramType::Deps {
+        f.line_names[1] = "import";
+        f.line_names[2] = "type-only / dev";
+    }
+    let cycle = if d.dtype == DiagramType::Deps { find_cycles(d).edge } else { vec![false; d.edges.len()] };
 
     for (i, it) in d.items.iter().enumerate() {
         if !it.group {
@@ -452,13 +506,15 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
         } else {
             1
         }] = true;
-        let _ = write!(
-            f.body,
-            "<path class=\"{}\" d=\"{}\"/>",
-            edge_class("e", e.main, e.dashed, e.status),
-            route_path(&p, ge.arrow_start, ge.arrow_end)
-        );
-        let ac = edge_class("a", e.main, false, e.status);
+        let mut lc = edge_class("e", e.main, e.dashed, e.status);
+        let mut ac = edge_class("a", e.main, false, e.status);
+        if cycle[ge.edge] {
+            lc.push_str(" cy");
+            ac.push_str(" cy");
+            f.style(CYCLE_STYLE);
+            f.mark("e cy", "cycle");
+        }
+        let _ = write!(f.body, "<path class=\"{lc}\" d=\"{}\"/>", route_path(&p, ge.arrow_start, ge.arrow_end));
         if ge.arrow_end {
             let head = arrow_head(p[z - 2], p[z - 1], (p[z - 2] - p[z - 4]).signum(), (p[z - 1] - p[z - 3]).signum());
             let _ = write!(f.body, "<path class=\"{ac}\" d=\"{head}\"/>");
@@ -499,6 +555,14 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
             let _ = write!(f.body, "<text class=\"{gl}\" x=\"{tx}\" y=\"{}\">{}</text>", y + 24, esc(&it.label));
             if it.status > 0 {
                 f.badge(it.status, x + w - 2, y + 2);
+            }
+            continue;
+        }
+        if svg_shapes::draws(d.dtype) {
+            let (shape, bx, by) = svg_shapes::node(d, i, x, y, w, h);
+            f.body.push_str(&shape);
+            if it.status > 0 {
+                f.badge(it.status, bx, by);
             }
             continue;
         }

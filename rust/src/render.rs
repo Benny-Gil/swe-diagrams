@@ -1,5 +1,6 @@
 //! Source text in, SVG and a one-line summary out.
 
+use crate::cycles::find_cycles;
 use crate::icons::{resolve, Icon, IconOptions};
 use crate::layout_graph::layout_graph;
 use crate::layout_seq::layout_seq;
@@ -37,6 +38,9 @@ pub fn render(src: &str, opts: &IconOptions) -> Result<Rendered, DiagramError> {
     // in an id is visible. It also lists the logos that no source has.
     let implicit: Vec<&str> = d.items.iter().filter(|it| !it.group && it.implicit).map(|it| it.id.as_str()).collect();
     let mut summary = format!("ok {} nodes={} edges={}", d.dtype.name(), nodes, d.edges.len());
+    if d.dtype == DiagramType::Deps {
+        summary.push_str(&format!(" cycles={}", find_cycles(&d).count));
+    }
     if !implicit.is_empty() {
         summary.push_str(" implicit=");
         summary.push_str(&implicit.join(","));

@@ -45,6 +45,7 @@ Put spaces around an arrow. Write `a -> b`, not `a->b`.
 | `arch` | Components, groups, and the connections between them | right |
 | `seq` | Messages between participants, in time order | none |
 | `plan` | Tasks, phases, and the order of the work | down |
+| `deps` | Modules and packages, and what each one imports | down |
 
 In `seq`, each node is a participant and each edge is a message. The order of
 the lines is the order in time. `a -> a` is a message to self. `seq` has no
@@ -52,6 +53,34 @@ groups.
 
 In `plan`, each node is a task, each group is a phase, and `a -> b` means
 that `a` comes before `b`. The title line shows the count of done tasks.
+
+### deps
+
+```
+deps "Auth module imports"
+group core "src/core"
+  session "session.ts"
+  token "token.ts"
+api "src/api/login.ts" mod
+jwt "jose" :ext
+api -> session
+session -> token
+token -> jwt
+token -> session del
+```
+
+Each node is a module or a package, and each group is a folder.
+`a -> b` means that `a` imports `b`. `-->` is a type-only import or a dev
+dependency. The arrows `=>` and `<->` are errors in `deps`.
+
+| Kind | Shape |
+|---|---|
+| `:module` | A card. This is the default. |
+| `:ext` | A dashed card, for a third-party package |
+
+The harness finds the import cycles. Each edge in a cycle is red. The
+summary line adds `cycles=<count>`, the count of the cycles. A cycle is a
+set of two or more nodes that can each reach the others.
 
 ## Edges
 

@@ -9,6 +9,7 @@
 use std::collections::HashMap;
 
 use crate::model::{idiv, rdiv, Diagram};
+use crate::svg_shapes;
 use crate::text::{measure, measure_mono};
 
 const NODE_GAP: i64 = 28; // cross gap between two real nodes
@@ -931,7 +932,9 @@ pub fn layout_graph(d: &Diagram) -> GraphLayout {
         }
         let tw = measure(&it.label, 13, true).max(measure_mono(&it.sub, 95));
         let (mut w, h);
-        if !tiles {
+        if svg_shapes::draws(d.dtype) {
+            (w, h) = svg_shapes::size(d, i);
+        } else if !tiles {
             // A card has a status mark at the left.
             w = (tw + 28 + 22).max(96);
             h = if it.sub.is_empty() { 38 } else { 52 };
