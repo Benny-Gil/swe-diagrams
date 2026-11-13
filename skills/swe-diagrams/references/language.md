@@ -519,6 +519,8 @@ swe-diagrams render diagram.sd -o diagram.png --theme dark --scale 3
 swe-diagrams render diagram.sd -o diagram.svg --animate --story "Add an item"
 swe-diagrams render diagram.sd -o diagram.gif --fps 15 --speed 1.5
 swe-diagrams render diagram.sd -o diagram.mp4
+swe-diagrams render diagram.sd --format txt
+swe-diagrams render diagram.sd -o tour.gif --tour
 ```
 
 The options:
@@ -531,8 +533,11 @@ The options:
 | `--scale <N>` | Sets the pixel scale of a PNG, a GIF, or a video, from 0.1 to 16. The default is 2 for a PNG and 1 for a GIF or a video. |
 | `--animate` | Adds motion to an SVG: the first story, or the story of `--story`. |
 | `--story <title>` | Selects the story of an animated SVG, a GIF, or a video. |
+| `--tour` | Writes a zoom tour of the detail levels as a GIF or a video. |
 | `--fps <N>` | Sets the frames each second of a GIF or a video, from 1 to 50. The default is 15. |
-| `--speed <X>` | Divides the times of a story, from 0.1 to 10. The default is 1. |
+| `--speed <X>` | Divides the times of a story or a tour, from 0.1 to 10. The default is 1. |
+| `--color <C>` | Sets the ANSI colour of the text: `auto`, `always`, or `never`. The default is `auto`. |
+| `--width <N>` | Sets the columns of the text, from 20 to 1000. |
 | `--level <path>` | Writes the detail level at the path, for example `cart` or `cart/svc`. For HTML, the page opens at that level. |
 | `--icons <dir>` | Looks for logos in the directory first. |
 | `--offline` | Does not use the network for logos. |
@@ -549,7 +554,7 @@ extension gives SVG. Without `-o`, the format is SVG.
 | `png` | A PNG image. It needs `-o`. | `light` |
 | `gif` | A GIF that loops one time through the story. It needs `-o`. | `light` |
 | `mp4`, `webm` | A video of the story, made with `ffmpeg`. It needs `-o`, and `ffmpeg` on the PATH. | `light` |
-| `txt` | Not ready. The command gives an error. | |
+| `txt` | Terminal text with Unicode box drawing. Without `-o`, it goes to standard output. | |
 
 An SVG with `--animate` moves without a script, with SMIL motion on the
 edge paths. It works where an SVG works as an image, for example in a
@@ -558,6 +563,21 @@ diagram. Without `--animate`, the SVG has no motion.
 
 A GIF or a video of a diagram with no story is one still frame. The
 summary then says `story=none`.
+
+`--tour` writes a GIF or a video that visits each detail level. It needs
+a diagram with a `detail` block or a `>file.sd` link, and it does not work
+with `--story` or `--level`. The tour:
+
+1. Holds the top level for 1200 ms.
+2. For each node with a detail level, in source order: zooms into the
+   node box (600 ms), then grows the detail level from the box to the
+   canvas and fades it in (400 ms), then holds it (1500 ms).
+3. Visits the detail levels of that level in the same way, depth first.
+4. Zooms back out to the parent, and rests on it for 400 ms.
+
+The tour ends on the top level, so the loop has no jump. The canvas has
+the size of the top level. A larger level becomes smaller to fit.
+`--fps`, `--scale`, and `--speed` work as for a story.
 
 The themes:
 
@@ -625,6 +645,9 @@ count:
 ok arch nodes=5 edges=4 frames=66 story="Add an item" diagram.gif
 ```
 
+A tour adds the count of levels and the frame count:
+`tour=4 frames=195`.
+
 The counts are the counts of the top level. A diagram with detail levels
 adds the count of levels and the ids of the nodes with a detail level:
 `levels=3 details=cart,svc`. An error in a linked file names the link line
@@ -639,8 +662,25 @@ diagram.sd:7: unknown word 'todo'. Statuses: done wip plan add mod del
 
 ## Terminal text
 
-The library function `text_out::to_text` draws a diagram for a terminal.
-It uses Unicode box drawing, and it supports all eleven types.
+`--format txt`, or an output file that ends in `.txt`, draws a diagram for
+a terminal. The library function is `text_out::to_text`. It uses Unicode
+box drawing, and it supports all eleven types.
+
+```
+swe-diagrams render diagram.sd --format txt
+swe-diagrams render diagram.sd --format txt --level cart --width 80
+swe-diagrams render diagram.sd -o diagram.txt
+```
+
+- Without `-o`, the text goes to standard output, and the summary goes to
+  standard error.
+- `--color auto` adds ANSI colour only when standard output is a terminal
+  and `NO_COLOR` is not set. A `.txt` file gets no colour unless you give
+  `--color always`.
+- The width is `--width`, then `$COLUMNS`, then the width of the terminal,
+  then 100.
+- `--level cart/svc` draws one detail level. Without it, the text shows
+  the top level.
 
 - A node is a box. A card has round corners. A planned node has a dashed
   border.

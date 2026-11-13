@@ -45,6 +45,9 @@ The extension of `-o` gives the format.
   move along the edges of the first story. It needs no script.
 - `.gif`: motion for a chat that does not show SVG. `.mp4` and `.webm`
   need `ffmpeg`.
+- `.gif` with `--tour`: a zoom tour that visits each detail level, depth
+  first, and comes back to the top level. The diagram needs a `detail`
+  block or a `>file.sd` link.
 
 To show the order of calls or the path of data, add a story: a
 `story "Title"` line, then one indented step for each edge, for example
@@ -52,9 +55,10 @@ To show the order of calls or the path of data, add a story: a
 steps at the same time. Without a story, the `=>` edges make one. The
 HTML page has a player for the stories.
 
-To show a diagram in the terminal, use the text output (`to_text`). It
-draws boxes and lines with Unicode characters. A wide diagram becomes an
-outline.
+To show a diagram in the terminal, use `--format txt`. It draws boxes
+and lines with Unicode characters on standard output. A wide diagram
+becomes an outline. `--width N` sets the columns, and `--color never`
+removes the ANSI colour.
 
 Keep the files in `docs/diagrams/` when the user wants to keep them.
 Otherwise use a temporary directory.
