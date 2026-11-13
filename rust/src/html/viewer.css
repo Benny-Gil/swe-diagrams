@@ -7,7 +7,7 @@ body{background:var(--bg);color:var(--fg);font:14px/1.4 ui-sans-serif,system-ui,
 .sd-view.sd-drag{cursor:grabbing}
 .sd-view>svg{display:block;width:100%;height:100%}
 .sd-view:focus-visible{box-shadow:inset 0 0 0 2px var(--accent)}
-.sd-tools{position:fixed;right:max(12px,env(safe-area-inset-right));bottom:max(12px,env(safe-area-inset-bottom));display:flex;gap:4px}
+.sd-tools{position:fixed;right:max(12px,env(safe-area-inset-right));top:max(12px,env(safe-area-inset-top));display:flex;gap:4px}
 .sd-tools button{min-width:36px;height:36px;padding:0 10px;border:1px solid var(--line);border-radius:8px;background:var(--btn);color:var(--fg);font:600 14px ui-monospace,Menlo,Consolas,monospace;cursor:pointer}
 .sd-tools button:hover{border-color:var(--accent)}
 .sd-tools button:focus-visible,[data-sd-st]:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
