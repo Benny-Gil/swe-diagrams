@@ -93,6 +93,11 @@ cart --> queue "publish" plan        # -> is solid, --> is dashed, <-> has two a
   `erd` arrows are `a 1--* b`, with each end one of `1 ? * +`. `class`
   arrows are `--|>` `..|>` `*--` `o--` `->` `..>`.
 - `dir right` or `dir down` changes the direction of `arch` and `plan`.
+- Levels: `detail cart "Title"` at the left margin, with an indented body,
+  is the diagram of the parts of node `cart`. In the body, `^gw` is node
+  `gw` of the parent level. `cart >cart.sd` takes the detail level from a
+  file. A type word changes the type: `detail svc class`. Use `-o x.html`
+  so the reader can click into a node; `--level cart` writes one level.
 
 For the full rules, read [references/language.md](references/language.md).
 
@@ -115,3 +120,9 @@ For the full rules, read [references/language.md](references/language.md).
   `plan` for the rest. Render the plan again when the status changes.
 - For a change: use `change`, with `add`, `mod`, and `del` on the parts
   that the change adds, modifies, and removes.
+- For levels: draw the top level first, with 12 nodes or fewer. Add a
+  detail level only for the parts that the user asks about or that the
+  change touches, not for each node. Use `^name` for each parent edge that
+  reaches the zoomed node, so the reader sees where the request enters.
+  Leave the status off a node with a detail level: the harness takes it
+  from the parts.

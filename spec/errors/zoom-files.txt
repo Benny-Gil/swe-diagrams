@@ -1,0 +1,4 @@
+5: 'd' has a file link on line 4, so it cannot also have a detail block
+2: in zoom/cycle-b.sd:2: the file link '../zoom-files.sd' makes a cycle of files
+3: cannot read the linked file 'zoom/missing.sd'
+4: in zoom/cycle-b.sd:2: the file link '../zoom-files.sd' makes a cycle of files

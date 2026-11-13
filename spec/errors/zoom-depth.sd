@@ -1,0 +1,10 @@
+arch
+a
+detail a
+  b
+  detail b
+    c
+    detail c
+      d
+      detail d
+        e

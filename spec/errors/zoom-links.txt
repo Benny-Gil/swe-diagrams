@@ -1,0 +1,2 @@
+2: a group cannot link a file. Put the link on a node
+3: write a file link as: >path.sd
