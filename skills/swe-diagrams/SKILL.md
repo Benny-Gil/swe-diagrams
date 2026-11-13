@@ -21,7 +21,9 @@ layout is deterministic, and the summary line reports what the harness drew.
 
    If the command is not found, install it with the steps in
    https://github.com/Benny-Gil/swe-diagrams/blob/main/docs/install.md
-   (ask the user first).
+   (ask the user first). If `npx` is present, also give the user this
+   choice: `npx swe-diagrams` downloads the program on the first run and
+   works in place of `swe-diagrams`.
 4. Read the summary line, for example `ok plan nodes=6 edges=5 plan.svg`.
    An `implicit=` list names ids that only an edge uses. An id there that
    you did not intend is a typing error. A `noicon=` list names logos that
