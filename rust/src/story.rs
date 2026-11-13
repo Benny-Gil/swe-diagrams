@@ -32,6 +32,19 @@ pub struct Move {
     pub back: bool,
     pub hollow: bool,
     pub caption: String,
+    /// The label of the edge. The diagram shows it already.
+    pub label: String,
+}
+
+impl Move {
+    /// The caption that a token carries: none when it repeats the label.
+    pub fn token_caption(&self) -> &str {
+        if self.caption == self.label {
+            ""
+        } else {
+            &self.caption
+        }
+    }
 }
 
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -52,7 +65,10 @@ pub struct Story {
 
 fn step(d: &Diagram, k: usize) -> Beat {
     let e = &d.edges[k];
-    Beat { moves: vec![Move { edge: k, back: false, hollow: e.dashed, caption: e.label.clone() }], node: None }
+    Beat {
+        moves: vec![Move { edge: k, back: false, hollow: e.dashed, caption: e.label.clone(), label: e.label.clone() }],
+        node: None,
+    }
 }
 
 /// The source stories, then the default story of the type, if it has one.
@@ -69,7 +85,13 @@ pub fn stories(d: &Diagram) -> Vec<Story> {
                 .map(|b| Beat {
                     moves: b
                         .iter()
-                        .map(|m| Move { edge: m.edge, back: m.back, hollow: m.hollow, caption: m.caption.clone() })
+                        .map(|m| Move {
+                            edge: m.edge,
+                            back: m.back,
+                            hollow: m.hollow,
+                            caption: m.caption.clone(),
+                            label: d.edges[m.edge].label.clone(),
+                        })
                         .collect(),
                     node: None,
                 })

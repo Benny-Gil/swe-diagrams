@@ -5,7 +5,7 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output, Stdio};
 
-const USAGE: &str = "usage: swe-diagrams render <file.sd|-> [-o out] [--format svg|html|png|txt|gif|mp4] [--theme auto|light|dark] [--scale N] [--icons dir] [--offline]\n";
+const USAGE: &str = "usage: swe-diagrams render <file.sd|-> [-o out] [--format svg|html|png|txt|gif|mp4|webm] [--theme auto|light|dark] [--scale N] [--animate] [--story title] [--fps N] [--speed X] [--icons dir] [--offline]\n";
 
 fn spec(rel: &str) -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("spec").join(rel)
@@ -121,7 +121,7 @@ fn tmp(name: &str) -> String {
 fn formats_that_are_not_ready_give_an_error() {
     let file = spec("fixtures/seq-login.sd");
     let file = file.to_str().unwrap();
-    for f in ["txt", "gif", "mp4"] {
+    for f in ["txt"] {
         let target = tmp(&format!("not-ready.{f}"));
         for args in [vec!["render", file, "--format", f, "-o", &target], vec!["render", file, "-o", &target]] {
             let out = run(&args);
@@ -136,8 +136,15 @@ fn formats_that_are_not_ready_give_an_error() {
 fn wrong_option_values_give_an_error() {
     let file = spec("fixtures/seq-login.sd");
     let file = file.to_str().unwrap();
-    let cases: [(&[&str], &str); 4] = [
-        (&["--format", "jpg"], "error: unknown format jpg; use svg, html, png, txt, gif, or mp4\n"),
+    let cases: [(&[&str], &str); 8] = [
+        (&["--format", "jpg"], "error: unknown format jpg; use svg, html, png, txt, gif, mp4, or webm\n"),
+        (&["--fps", "0"], "error: the fps must be a whole number from 1 to 50\n"),
+        (&["--speed", "20"], "error: the speed must be a number from 0.1 to 10\n"),
+        (
+            &["--animate", "--format", "html"],
+            "error: --animate is for an SVG; a GIF, a video, and the HTML page move without it\n",
+        ),
+        (&["--animate", "--story", "Nope"], "error: the diagram has no story \"Nope\"; the stories are \"Messages\"\n"),
         (&["--theme", "blue"], "error: unknown theme blue; use auto, light, or dark\n"),
         (&["--scale", "0"], "error: the scale must be a number from 0.1 to 16\n"),
         (&["--scale", "x"], "error: the scale must be a number from 0.1 to 16\n"),
