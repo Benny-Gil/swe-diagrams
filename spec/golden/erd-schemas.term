@@ -1,0 +1,37 @@
+entities
+Billing and catalog
+
+outline: the drawing needs 166 columns, and the limit is 100.
+
+[billing]
+  • Account
+      id uuid pk
+      owner_id uuid fk
+      plan text
+  • Invoice ~
+      id uuid pk
+      account_id uuid fk
+      due_at timestamptz null
+      legacy_ref text −
+      paid_at timestamptz null +
+[catalog]
+  • Product
+      id uuid pk
+      sku text uniq
+      price_cents int
+  • Tag ○
+      id int pk
+  • product_tag
+      product_id uuid pk fk
+      tag_id int pk fk
+• User
+    id uuid pk
+
+Edges
+  User → Account  owns
+  Account → Invoice
+  Invoice → Product  bills
+  Product → product_tag
+  Tag → product_tag
+
+○ planned   + added   ~ changed   − removed   1 one   ? zero or one   * many   + one or more

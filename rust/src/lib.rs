@@ -23,6 +23,7 @@ pub mod svg;
 pub mod svg_shapes;
 pub mod svg_timeline;
 pub mod text;
+pub mod text_out;
 pub mod theme;
 pub mod video;
 

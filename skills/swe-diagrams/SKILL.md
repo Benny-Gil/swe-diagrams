@@ -52,6 +52,10 @@ To show the order of calls or the path of data, add a story: a
 steps at the same time. Without a story, the `=>` edges make one. The
 HTML page has a player for the stories.
 
+To show a diagram in the terminal, use the text output (`to_text`). It
+draws boxes and lines with Unicode characters. A wide diagram becomes an
+outline.
+
 Keep the files in `docs/diagrams/` when the user wants to keep them.
 Otherwise use a temporary directory.
 

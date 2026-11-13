@@ -1,0 +1,23 @@
+architecture
+Rate limit change
+
+outline: the drawing needs 125 columns, and the limit is 100.
+
+• Client
+[API]
+  • Router ~
+  • Rate limiter +  token bucket
+  • IP throttle −
+  • Handlers
+• Redis +
+
+Edges
+  Client → Router
+  Router → Rate limiter  check +
+  Router → IP throttle  −
+  Rate limiter → Redis  incr +
+  Rate limiter → Handlers  allow +
+  IP throttle → Handlers  −
+  Handlers ⇢ Client  response
+
++ added   ~ changed   − removed

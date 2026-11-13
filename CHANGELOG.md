@@ -37,6 +37,9 @@ This file lists the changes in each version. The project uses
   with a click or `Enter`, and has a breadcrumb, `Escape`, and a hash path.
   A node with no status takes a status from its detail level. The summary
   line adds `levels=` and `details=`.
+- Terminal text output (`text_out::to_text`) for all eleven types. It
+  draws with Unicode box drawing, shows status symbols, and can add ANSI
+  colours. A drawing that is too wide becomes an outline.
 
 ### Changed
 

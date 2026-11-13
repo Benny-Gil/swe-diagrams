@@ -1,0 +1,20 @@
+timeline / 7 of 13 done
+Platform history
+
+outline: the drawing needs 192 columns, and the limit is 100.
+
+◆ First commit of the monorepo ✓  2019-02
+• Continuous integration on every pull request ✓  2019-05
+• Move from VMs to Kubernetes ✓  2019-11
+• Postgres 11 to 13 ✓  2020-03
+• Tracing with OpenTelemetry ✓  2020-08
+◆ 1.0 ✓  2021-01
+• Replace the session store −  2021-06
+• Edge cache in front of the API +  2021-10
+• Split the billing service out of the monolith ~  2022-04
+◆ 2.0 ✓  2022-09
+• Search with embeddings ◐  2023-03
+• Second region, active-active ○
+◆ 3.0 ○  2024
+
+✓ done   ◐ in progress   ○ planned   + added   ~ changed   − removed

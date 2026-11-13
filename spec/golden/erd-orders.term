@@ -1,0 +1,13 @@
+entities
+Orders
+
+                              ┌─────────────────────┐
+┌────────────────┐            │       Order +       │   ┌───────────────────┐
+│      User      │            ├─────────────────────┤   │     Line item     │
+├────────────────┤1─ places ─*│ PK id       uuid    │1─+├───────────────────┤
+│ PK id     uuid │            │ FK user_id  uuid    │   │ FK order_id  uuid │
+│ UQ email  text │            │    total    numeric │   │    sku       text │
+└────────────────┘            │                     │   └───────────────────┘
+                              └─────────────────────┘
+
++ added   1 one   ? zero or one   * many   + one or more

@@ -1,0 +1,20 @@
+architecture
+Checkout
+
+outline: the drawing needs 106 columns, and the limit is 100.
+
+• Shopper  browser
+• API gateway ✓  rest
+• Cart service ◐  go
+• Payments ○  worker
+• Postgres  orders db
+• Stripe
+
+Edges
+  Shopper → API gateway  browse
+  API gateway → Cart service  add item
+  API gateway → Payments  charge
+  Cart service → Postgres  write
+  Payments → Stripe  capture
+
+✓ done   ◐ in progress   ○ planned
