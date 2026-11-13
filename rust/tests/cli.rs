@@ -172,3 +172,16 @@ fn an_unknown_extension_gives_svg() {
     assert_eq!(out.status.code(), Some(0));
     assert_eq!(fs::read(&target).unwrap(), fs::read(spec("golden/seq-login.svg")).unwrap());
 }
+
+#[test]
+fn png_needs_an_output_file_and_writes_one() {
+    let file = spec("fixtures/seq-login.sd");
+    let file = file.to_str().unwrap();
+    let out = run(&["render", file, "--format", "png"]);
+    assert_eq!(out.status.code(), Some(1));
+    assert_eq!(text(&out.stderr), "error: the png format needs -o <file>\n");
+    let target = tmp("cli-output.png");
+    let out = run(&["render", file, "-o", &target, "--scale", "1"]);
+    assert_eq!(out.status.code(), Some(0), "{}", text(&out.stderr));
+    assert!(fs::read(&target).unwrap().starts_with(b"\x89PNG\r\n\x1a\n"));
+}

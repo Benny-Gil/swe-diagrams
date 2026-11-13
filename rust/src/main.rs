@@ -5,23 +5,24 @@ use std::ffi::OsString;
 use std::io::{self, Read, Write};
 use std::process::ExitCode;
 
-use swe_diagrams::{apply_theme, render, Format, IconOptions, Rendered, Theme};
+use swe_diagrams::{apply_theme, png, render, Format, IconOptions, Rendered, Theme};
 
 const USAGE: &str = "usage: swe-diagrams render <file.sd|-> [-o out] [--format svg|html|png|txt|gif|mp4] [--theme auto|light|dark] [--scale N] [--icons dir] [--offline]\n";
 const VERSION: &str = concat!("swe-diagrams ", env!("CARGO_PKG_VERSION"), "\n");
 
 /// The bytes of the output in format `format`.
 fn produce(r: &Rendered, format: Format, theme: Option<Theme>, scale: f32) -> Result<Vec<u8>, String> {
-    let _ = scale;
     match format {
         Format::Svg => Ok(apply_theme(&r.svg, theme.unwrap_or(Theme::Auto)).into_bytes()),
+        // A PNG has one palette. Light is the default.
+        Format::Png => png(&apply_theme(&r.svg, theme.unwrap_or(Theme::Light)), scale),
         f => Err(format!("the {} format is not ready", f.name())),
     }
 }
 
 /// True for the formats that this build can write.
 fn ready(format: Format) -> bool {
-    matches!(format, Format::Svg)
+    matches!(format, Format::Svg | Format::Png)
 }
 
 // A closed pipe must not cause a panic, so the two functions report a
