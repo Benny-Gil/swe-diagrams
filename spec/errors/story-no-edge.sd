@@ -1,0 +1,7 @@
+arch "A step must follow an edge"
+web -> api
+api -> db
+
+story "Read"
+  web -> db "skip the api"
+  api -> cache

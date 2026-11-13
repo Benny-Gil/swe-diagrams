@@ -1,0 +1,9 @@
+seq "Bad step lines"
+ui -> api
+
+story "Login"
+  ui => api
+  ui -> api "a" "b"
+story "Login"
+  ui -> api
+story "Empty"

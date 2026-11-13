@@ -1,0 +1,9 @@
+journey "Sign up"   # the example of docs/design/animation.md
+home "Home" "/"
+signup "Sign up" "/signup"
+verify "Check your email" "/verify"
+app "Dashboard" "/app"
+
+home => signup "click Start"
+signup => verify "submit"
+verify => app "open link"

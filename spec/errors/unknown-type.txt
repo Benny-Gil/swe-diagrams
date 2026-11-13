@@ -1,1 +1,1 @@
-1: the first line must name a diagram type: arch, seq, plan, deps, flow, state, dataflow, change, erd, class, timeline
+1: the first line must name a diagram type: arch, seq, plan, deps, flow, state, dataflow, change, erd, class, timeline, journey

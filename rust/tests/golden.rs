@@ -6,7 +6,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 
-use swe_diagrams::{render, IconOptions, Rendered};
+use swe_diagrams::{render_path, IconOptions, Rendered};
 
 fn spec(dir: &str) -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("spec").join(dir)
@@ -45,8 +45,9 @@ fn icon_dir() -> PathBuf {
     .clone()
 }
 
-fn draw(src: &str) -> Result<Rendered, swe_diagrams::DiagramError> {
-    render(src, &IconOptions { dir: Some(icon_dir()), offline: true })
+/// Renders the file at `path`. A file link is relative to `path`.
+fn draw(path: &Path) -> Result<Rendered, swe_diagrams::DiagramError> {
+    render_path(&read(path), Some(path), &IconOptions { dir: Some(icon_dir()), offline: true })
 }
 
 /// The expected text. In update mode, the actual text becomes the expected text.
@@ -78,10 +79,15 @@ fn fixtures_match_the_golden_files() {
     for path in sources("fixtures") {
         let name = path.file_stem().unwrap().to_str().unwrap().to_string();
         let golden = spec("golden");
-        match draw(&read(&path)) {
+        match draw(&path) {
             Ok(r) => {
-                if let Some(diff) = difference(&r.svg, &expected(&golden.join(format!("{name}.svg")), &r.svg)) {
-                    failures.push(format!("{name}.svg: {diff}"));
+                // Each detail level has its own file: `name.cart.svc.svg`.
+                for lv in &r.levels {
+                    let file =
+                        if lv.path.is_empty() { name.clone() } else { format!("{name}.{}", lv.path.replace('/', ".")) };
+                    if let Some(diff) = difference(&lv.svg, &expected(&golden.join(format!("{file}.svg")), &lv.svg)) {
+                        failures.push(format!("{file}.svg: {diff}"));
+                    }
                 }
                 let summary = format!("{}\n", r.summary);
                 if let Some(diff) = difference(&summary, &expected(&golden.join(format!("{name}.txt")), &summary)) {
@@ -99,7 +105,7 @@ fn error_sources_give_the_expected_lines() {
     let mut failures = Vec::new();
     for path in sources("errors") {
         let name = path.file_stem().unwrap().to_str().unwrap().to_string();
-        match draw(&read(&path)) {
+        match draw(&path) {
             Ok(_) => failures.push(format!("{name}: the source must give an error")),
             Err(err) => {
                 let text = format!("{err}\n");

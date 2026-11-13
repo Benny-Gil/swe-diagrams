@@ -6,30 +6,31 @@ use std::collections::HashMap;
 use crate::model::{
     is_arrow_word, Diagram, DiagramError, DiagramType, Edge, Item, Member, ERD_FLAGS, GROUP_KINDS, STATUS_WORDS, TYPES,
 };
+use crate::parse_story::StoryLines;
 
-enum Tok<'a> {
+pub(crate) enum Tok<'a> {
     Word(&'a str),
     /// A quoted string, without the quotes and the escapes.
     Str(Cow<'a, str>),
 }
 
 impl<'a> Tok<'a> {
-    fn word(&self) -> Option<&'a str> {
+    pub(crate) fn word(&self) -> Option<&'a str> {
         match self {
             Tok::Word(w) => Some(w),
             Tok::Str(_) => None,
         }
     }
 
-    fn is_str(&self) -> bool {
+    pub(crate) fn is_str(&self) -> bool {
         matches!(self, Tok::Str(_))
     }
 
-    fn is_arrow(&self) -> bool {
+    pub(crate) fn is_arrow(&self) -> bool {
         matches!(self, Tok::Word(w) if is_arrow_word(w))
     }
 
-    fn text(&self) -> &str {
+    pub(crate) fn text(&self) -> &str {
         match self {
             Tok::Word(w) => w,
             Tok::Str(s) => s,
@@ -39,7 +40,7 @@ impl<'a> Tok<'a> {
 
 // The tokenizer reads bytes. All delimiters are ASCII, and a byte of a
 // longer UTF-8 sequence is never equal to an ASCII byte.
-fn tokenize<'a>(line: &'a str, ln: usize, errs: &mut Vec<String>, out: &mut Vec<Tok<'a>>) {
+pub(crate) fn tokenize<'a>(line: &'a str, ln: usize, errs: &mut Vec<String>, out: &mut Vec<Tok<'a>>) {
     let b = line.as_bytes();
     let n = b.len();
     let mut i = 0;
@@ -92,7 +93,7 @@ fn tokenize<'a>(line: &'a str, ln: usize, errs: &mut Vec<String>, out: &mut Vec<
     }
 }
 
-fn indent_of(line: &str) -> i64 {
+pub(crate) fn indent_of(line: &str) -> i64 {
     let mut w = 0;
     for &c in line.as_bytes() {
         match c {
@@ -155,6 +156,7 @@ fn add(d: &mut Diagram, id: &str, group: bool, parent: Option<usize>, ln: usize,
         vendor: false,
         group_kind: 0,
         members: Vec::new(),
+        zoom: Default::default(),
     });
     attach(d, idx, parent);
     idx
@@ -186,6 +188,17 @@ fn add_member(d: &mut Diagram, owner: Option<usize>, toks: &[Tok], ln: usize, er
     }
 }
 
+/// A `>file` word on a node line names the file of its detail level.
+fn link_word(it: &mut Item, file: &str, is_group: bool, ln: usize, errs: &mut Vec<String>) {
+    if is_group {
+        errs.push(format!("{ln}: a group cannot link a file. Put the link on a node"));
+    } else if file.is_empty() {
+        errs.push(format!("{ln}: write a file link as: >path.sd"));
+    } else {
+        it.zoom.link = file.to_string();
+    }
+}
+
 pub fn parse(src: &str) -> Result<Diagram, DiagramError> {
     let mut errs: Vec<String> = Vec::new();
     let mut d = Diagram {
@@ -195,7 +208,9 @@ pub fn parse(src: &str) -> Result<Diagram, DiagramError> {
         items: Vec::new(),
         edges: Vec::new(),
         roots: Vec::new(),
+        stories: Vec::new(),
     };
+    let mut stories = StoryLines::default();
     let mut by_id: HashMap<&str, usize> = HashMap::new();
     // The open groups, with the indent of each group line.
     let mut stack: Vec<(i64, Option<usize>)> = vec![(-1, None)];
@@ -212,7 +227,18 @@ pub fn parse(src: &str) -> Result<Diagram, DiagramError> {
         let ln = li + 1;
         let line = raw.strip_suffix('\r').unwrap_or(raw);
         toks.clear();
-        tokenize(line, ln, &mut errs, &mut toks);
+        // In a class member line, a `#` at the start is the protected mark,
+        // not a comment.
+        let body = line.trim_start_matches([' ', '\t']);
+        let mark = d.dtype == DiagramType::Class
+            && body.starts_with('#')
+            && member_of.is_some_and(|(_, base)| indent_of(line) > base);
+        if mark {
+            toks.push(Tok::Word("#"));
+            tokenize(&body[1..], ln, &mut errs, &mut toks);
+        } else {
+            tokenize(line, ln, &mut errs, &mut toks);
+        }
         if toks.is_empty() {
             continue;
         }
@@ -237,6 +263,10 @@ pub fn parse(src: &str) -> Result<Diagram, DiagramError> {
         }
 
         let indent = indent_of(line);
+        if stories.take(&toks, indent, ln) {
+            member_of = None;
+            continue;
+        }
         if let Some((owner, base)) = member_of {
             if indent > base {
                 add_member(&mut d, owner, &toks, ln, &mut errs);
@@ -417,6 +447,8 @@ pub fn parse(src: &str) -> Result<Diagram, DiagramError> {
                 strings += 1;
             } else if let Some(s) = status_of(v) {
                 it.status = s;
+            } else if let Some(file) = v.strip_prefix('>') {
+                link_word(it, file, is_group, ln, &mut errs);
             } else if let Some(name) = v.strip_prefix('@') {
                 it.icon = name.to_string();
             } else if let Some(name) = v.strip_prefix(':') {
@@ -450,6 +482,8 @@ pub fn parse(src: &str) -> Result<Diagram, DiagramError> {
             }
         }
     }
+
+    stories.resolve(&mut d, &by_id, &mut errs);
 
     if !header {
         errs.push(format!("1: the file is empty. The first line must name a diagram type: {}", TYPES.join(", ")));
@@ -620,6 +654,27 @@ store :interface
         let texts: Vec<&str> = d.items[0].members.iter().map(|m| m.text.as_str()).collect();
         assert_eq!(texts, ["+ get(key) Value", "+ put(key, value)", "- apply(f) -> Value"]);
         assert!(d.edges.is_empty());
+    }
+
+    #[test]
+    fn a_number_sign_starts_a_protected_class_member() {
+        let d = parse(
+            "class
+store
+  # origin Point
+  #draw() # a comment
+# a comment line
+other
+  # x
+",
+        )
+        .unwrap();
+        let texts: Vec<&str> = d.items[0].members.iter().map(|m| m.text.as_str()).collect();
+        assert_eq!(texts, ["# origin Point", "# draw()"]);
+        assert_eq!(d.items[1].members.len(), 1);
+        // In erd, the number sign stays a comment.
+        let d = parse("erd\nusers\n  # note\n  id uuid pk\n").unwrap();
+        assert_eq!(d.items[0].members.len(), 1);
     }
 
     #[test]

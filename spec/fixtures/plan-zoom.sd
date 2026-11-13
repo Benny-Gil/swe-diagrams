@@ -1,0 +1,28 @@
+plan "Add rate limiting"
+
+design "Design" "phase 1"
+build "Build" "phase 2"
+ship "Ship" "phase 3"
+review "Security review" plan
+
+design -> build -> ship
+review -> ship "sign-off"
+
+detail design
+  spec "Write the spec" done
+  bucket "Choose the algorithm" done
+  spec -> bucket
+
+detail build "Build tasks"
+  mw "Middleware" "src/mw/limit.ts" wip
+  store "Redis store" done
+  cfg "Config flags" plan
+  ^design -> mw
+  ^design -> store
+  mw -> ^ship
+  cfg -> ^ship
+
+detail ship
+  tests "Load tests" plan
+  rollout "Staged rollout" plan
+  tests -> rollout "gate"

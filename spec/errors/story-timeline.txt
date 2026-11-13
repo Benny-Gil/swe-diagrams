@@ -1,0 +1,1 @@
+4: a timeline diagram has no stories, because it has no edges
