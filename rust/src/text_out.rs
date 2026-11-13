@@ -836,8 +836,7 @@ fn graph_grid(d: &Diagram) -> (Grid, Vec<Vec<Run>>) {
         }
     }
 
-    for i in 0..n {
-        let it = &d.items[i];
+    for (i, (it, rows_i)) in d.items.iter().zip(&rows).enumerate().take(n) {
         if it.group {
             continue;
         }
@@ -847,9 +846,9 @@ fn graph_grid(d: &Diagram) -> (Grid, Vec<Vec<Run>>) {
         g.rect(b, it.status == 3, round, STATUS_COLORS[it.status]);
         let inner = b[2] - b[0] - 1;
         // A card shows its text in the middle. A record starts at the top.
-        let free_rows = b[3] - b[1] - 1 - rows[i].len() as i64;
+        let free_rows = b[3] - b[1] - 1 - rows_i.len() as i64;
         let top = b[1] + 1 + if d.dtype.has_members() { 0 } else { idiv(free_rows, 2) };
-        for (y, r) in (top..).zip(&rows[i]) {
+        for (y, r) in (top..).zip(rows_i) {
             match r {
                 Row::Sep => {
                     g.seg((b[0], y), (b[2], y), false, STATUS_COLORS[it.status], BORDER);
