@@ -5,7 +5,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use swe_diagrams::tiny_skia::Pixmap;
-use swe_diagrams::{apply_theme, png, render, IconOptions, Theme};
+use swe_diagrams::{apply_theme, png, render, render_path, IconOptions, Theme};
 
 fn spec(dir: &str) -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("spec").join(dir)
@@ -30,7 +30,7 @@ fn each_fixture_gives_a_png() {
     list.sort();
     let opts = IconOptions { dir: Some(spec("icons")), offline: true };
     for path in list {
-        let r = render(&fs::read_to_string(&path).unwrap(), &opts).unwrap();
+        let r = render_path(&fs::read_to_string(&path).unwrap(), Some(&path), &opts).unwrap();
         let svg = apply_theme(&r.svg, Theme::Light);
         let bytes = png(&svg, 1.0).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
         let pixmap = Pixmap::decode_png(&bytes).unwrap();

@@ -142,6 +142,14 @@ const CYCLE_STYLE: (&str, &str) =
 /// In a change diagram, a part with no status is quiet.
 const QUIET_STYLE: (&str, &str) = (".q{opacity:.38}", "");
 
+/// The zoom mark of a node with a detail level, and the quiet look of a
+/// node of the parent level in a detail level.
+const ZOOM_STYLE: (&str, &str) = (
+    ".zm{fill:#fff;stroke:#1f6feb;stroke-width:1.2}.zk{fill:none;stroke:#1f6feb;stroke-width:1.5;stroke-linecap:round}",
+    ".zm{fill:#161b21;stroke:#569fff}.zk{stroke:#569fff}",
+);
+const CONTEXT_STYLE: (&str, &str) = (".cx{opacity:.5}.cx .ti,.cx .cd{stroke-dasharray:4 3}", "");
+
 const LABEL_END_STYLE: (&str, &str) = (".le{text-anchor:end}", "");
 
 const PAD: i64 = 24; // page padding
@@ -259,6 +267,37 @@ impl Frame {
     pub(crate) fn badge(&mut self, status: usize, x: i64, y: i64) {
         self.used[status] = true;
         let _ = write!(self.body, "<use href=\"#b{status}\" x=\"{x}\" y=\"{y}\"/>");
+    }
+
+    /// The zoom mark of a node with a detail level. (x, y) is the corner of
+    /// the box at the bottom right. The mark sits on the corner, as a badge
+    /// does, so it does not cover the text in the box.
+    pub(crate) fn zoom_mark(&mut self, x: i64, y: i64) {
+        self.style(ZOOM_STYLE);
+        let (cx, cy) = (x - 2, y - 2);
+        let _ = write!(
+            self.body,
+            "<g class=\"zz\"><rect class=\"zm\" x=\"{}\" y=\"{}\" width=\"16\" height=\"16\" rx=\"4\"/><path class=\"zk\" d=\"M{} {}a3.2 3.2 0 1 0 .01 0M{} {}l2.6 2.6\"/></g>",
+            cx - 8,
+            cy - 8,
+            cx - 1,
+            cy - 4,
+            cx + 1,
+            cy + 1
+        );
+    }
+
+    /// Opens the group of a node, with the class of a context node.
+    pub(crate) fn open_node(&mut self, it: &crate::model::Item) {
+        let at = self.body.len();
+        open_part(&mut self.body, if it.group { "group" } else { "node" }, &it.id, it.status);
+        if it.zoom.context {
+            self.style(CONTEXT_STYLE);
+            self.body.insert_str(at + 2, " class=\"cx\"");
+        }
+        if it.zoom.detail {
+            self.body.insert_str(self.body.len() - 1, " data-z=\"1\"");
+        }
     }
 
     pub(crate) fn finish(self, inner_w: i64, inner_h: i64) -> String {
@@ -528,8 +567,9 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
     let tiles = d.dtype.has_tiles();
     let kicker = match d.dtype {
         DiagramType::Plan => {
-            let total = d.items.iter().filter(|it| !it.group).count();
-            let done = d.items.iter().filter(|it| !it.group && it.status == 1).count();
+            let tasks = || d.items.iter().filter(|it| !it.group && !it.zoom.context);
+            let total = tasks().count();
+            let done = tasks().filter(|it| it.status == 1).count();
             format!("plan / {done} of {total} done")
         }
         DiagramType::Deps => "dependencies".to_string(),
@@ -665,7 +705,7 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
                 f.sources.push(ic.source.clone());
             }
         }
-        open_part(&mut f.body, if it.group { "group" } else { "node" }, &it.id, it.status);
+        f.open_node(it);
         if it.group {
             let mut tx = x + 12;
             if let Some(ic) = icon {
@@ -701,6 +741,9 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
             if it.status > 0 {
                 f.badge(it.status, x + w - 2, y + 2);
             }
+            if it.zoom.detail {
+                f.zoom_mark(x + w, y + h);
+            }
             f.body.push_str("</g>");
             continue;
         }
@@ -710,6 +753,9 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
             f.body.push_str(&shape);
             if it.status > 0 {
                 f.badge(it.status, bx, by);
+            }
+            if it.zoom.detail {
+                f.zoom_mark(sx + ox + sw, sy + oy + sh);
             }
             f.body.push_str("</g>");
             if let Some(k) = svg_shapes::first_loop(d, i) {
@@ -739,6 +785,9 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
             let cy = y + idiv(h, 2);
             f.badge(it.status, x + 18, cy);
             f.body.push_str(&card_text(&it.label, &it.sub, it.status, x + 11 + idiv(w, 2), cy));
+            if it.zoom.detail {
+                f.zoom_mark(x + w, y + h);
+            }
             f.body.push_str("</g>");
             continue;
         }
@@ -809,6 +858,9 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
         }
         if it.status > 0 {
             f.badge(it.status, tx + tw - 2, y + 2);
+        }
+        if it.zoom.detail {
+            f.zoom_mark(tx + tw, y + th);
         }
         if quiet_node {
             f.body.push_str("</g>");
@@ -948,11 +1000,14 @@ pub fn render_seq(d: &Diagram, l: &SeqLayout) -> String {
     for &i in &d.roots {
         let it = &d.items[i];
         let x = ox + l.cx[i] - idiv(l.pw[i], 2);
-        open_part(&mut f.body, "node", &it.id, it.status);
+        f.open_node(it);
         f.body.push_str(&card(it.kind, it.status, x, oy, l.pw[i], l.head_h));
         f.body.push_str(&card_text(&it.label, &it.sub, it.status, ox + l.cx[i], oy + idiv(l.head_h, 2)));
         if it.status > 0 {
             f.badge(it.status, x + l.pw[i] - 2, oy + 2);
+        }
+        if it.zoom.detail {
+            f.zoom_mark(x + l.pw[i], oy + l.head_h);
         }
         f.body.push_str("</g>");
     }

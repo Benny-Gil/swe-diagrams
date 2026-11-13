@@ -3,16 +3,25 @@
 (function () {
   "use strict";
   var view = document.querySelector(".sd-view");
-  var svg = view.querySelector("svg");
   var data = JSON.parse(document.getElementById("sd-data").textContent);
   var WORDS = ["", "done", "wip", "plan", "add", "mod", "del"];
-  var parts = svg.querySelectorAll("[data-k]");
-  var base = svg.viewBox.baseVal;
-  var home = { x: base.x, y: base.y, w: base.width, h: base.height };
-  var vb = Object.assign({}, home);
+  var svg, parts, home, vb;
+  var keys = [];
 
-  svg.removeAttribute("width");
-  svg.removeAttribute("height");
+  // Shows the SVG `el`. A diagram with levels swaps the SVG.
+  function mount(el) {
+    svg = el;
+    parts = svg.querySelectorAll("[data-k]");
+    var base = svg.viewBox.baseVal;
+    home = { x: base.x, y: base.y, w: base.width, h: base.height };
+    vb = Object.assign({}, home);
+    svg.removeAttribute("width");
+    svg.removeAttribute("height");
+    filter = "";
+    step = -1;
+    legend();
+    show();
+  }
 
   function show() {
     svg.setAttribute("viewBox", vb.x + " " + vb.y + " " + vb.w + " " + vb.h);
@@ -141,21 +150,23 @@
   }
 
   // Legend entries of the statuses become buttons.
-  var keys = [];
-  all("[data-sd-b]").forEach(function (u) {
-    var n = +u.getAttribute("data-sd-b");
-    if (!n || u.closest("[data-k]")) return;
-    var word = WORDS[n];
-    var label = u.nextElementSibling;
-    [u, label].forEach(function (el) {
-      if (!el) return;
-      el.setAttribute("data-sd-st", word);
-      keys.push(el);
+  function legend() {
+    keys = [];
+    all("[data-sd-b]").forEach(function (u) {
+      var n = +u.getAttribute("data-sd-b");
+      if (!n || u.closest("[data-k]")) return;
+      var word = WORDS[n];
+      var label = u.nextElementSibling;
+      [u, label].forEach(function (el) {
+        if (!el) return;
+        el.setAttribute("data-sd-st", word);
+        keys.push(el);
+      });
+      u.setAttribute("tabindex", "0");
+      u.setAttribute("role", "button");
+      u.setAttribute("aria-label", "Show only " + (label ? label.textContent : word));
     });
-    u.setAttribute("tabindex", "0");
-    u.setAttribute("role", "button");
-    u.setAttribute("aria-label", "Show only " + (label ? label.textContent : word));
-  });
+  }
 
   function mark() {
     svg.classList.toggle("sd-filter", !!filter);
@@ -225,18 +236,18 @@
     { passive: false }
   );
 
-  svg.addEventListener("pointerover", function (e) {
+  view.addEventListener("pointerover", function (e) {
     if (ptrs.size) return;
     var n = e.target.closest("[data-k=node]");
     if (n) light(around(n.dataset.id));
   });
 
-  svg.addEventListener("pointerout", function (e) {
+  view.addEventListener("pointerout", function (e) {
     var n = e.target.closest("[data-k=node]");
     if (n && !(e.relatedTarget && n.contains(e.relatedTarget))) rest();
   });
 
-  svg.addEventListener("click", function (e) {
+  view.addEventListener("click", function (e) {
     var k = e.target.closest("[data-sd-st]");
     if (k && !moved) pick(k.getAttribute("data-sd-st"));
   });
@@ -273,5 +284,27 @@
     if (done) e.preventDefault();
   });
 
-  show();
+  mount(view.querySelector("svg"));
+
+  // The levels script moves the view and swaps the SVG through this object.
+  window.sdViewer = {
+    data: data,
+    mount: mount,
+    svg: function () {
+      return svg;
+    },
+    box: function (b) {
+      if (b) {
+        vb = Object.assign({}, b);
+        show();
+      }
+      return Object.assign({}, vb);
+    },
+    home: function () {
+      return Object.assign({}, home);
+    },
+    moved: function () {
+      return moved;
+    },
+  };
 })();

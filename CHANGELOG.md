@@ -22,6 +22,13 @@ This file lists the changes in each version. The project uses
   `:external`.
 - Each part of the SVG is in a group with `data-k` and other data
   attributes, so a script can find it.
+- Zoom levels: `detail <id> [type] ["Title"]` blocks, `>file.sd` links,
+  and `^name` for a node of the parent level. A detail level shows the
+  context of the parent level, and a node with a detail level gets a zoom
+  mark. `--level cart/svc` writes one level. The HTML page opens a level
+  with a click or `Enter`, and has a breadcrumb, `Escape`, and a hash path.
+  A node with no status takes a status from its detail level. The summary
+  line adds `levels=` and `details=`.
 
 ### Changed
 

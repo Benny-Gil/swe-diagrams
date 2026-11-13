@@ -1,0 +1,36 @@
+arch "Checkout"
+
+user "Shopper" "browser" :actor
+gw "API gateway" "rest" @prism done
+cart "Cart service" "go"
+pay "Payments" "worker" >zoom/payments.sd
+db "Postgres" "orders db" :store
+stripe "Stripe" :ext
+
+user => gw "browse"
+gw => cart "add item"
+gw -> pay "charge"
+cart => db "write"
+pay -> stripe "capture"
+
+# The cart service: its modules. The request enters at the handler.
+detail cart "Cart service modules"
+  handler "HTTP handler" "handler.go" done
+  svc "Cart logic" "cart.go" wip
+  repo "Repository" "repo.go" done
+  ^gw => handler
+  handler => svc => repo
+  repo => ^db "SQL"
+
+  # The cart logic: its types.
+  detail svc class "Cart types"
+    Cart
+      + items: Item[]
+      + add(item) void
+    Item
+      + sku: string
+      + qty: int
+    Pricer :interface
+      + price(cart) Money
+    Cart *-- Item
+    Cart ..> Pricer

@@ -29,12 +29,14 @@ The file has one statement on each line. A `#` starts a comment.
 | Group | `group id "Label" @logo :vendor status`. The members are the lines with more indent. |
 | Edge | `a -> b "label" status` |
 | Direction | `dir right` or `dir down` |
+| Detail | `detail id type "Title"` at the left margin. The body is the lines with more indent. See [Levels](#levels). |
 
 Only the id is necessary on a node line. A node without a label shows its id.
 The order of the kind, the logo, and the status is free.
 
 An id is a word without spaces or quotes, for example `cart`, `src/api.ts`,
-or `auth-v2`. The words `group` and `dir` are not ids.
+or `auth-v2`. The words `group` and `dir` are not ids. The word `detail` is
+not an id at the left margin.
 
 Put spaces around an arrow. Write `a -> b`, not `a->b`.
 
@@ -410,6 +412,72 @@ abstract name is italic.
 For `--|>` and `..|>`, the harness puts b above a, so a parent is above its
 children.
 
+## Levels
+
+A node can have a detail level: a diagram of its parts. The top level shows
+the large parts. The detail level of a node shows what is inside it. A
+diagram has four levels at most: the top level and three detail levels.
+
+```
+arch "Checkout"
+gw "API gateway"
+cart "Cart service" "go"
+pay "Payments" >payments.sd
+db "Postgres" :store
+
+gw => cart "add item"
+gw -> pay
+cart => db
+
+detail cart "Cart service modules"
+  handler "HTTP handler" "handler.go" done
+  svc "Cart logic" "cart.go" wip
+  ^gw => handler
+  handler => svc
+  svc => ^db "SQL"
+
+  detail svc class "Cart types"
+    Cart
+      + add(item) void
+```
+
+- `detail <id>` starts the detail level of node `id`. The line is at the
+  left margin of its level. The body is the lines under it with more
+  indent, and it uses the normal grammar.
+- The optional string is the title of the detail level. Without it, the
+  title is the label of the node.
+- The detail level has the type of its parent. A type word after the id
+  changes it: `detail svc class "Cart types"`.
+- A `detail` line in a body starts a level below that body.
+- `>path.sd` on a node line names a file that holds the detail level. The
+  path is relative to the source file. The file is a normal diagram file,
+  and it can have its own levels. A cycle of files is an error.
+- In a body, `^name` is node `name` of the parent level. Use it only in an
+  edge, and only for a node with an edge to the zoomed node.
+
+The harness adds the context of the parent level to a detail level:
+
+- Each node of the parent level with an edge to the zoomed node shows as a
+  quiet tile. The nodes with an edge in go at the start, and the nodes with
+  an edge out go at the end.
+- The parts of the detail level are in a frame, with the label of the
+  zoomed node.
+- A parent edge that no `^name` edge uses goes from the context tile to the
+  frame. A `^name` edge with no label takes the label of the parent edge.
+
+A node with a detail level gets a zoom mark at its bottom right corner. A
+node with no status takes a status from the parts of its detail level:
+
+| Parts of the detail level | Status of the node |
+|---|---|
+| `add`, `mod`, or `del` on a part | `mod` |
+| All parts `done` | `done` |
+| All parts with a status are `plan` | `plan` |
+| A part `wip`, or some parts `done` and some not | `wip` |
+| No part with a status | none |
+
+A status on the node line wins over this rule.
+
 ## Command
 
 ```
@@ -427,6 +495,7 @@ The options:
 | `-o <file>` | Writes the output to the file. Without `-o`, the output goes to standard output. |
 | `--format <F>` | Sets the format: `svg`, `html`, `png`, `txt`, `gif`, or `mp4`. |
 | `--theme <T>` | Sets the palette: `auto`, `light`, or `dark`. |
+| `--level <path>` | Writes the detail level at the path, for example `cart` or `cart/svc`. For HTML, the page opens at that level. |
 | `--scale <N>` | Sets the pixel scale of a PNG, from 0.1 to 16. The default is 2. |
 | `--icons <dir>` | Looks for logos in the directory first. |
 | `--offline` | Does not use the network for logos. |
@@ -462,6 +531,14 @@ page:
   bright. Click it again to clear it.
 - The arrow keys step through the diagram: the messages of a `seq`, and
   the nodes of the other types in line order. `Escape` clears the step.
+- A click on a node with a zoom mark opens its detail level. `Tab` moves
+  to such a node, and `Enter` opens it. The view zooms into the node, and
+  the detail level grows from the node box. With `prefers-reduced-motion`,
+  the view changes with no motion.
+- The breadcrumb at the top left shows the path of levels. A click on a
+  part of it goes up to that level. `Escape` goes up one level.
+- The hash of the address holds the path, for example `#cart/svc`. A link
+  with a hash opens that level. The back button goes up.
 
 The PNG uses the bundled fonts Geist and JetBrains Mono, and no system
 font, so each machine gives the same picture.
@@ -470,7 +547,14 @@ In the SVG and the HTML, each part is in a group with data attributes:
 `data-k` (`node`, `group`, `edge`, or `msg`), `data-id` and `data-s` (the
 status word) for a node or a group, and `data-i`, `data-from`, and
 `data-to` for an edge or a message. The line of an edge has the class
-`rt`.
+`rt`. A node with a detail level has `data-z`. In a detail level, a context
+node has the id `^name` and the class `cx`, and the frame group has the id
+`^`.
+
+The data of the page (`#sd-data`) has a `levels` list when the diagram has
+more than one level. Each entry has the `path`, the `title`, the `type`,
+the `order` of steps, and the `svg` text. The `svg` of the top level is
+`null`, because the page holds it.
 
 ## Summary and errors
 
@@ -479,6 +563,11 @@ On success, the harness prints one summary line:
 ```
 ok arch nodes=4 edges=3 diagram.svg
 ```
+
+The counts are the counts of the top level. A diagram with detail levels
+adds the count of levels and the ids of the nodes with a detail level:
+`levels=3 details=cart,svc`. An error in a linked file names the link line
+and the file: `top.sd:4: in cart.sd:7: unknown word 'x'`.
 
 On a diagram error, the harness prints one line for each error and exits
 with code 2:

@@ -5,7 +5,7 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output, Stdio};
 
-const USAGE: &str = "usage: swe-diagrams render <file.sd|-> [-o out] [--format svg|html|png|txt|gif|mp4] [--theme auto|light|dark] [--scale N] [--icons dir] [--offline]\n";
+const USAGE: &str = "usage: swe-diagrams render <file.sd|-> [-o out] [--format svg|html|png|txt|gif|mp4] [--theme auto|light|dark] [--level path] [--scale N] [--icons dir] [--offline]\n";
 
 fn spec(rel: &str) -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("spec").join(rel)
@@ -194,4 +194,30 @@ fn the_html_extension_writes_a_page() {
     let page = fs::read_to_string(&target).unwrap();
     assert!(page.starts_with("<!doctype html>"));
     assert!(page.contains("id=\"sd-data\""));
+}
+
+#[test]
+fn the_level_option_renders_one_level() {
+    let file = spec("fixtures/arch-zoom.sd");
+    let file = file.to_str().unwrap();
+    let icons = spec("icons");
+    let base = ["render", file, "--offline", "--icons", icons.to_str().unwrap()];
+    let out = run(&base);
+    assert_eq!(out.stdout, fs::read(spec("golden/arch-zoom.svg")).unwrap());
+    assert_eq!(text(&out.stderr), fs::read_to_string(spec("golden/arch-zoom.txt")).unwrap());
+    let mut args = base.to_vec();
+    args.extend(["--level", "cart/svc"]);
+    let out = run(&args);
+    assert_eq!(out.status.code(), Some(0), "{}", text(&out.stderr));
+    assert_eq!(out.stdout, fs::read(spec("golden/arch-zoom.cart.svc.svg")).unwrap());
+    let target = tmp("cli-level.png");
+    args.extend(["-o", &target, "--scale", "1"]);
+    assert_eq!(run(&args).status.code(), Some(0));
+    assert!(fs::read(&target).unwrap().starts_with(b"\x89PNG"));
+    let out = run(&["render", file, "--offline", "--level", "nope"]);
+    assert_eq!(out.status.code(), Some(1));
+    assert_eq!(text(&out.stderr), "error: no level 'nope'; levels: cart, cart/svc, pay\n");
+    let flat = spec("fixtures/seq-login.sd");
+    let out = run(&["render", flat.to_str().unwrap(), "--level", "a"]);
+    assert_eq!(text(&out.stderr), "error: no level 'a'; levels: the diagram has no detail levels\n");
 }
