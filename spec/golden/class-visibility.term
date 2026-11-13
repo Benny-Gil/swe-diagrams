@@ -1,0 +1,25 @@
+classes
+Visibility marks
+
+ ┌───────────────────┐
+ │    «abstract»     │
+ │    Repository     │
+ ├───────────────────┤
+ │ # conn Pool       │
+ │ - cache Map       │
+ │ ~ name str        │
+ ├───────────────────┤
+ │ + find(id) Row    │
+ │ # query(sql) Rows │
+ └───────────────────┘
+       △
+┌──────┴────────────────────────┐
+│        UserRepository         │
+├───────────────────────────────┤
+│ - table str                   │
+├───────────────────────────────┤
+│ # mapRow(row) User            │
+│ + byEmail(email) User         │
+└───────────────────────────────┘
+
+▷ extends

@@ -1,7 +1,7 @@
 flow
 Deploy a release
 
-outline: the drawing needs 205 columns, and the limit is 100.
+outline: the drawing needs 204 columns, and the limit is 100.
 
 • Push a tag ✓
 • Build ✓  cargo build --release

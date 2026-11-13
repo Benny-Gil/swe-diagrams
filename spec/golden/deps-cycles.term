@@ -1,7 +1,7 @@
 dependencies
 Crate graph of the harness
 
-outline: the drawing needs 127 columns, and the limit is 100.
+outline: the drawing needs 126 columns, and the limit is 100.
 
 • main.rs  binary
 [src]

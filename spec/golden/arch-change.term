@@ -1,7 +1,7 @@
 architecture
 Rate limit change
 
-outline: the drawing needs 125 columns, and the limit is 100.
+outline: the drawing needs 124 columns, and the limit is 100.
 
 • Client
 [API]
