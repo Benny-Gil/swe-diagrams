@@ -26,7 +26,7 @@ impl<'a> Tok<'a> {
         matches!(self, Tok::Str(_))
     }
 
-    fn is_arrow(&self) -> bool {
+    pub(crate) fn is_arrow(&self) -> bool {
         matches!(self, Tok::Word(w) if is_arrow_word(w))
     }
 
@@ -40,7 +40,7 @@ impl<'a> Tok<'a> {
 
 // The tokenizer reads bytes. All delimiters are ASCII, and a byte of a
 // longer UTF-8 sequence is never equal to an ASCII byte.
-fn tokenize<'a>(line: &'a str, ln: usize, errs: &mut Vec<String>, out: &mut Vec<Tok<'a>>) {
+pub(crate) fn tokenize<'a>(line: &'a str, ln: usize, errs: &mut Vec<String>, out: &mut Vec<Tok<'a>>) {
     let b = line.as_bytes();
     let n = b.len();
     let mut i = 0;
@@ -93,7 +93,7 @@ fn tokenize<'a>(line: &'a str, ln: usize, errs: &mut Vec<String>, out: &mut Vec<
     }
 }
 
-fn indent_of(line: &str) -> i64 {
+pub(crate) fn indent_of(line: &str) -> i64 {
     let mut w = 0;
     for &c in line.as_bytes() {
         match c {
@@ -155,6 +155,7 @@ fn add(d: &mut Diagram, id: &str, group: bool, parent: Option<usize>, ln: usize,
         icon: String::new(),
         vendor: false,
         members: Vec::new(),
+        zoom: Default::default(),
     });
     attach(d, idx, parent);
     idx
@@ -183,6 +184,17 @@ fn add_member(d: &mut Diagram, owner: Option<usize>, toks: &[Tok], ln: usize, er
     }
     if let Some(owner) = owner {
         d.items[owner].members.push(Member { text: words.join(" "), words, status, line: ln });
+    }
+}
+
+/// A `>file` word on a node line names the file of its detail level.
+fn link_word(it: &mut Item, file: &str, is_group: bool, ln: usize, errs: &mut Vec<String>) {
+    if is_group {
+        errs.push(format!("{ln}: a group cannot link a file. Put the link on a node"));
+    } else if file.is_empty() {
+        errs.push(format!("{ln}: write a file link as: >path.sd"));
+    } else {
+        it.zoom.link = file.to_string();
     }
 }
 
@@ -422,6 +434,8 @@ pub fn parse(src: &str) -> Result<Diagram, DiagramError> {
                 strings += 1;
             } else if let Some(s) = status_of(v) {
                 it.status = s;
+            } else if let Some(file) = v.strip_prefix('>') {
+                link_word(it, file, is_group, ln, &mut errs);
             } else if let Some(name) = v.strip_prefix('@') {
                 it.icon = name.to_string();
             } else if let Some(name) = v.strip_prefix(':') {

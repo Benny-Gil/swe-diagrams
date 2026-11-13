@@ -30,6 +30,13 @@ This file lists the changes in each version. The project uses
   list, a caption panel, and keys.
 - A progress story of a `plan` or a `timeline` moves each item up to its
   status, and the done count of the kicker follows each frame.
+- Zoom levels: `detail <id> [type] ["Title"]` blocks, `>file.sd` links,
+  and `^name` for a node of the parent level. A detail level shows the
+  context of the parent level, and a node with a detail level gets a zoom
+  mark. `--level cart/svc` writes one level. The HTML page opens a level
+  with a click or `Enter`, and has a breadcrumb, `Escape`, and a hash path.
+  A node with no status takes a status from its detail level. The summary
+  line adds `levels=` and `details=`.
 
 ### Changed
 

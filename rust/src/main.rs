@@ -1,5 +1,5 @@
 //! Command line entry: swe-diagrams render <file|-> [-o out] [--format F]
-//! [--theme T] [--scale N] [--animate] [--story T] [--fps N] [--speed X]
+//! [--theme T] [--level path] [--scale N] [--animate] [--story T] [--fps N] [--speed X]
 //! [--icons dir] [--offline]
 
 use std::ffi::OsString;
@@ -8,9 +8,9 @@ use std::process::ExitCode;
 
 use swe_diagrams::anim::{self, FrameOptions};
 use swe_diagrams::video::{encode_gif, encode_video};
-use swe_diagrams::{apply_theme, html, png, render, Format, IconOptions, Rendered, Theme};
+use swe_diagrams::{apply_theme, html_at, png, render_path, Format, IconOptions, Rendered, Theme};
 
-const USAGE: &str = "usage: swe-diagrams render <file.sd|-> [-o out] [--format svg|html|png|txt|gif|mp4|webm] [--theme auto|light|dark] [--scale N] [--animate] [--story title] [--fps N] [--speed X] [--icons dir] [--offline]\n";
+const USAGE: &str = "usage: swe-diagrams render <file.sd|-> [-o out] [--format svg|html|png|txt|gif|mp4|webm] [--theme auto|light|dark] [--level path] [--scale N] [--animate] [--story title] [--fps N] [--speed X] [--icons dir] [--offline]\n";
 const VERSION: &str = concat!("swe-diagrams ", env!("CARGO_PKG_VERSION"), "\n");
 
 /// The options of the output.
@@ -23,12 +23,24 @@ struct Out<'a> {
     fps: u32,
     speed: f64,
     path: Option<&'a std::path::Path>,
+    /// The path of the level to show: one level for SVG and PNG, the
+    /// first level for HTML.
+    level: &'a str,
 }
 
 /// The bytes of the output, or `None` when ffmpeg wrote the file, and a
 /// note for the summary.
 fn produce(r: &Rendered, o: &Out) -> Result<(Option<Vec<u8>>, String), String> {
+    let Some(lv) = r.level(o.level) else {
+        let paths: Vec<&str> = r.levels.iter().skip(1).map(|l| l.path.as_str()).collect();
+        let list = if paths.is_empty() { "the diagram has no detail levels".to_string() } else { paths.join(", ") };
+        return Err(format!("no level '{}'; levels: {list}", o.level));
+    };
     let animated = matches!(o.format, Format::Gif | Format::Mp4 | Format::Webm) || o.animate;
+    // The stories are of the top level only.
+    if animated && !lv.path.is_empty() {
+        return Err("--level works with svg, html, png, and txt; a story moves on the top level only".to_string());
+    }
     let story = if animated { anim::pick(r, o.story)? } else { None };
     let note = match story {
         Some(s) => format!(" story=\"{}\"", s.title),
@@ -42,14 +54,14 @@ fn produce(r: &Rendered, o: &Out) -> Result<(Option<Vec<u8>>, String), String> {
                     let routes = anim::routes(&r.svg);
                     anim::animate_svg(&r.svg, &r.variants, &routes, s, &anim::timing(s, &routes, o.speed))
                 }
-                _ => r.svg.clone(),
+                _ => lv.svg.clone(),
             };
             Ok((Some(apply_theme(&svg, o.theme.unwrap_or(Theme::Auto)).into_bytes()), note))
         }
-        Format::Html => Ok((Some(html(r, o.theme.unwrap_or(Theme::Auto)).into_bytes()), String::new())),
+        Format::Html => Ok((Some(html_at(r, o.theme.unwrap_or(Theme::Auto), &lv.path).into_bytes()), String::new())),
         // A PNG has one palette. Light is the default.
         Format::Png => Ok((
-            Some(png(&apply_theme(&r.svg, o.theme.unwrap_or(Theme::Light)), o.scale.unwrap_or(2.0))?),
+            Some(png(&apply_theme(&lv.svg, o.theme.unwrap_or(Theme::Light)), o.scale.unwrap_or(2.0))?),
             String::new(),
         )),
         Format::Gif | Format::Mp4 | Format::Webm => {
@@ -119,6 +131,7 @@ fn run(argv: &[OsString]) -> u8 {
     let mut story: Option<&str> = None;
     let mut fps: u32 = 15;
     let mut speed: f64 = 1.0;
+    let mut level = String::new();
     let mut k = 2;
     while k < argv.len() {
         let value = argv.get(k + 1).and_then(|v| v.to_str());
@@ -141,6 +154,9 @@ fn run(argv: &[OsString]) -> u8 {
                 return 1;
             };
             theme = Some(t);
+            k += 2;
+        } else if argv[k] == "--level" && k + 1 < argv.len() {
+            level = argv[k + 1].to_string_lossy().into_owned();
             k += 2;
         } else if argv[k] == "--scale" && k + 1 < argv.len() {
             match value.and_then(|v| v.parse::<f32>().ok()) {
@@ -214,9 +230,22 @@ fn run(argv: &[OsString]) -> u8 {
     };
     // A byte sequence that is not UTF-8 becomes U+FFFD.
     let src = String::from_utf8_lossy(&bytes);
-    match render(&src, &opts) {
+    // A file link is relative to the source file. Standard input has no
+    // file, so a link is relative to the current directory.
+    let file = (input != "-").then(|| std::path::Path::new(input));
+    match render_path(&src, file, &opts) {
         Ok(r) => {
-            let out = Out { format, theme, scale, animate, story, fps, speed, path: output.map(std::path::Path::new) };
+            let out = Out {
+                format,
+                theme,
+                scale,
+                animate,
+                story,
+                fps,
+                speed,
+                path: output.map(std::path::Path::new),
+                level: &level,
+            };
             let (data, note) = match produce(&r, &out) {
                 Ok(v) => v,
                 Err(msg) => {

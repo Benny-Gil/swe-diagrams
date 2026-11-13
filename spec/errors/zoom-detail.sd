@@ -1,0 +1,16 @@
+arch
+a -> b
+
+detail a
+  x
+  detail x
+    y
+    ^a -> y
+
+detail b class
+  T
+    + f()
+  T --|> ^q
+
+detail z
+  c

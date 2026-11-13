@@ -269,7 +269,8 @@
   window.addEventListener(
     "keydown",
     function (e) {
-      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      // A detail level hides the top level, and the stories are of the top level.
+      if (e.ctrlKey || e.metaKey || e.altKey || !svg.isConnected) return;
       var tag = e.target.tagName;
       if (tag === "SELECT" || tag === "INPUT" || (tag === "BUTTON" && e.key === " ")) return;
       if (e.target.closest && e.target.closest("[data-sd-st]")) return;

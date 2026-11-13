@@ -139,6 +139,18 @@ pub struct Item {
     pub vendor: bool,
     /// The fields and methods of an `erd` or `class` node, in line order.
     pub members: Vec<Member>,
+    pub zoom: Zoom,
+}
+
+/// The place of an item in a diagram with levels.
+#[derive(Debug, Default, Clone)]
+pub struct Zoom {
+    /// The file after `>` on the node line, or empty.
+    pub link: String,
+    /// True when the node has a detail level.
+    pub detail: bool,
+    /// True for a node of the parent level in a detail level (`^name`).
+    pub context: bool,
 }
 
 #[derive(Debug)]
