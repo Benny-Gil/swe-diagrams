@@ -19,6 +19,15 @@ This file lists the changes in each version. The project uses
 - `--theme auto|light|dark` sets the palette of each format.
 - Each part of the SVG is in a group with `data-k` and other data
   attributes, so a script can find it.
+- Stories: `story "Title"` blocks with steps along the edges, `->` and
+  `-->` tokens, captions, and `&` for steps at the same time. Each type
+  has a default story.
+- `--animate` writes an SVG with SMIL motion and no script.
+  `prefers-reduced-motion` shows the still diagram.
+- GIF output (`-o x.gif`) and video output (`-o x.mp4`, `-o x.webm`,
+  with `ffmpeg`). `--fps`, `--speed`, and `--story` set the motion.
+- A story player in the HTML page: play, pause, steps, speed, a story
+  list, a caption panel, and keys.
 
 ### Changed
 

@@ -41,6 +41,16 @@ The extension of `-o` gives the format.
   neighbours. It loads nothing from the network.
 - `.png`: for a chat, a slide, or an issue that does not show SVG. Add
   `--theme dark` for a dark picture, and `--scale N` for more pixels.
+- `.svg` with `--animate`: motion in a README or a pull request. Tokens
+  move along the edges of the first story. It needs no script.
+- `.gif`: motion for a chat that does not show SVG. `.mp4` and `.webm`
+  need `ffmpeg`.
+
+To show the order of calls or the path of data, add a story: a
+`story "Title"` line, then one indented step for each edge, for example
+`web -> api "POST /cart"`. `-->` is a reply. `a -> b & a -> c` runs two
+steps at the same time. Without a story, the `=>` edges make one. The
+HTML page has a player for the stories.
 
 Keep the files in `docs/diagrams/` when the user wants to keep them.
 Otherwise use a temporary directory.
