@@ -43,6 +43,7 @@ Otherwise use a temporary directory.
 | What states can a thing be in, and what changes the state? | `state` |
 | Where does the data go, and what changes it? | `dataflow` |
 | What does this change touch? | `change` |
+| What happens in which order, and where are we now? | `timeline` |
 
 ## The language
 

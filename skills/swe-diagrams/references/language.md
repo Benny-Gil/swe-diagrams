@@ -50,6 +50,7 @@ Put spaces around an arrow. Write `a -> b`, not `a->b`.
 | `state` | The states of a thing, and the events that change the state | right |
 | `dataflow` | Where the data goes, and what changes it | right |
 | `change` | The parts that a change adds, modifies, and removes | right |
+| `timeline` | Events and milestones on one axis, in line order | right |
 
 In `seq`, each node is a participant and each edge is a message. The order of
 the lines is the order in time. `a -> a` is a message to self. `seq` has no
@@ -200,6 +201,33 @@ lower opacity, so the changed parts stand out.
 The title line counts the changed nodes and groups, for example
 `change / +1 ~1 -1`. The summary line adds
 `added=1 changed=1 removed=1`. The counts do not include the edges.
+## timeline
+
+```
+timeline "Rate limit roll-out"
+group design "Design" done
+  spec "Spec" "Nov 3" done
+  algo "Choose algorithm" "Nov 5" done
+group build "Build"
+  mw "Middleware" "Nov 12" wip
+  ship "Ship to 1%" "Nov 20" :milestone plan
+  ga "GA" "Dec 1" :milestone plan
+```
+
+In `timeline`, each node is an item on one horizontal axis. The order of the
+lines is the order on the axis, from left to right.
+
+- The second string is the date or a note. The harness does not parse it.
+- Kinds: `:event` (default) is a dot on the axis. `:milestone` is a diamond.
+- The labels go above and below the axis in turn. A wide label makes more
+  space between its item and the neighbour items.
+- A group is a phase. It is a band under the axis, from its first item to
+  its last item. A phase cannot hold a phase.
+- The axis is solid up to the last item with `done` or `wip`, and dashed
+  after it. An item with `wip` gets a "now" mark.
+- The title line shows the count of done items when an item has `done`,
+  `wip`, or `plan`.
+- `timeline` has no edges. An edge line is an error.
 
 ## Edges
 

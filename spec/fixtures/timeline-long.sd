@@ -1,0 +1,14 @@
+timeline "Platform history"   # many items, long labels, no phases
+v01 "First commit of the monorepo" "2019-02" :milestone done
+ci "Continuous integration on every pull request" "2019-05" done
+k8s "Move from VMs to Kubernetes" "2019-11" done
+pg "Postgres 11 to 13" "2020-03" done
+obs "Tracing with OpenTelemetry" "2020-08" done
+v1 "1.0" "2021-01" :milestone done
+auth "Replace the session store" "2021-06" del
+edge "Edge cache in front of the API" "2021-10" add
+mono "Split the billing service out of the monolith" "2022-04" mod
+v2 "2.0" "2022-09" :milestone done
+ai "Search with embeddings" "2023-03" wip
+region "Second region, active-active" plan
+v3 "3.0" "2024" :milestone plan

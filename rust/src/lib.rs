@@ -7,11 +7,13 @@ pub mod cycles;
 pub mod icons;
 pub mod layout_graph;
 pub mod layout_seq;
+pub mod layout_timeline;
 pub mod model;
 pub mod parse;
 pub mod render;
 pub mod svg;
 pub mod svg_shapes;
+pub mod svg_timeline;
 pub mod text;
 
 pub use icons::IconOptions;

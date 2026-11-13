@@ -180,11 +180,11 @@ pub(crate) fn quiet(status: usize) -> &'static str {
 }
 
 /// The frame that all diagram types share: page, header, canvas, legend.
-struct Frame {
-    body: String,
+pub(crate) struct Frame {
+    pub(crate) body: String,
     title: String,
     kicker: String,
-    used: [bool; 7],
+    pub(crate) used: [bool; 7],
     lines: [bool; 3], // main flow, connection, dashed
     /// The legend names of the three line kinds.
     line_names: [&'static str; 3],
@@ -196,7 +196,7 @@ struct Frame {
 }
 
 impl Frame {
-    fn new(title: &str, kicker: String) -> Frame {
+    pub(crate) fn new(title: &str, kicker: String) -> Frame {
         Frame {
             body: String::new(),
             title: title.to_string(),
@@ -219,7 +219,7 @@ impl Frame {
     }
 
     /// Origin of the diagram content.
-    fn origin(&self) -> (i64, i64) {
+    pub(crate) fn origin(&self) -> (i64, i64) {
         (PAD + INNER, self.top() + INNER)
     }
 
@@ -235,12 +235,12 @@ impl Frame {
         }
     }
 
-    fn badge(&mut self, status: usize, x: i64, y: i64) {
+    pub(crate) fn badge(&mut self, status: usize, x: i64, y: i64) {
         self.used[status] = true;
         let _ = write!(self.body, "<use href=\"#b{status}\" x=\"{x}\" y=\"{y}\"/>");
     }
 
-    fn finish(self, inner_w: i64, inner_h: i64) -> String {
+    pub(crate) fn finish(self, inner_w: i64, inner_h: i64) -> String {
         let top = self.top();
         let ch = inner_h + 2 * INNER;
 
