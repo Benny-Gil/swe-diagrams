@@ -3,3 +3,6 @@ target/
 
 # A common global rule (Icon?) hides this folder on macOS. The tests need it.
 !/spec/icons/
+
+# brag video work folder
+/brag-output/
