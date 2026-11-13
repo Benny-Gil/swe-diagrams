@@ -1,22 +1,29 @@
 //! Command line entry: swe-diagrams render <file|-> [-o out] [--format F]
-//! [--theme T] [--scale N] [--icons dir] [--offline]
+//! [--theme T] [--level path] [--scale N] [--icons dir] [--offline]
 
 use std::ffi::OsString;
 use std::io::{self, Read, Write};
 use std::process::ExitCode;
 
-use swe_diagrams::{apply_theme, html, png, render, Format, IconOptions, Rendered, Theme};
+use swe_diagrams::{apply_theme, html_at, png, render_path, Format, IconOptions, Rendered, Theme};
 
-const USAGE: &str = "usage: swe-diagrams render <file.sd|-> [-o out] [--format svg|html|png|txt|gif|mp4] [--theme auto|light|dark] [--scale N] [--icons dir] [--offline]\n";
+const USAGE: &str = "usage: swe-diagrams render <file.sd|-> [-o out] [--format svg|html|png|txt|gif|mp4] [--theme auto|light|dark] [--level path] [--scale N] [--icons dir] [--offline]\n";
 const VERSION: &str = concat!("swe-diagrams ", env!("CARGO_PKG_VERSION"), "\n");
 
 /// The bytes of the output in format `format`.
-fn produce(r: &Rendered, format: Format, theme: Option<Theme>, scale: f32) -> Result<Vec<u8>, String> {
+/// `level` is the path of the level to show: one level for SVG and PNG,
+/// the first level for HTML.
+fn produce(r: &Rendered, format: Format, theme: Option<Theme>, scale: f32, level: &str) -> Result<Vec<u8>, String> {
+    let Some(lv) = r.level(level) else {
+        let paths: Vec<&str> = r.levels.iter().skip(1).map(|l| l.path.as_str()).collect();
+        let list = if paths.is_empty() { "the diagram has no detail levels".to_string() } else { paths.join(", ") };
+        return Err(format!("no level '{level}'; levels: {list}"));
+    };
     match format {
-        Format::Svg => Ok(apply_theme(&r.svg, theme.unwrap_or(Theme::Auto)).into_bytes()),
-        Format::Html => Ok(html(r, theme.unwrap_or(Theme::Auto)).into_bytes()),
+        Format::Svg => Ok(apply_theme(&lv.svg, theme.unwrap_or(Theme::Auto)).into_bytes()),
+        Format::Html => Ok(html_at(r, theme.unwrap_or(Theme::Auto), &lv.path).into_bytes()),
         // A PNG has one palette. Light is the default.
-        Format::Png => png(&apply_theme(&r.svg, theme.unwrap_or(Theme::Light)), scale),
+        Format::Png => png(&apply_theme(&lv.svg, theme.unwrap_or(Theme::Light)), scale),
         f => Err(format!("the {} format is not ready", f.name())),
     }
 }
@@ -64,6 +71,7 @@ fn run(argv: &[OsString]) -> u8 {
     let mut format: Option<Format> = None;
     let mut theme: Option<Theme> = None;
     let mut scale: f32 = 2.0;
+    let mut level = String::new();
     let mut k = 2;
     while k < argv.len() {
         let value = argv.get(k + 1).and_then(|v| v.to_str());
@@ -86,6 +94,9 @@ fn run(argv: &[OsString]) -> u8 {
                 return 1;
             };
             theme = Some(t);
+            k += 2;
+        } else if argv[k] == "--level" && k + 1 < argv.len() {
+            level = argv[k + 1].to_string_lossy().into_owned();
             k += 2;
         } else if argv[k] == "--scale" && k + 1 < argv.len() {
             match value.and_then(|v| v.parse::<f32>().ok()) {
@@ -126,9 +137,12 @@ fn run(argv: &[OsString]) -> u8 {
     };
     // A byte sequence that is not UTF-8 becomes U+FFFD.
     let src = String::from_utf8_lossy(&bytes);
-    match render(&src, &opts) {
+    // A file link is relative to the source file. Standard input has no
+    // file, so a link is relative to the current directory.
+    let file = (input != "-").then(|| std::path::Path::new(input));
+    match render_path(&src, file, &opts) {
         Ok(r) => {
-            let data = match produce(&r, format, theme, scale) {
+            let data = match produce(&r, format, theme, scale, &level) {
                 Ok(data) => data,
                 Err(msg) => {
                     to_stderr(&format!("error: {msg}\n"));

@@ -1,0 +1,9 @@
+arch "Payments worker"
+
+consumer "Charge consumer" "consumer.go" plan
+retry "Retry queue" :queue plan
+client "Stripe client" "client.go" plan
+
+consumer -> client
+consumer --> retry "on failure"
+client -> ^stripe "capture"

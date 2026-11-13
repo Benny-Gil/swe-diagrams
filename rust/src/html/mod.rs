@@ -10,6 +10,7 @@ use crate::theme::{apply_theme, page_theme, Theme};
 
 const CSS: &str = include_str!("viewer.css");
 const JS: &str = include_str!("viewer.js");
+const LEVELS_JS: &str = include_str!("levels.js");
 
 /// A JSON string. In a script element, `</` must not occur, so `<` is
 /// always an escape.
@@ -64,22 +65,53 @@ fn inline_badges(svg: &str) -> String {
     out
 }
 
-/// The data that the script and later features read. The zoom and the
-/// animation features fill `levels` and `stories`.
-pub fn data_json(r: &Rendered) -> String {
-    let order: Vec<String> = r
-        .order
+fn order_json(order: &[Step]) -> String {
+    let steps: Vec<String> = order
         .iter()
         .map(|s| match s {
             Step::Msg(i) => format!("{{\"k\":\"msg\",\"i\":{i}}}"),
             Step::Node(id) => format!("{{\"k\":\"node\",\"id\":{}}}", json_str(id)),
         })
         .collect();
+    format!("[{}]", steps.join(","))
+}
+
+/// The SVG of a level for the page: the theme rules, and a copy of each badge.
+fn page_svg(svg: &str, theme: Theme) -> String {
+    inline_badges(&match theme {
+        Theme::Auto => page_theme(svg),
+        t => apply_theme(svg, t),
+    })
+}
+
+/// The data that the script and later features read. `levels` holds each
+/// level when the diagram has more than one. The page holds the SVG of the
+/// top level, so its `svg` is null. The animation feature fills `stories`.
+pub fn data_json(r: &Rendered) -> String {
+    data_with(r, Theme::Auto, "")
+}
+
+fn data_with(r: &Rendered, theme: Theme, start: &str) -> String {
+    let mut levels: Vec<String> = Vec::new();
+    if r.levels.len() > 1 {
+        for lv in &r.levels {
+            let svg = if lv.path.is_empty() { "null".to_string() } else { json_str(&page_svg(&lv.svg, theme)) };
+            levels.push(format!(
+                "{{\"path\":{},\"title\":{},\"type\":{},\"order\":{},\"svg\":{svg}}}",
+                json_str(&lv.path),
+                json_str(&lv.title),
+                json_str(lv.dtype.name()),
+                order_json(&lv.order)
+            ));
+        }
+    }
+    let start = if start.is_empty() { String::new() } else { format!(",\"start\":{}", json_str(start)) };
     format!(
-        "{{\"type\":{},\"title\":{},\"levels\":[],\"stories\":[],\"order\":[{}]}}",
+        "{{\"type\":{},\"title\":{},\"levels\":[{}],\"stories\":[],\"order\":{}{start}}}",
         json_str(r.dtype.name()),
         json_str(&r.title),
-        order.join(",")
+        levels.join(","),
+        order_json(&r.order)
     )
 }
 
@@ -87,10 +119,13 @@ pub fn data_json(r: &Rendered) -> String {
 /// `data-theme` attribute of the root element. `Light` and `Dark` fix the
 /// palette of the diagram and of the page.
 pub fn html(r: &Rendered, theme: Theme) -> String {
-    let svg = inline_badges(&match theme {
-        Theme::Auto => page_theme(&r.svg),
-        t => apply_theme(&r.svg, t),
-    });
+    html_at(r, theme, "")
+}
+
+/// The HTML page that opens at level `start` (`cart/svc`) when the address
+/// has no hash. An empty path is the top level.
+pub fn html_at(r: &Rendered, theme: Theme, start: &str) -> String {
+    let svg = page_svg(&r.svg, theme);
     let fixed = match theme {
         Theme::Auto => "",
         Theme::Light => " class=\"sd-light\"",
@@ -98,10 +133,10 @@ pub fn html(r: &Rendered, theme: Theme) -> String {
     };
     let title = if r.title.is_empty() { format!("{} diagram", r.dtype.name()) } else { r.title.clone() };
     format!(
-        "<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<title>{}</title>\n<style>{CSS}</style>\n</head>\n<body{fixed}>\n<main class=\"sd-view\" tabindex=\"0\" aria-label=\"Diagram. Drag to pan, wheel or plus and minus keys to zoom, arrow keys to step.\">\n{}</main>\n<div class=\"sd-tools\" role=\"toolbar\" aria-label=\"Zoom\"><button type=\"button\" data-act=\"in\" aria-label=\"Zoom in\">+</button><button type=\"button\" data-act=\"out\" aria-label=\"Zoom out\">&#8722;</button><button type=\"button\" data-act=\"fit\">fit</button></div>\n<script type=\"application/json\" id=\"sd-data\">{}</script>\n<script>{JS}</script>\n</body>\n</html>\n",
+        "<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<title>{}</title>\n<style>{CSS}</style>\n</head>\n<body{fixed}>\n<main class=\"sd-view\" tabindex=\"0\" aria-label=\"Diagram. Drag to pan, wheel or plus and minus keys to zoom, arrow keys to step.\">\n{}</main>\n<div class=\"sd-tools\" role=\"toolbar\" aria-label=\"Zoom\"><button type=\"button\" data-act=\"in\" aria-label=\"Zoom in\">+</button><button type=\"button\" data-act=\"out\" aria-label=\"Zoom out\">&#8722;</button><button type=\"button\" data-act=\"fit\">fit</button></div>\n<nav class=\"sd-crumbs\" aria-label=\"Levels\" hidden></nav>\n<script type=\"application/json\" id=\"sd-data\">{}</script>\n<script>{JS}{LEVELS_JS}</script>\n</body>\n</html>\n",
         esc(&title),
         svg.trim_end(),
-        data_json(r)
+        data_with(r, theme, start)
     )
 }
 

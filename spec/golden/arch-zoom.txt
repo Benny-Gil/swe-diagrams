@@ -1,0 +1,1 @@
+ok arch nodes=6 edges=5 levels=4 details=cart,svc,pay
