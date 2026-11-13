@@ -18,14 +18,21 @@ curl -fsSL https://raw.githubusercontent.com/Benny-Gil/swe-diagrams/main/install
 The script puts the program in `~/.local/bin`. If that folder is not on the
 `PATH`, tell the user to add it, and use the full path for the next steps.
 
-On Windows, or if the script fails, run:
+On Windows, or if the script fails, and if `npm` is installed, run:
 
 ```bash
-cargo install --git https://github.com/Benny-Gil/swe-diagrams swe-diagrams
+npm install -g swe-diagrams
+swe-diagrams --version
 ```
 
-If `cargo` is not installed, stop and tell the user to install Rust from
-https://rustup.rs.
+The first run downloads the program. If `npm` is not installed, run:
+
+```bash
+cargo install swe-diagrams
+```
+
+If `cargo` is not installed, stop and tell the user to install Node.js
+from https://nodejs.org or Rust from https://rustup.rs.
 
 ## 3. Install the skill
 
