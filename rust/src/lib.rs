@@ -6,6 +6,7 @@
 pub mod cycles;
 pub mod html;
 pub mod icons;
+pub mod labels;
 pub mod layout_graph;
 pub mod layout_seq;
 pub mod layout_timeline;
@@ -17,6 +18,7 @@ pub mod raster;
 pub mod records;
 pub mod render;
 pub mod svg;
+pub mod svg_journey;
 pub mod svg_shapes;
 pub mod svg_timeline;
 pub mod text;

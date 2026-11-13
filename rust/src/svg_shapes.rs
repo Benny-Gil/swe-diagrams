@@ -26,7 +26,10 @@ pub const STATE_STYLE: (&str, &str) =
 
 /// True for the types that this module draws.
 pub fn draws(t: DiagramType) -> bool {
-    matches!(t, DiagramType::Deps | DiagramType::Flow | DiagramType::State | DiagramType::Dataflow)
+    matches!(
+        t,
+        DiagramType::Deps | DiagramType::Flow | DiagramType::State | DiagramType::Dataflow | DiagramType::Journey
+    )
 }
 
 /// The kind word of an item.
@@ -61,6 +64,9 @@ pub fn first_loop(d: &Diagram, i: usize) -> Option<usize> {
 /// Width and height of the shape of item `i`.
 pub fn size(d: &Diagram, i: usize) -> (i64, i64) {
     let it = &d.items[i];
+    if d.dtype == DiagramType::Journey {
+        return crate::svg_journey::size(it, kind(d, it));
+    }
     let tw = text_w(it);
     let th = text_h(it);
     let (w, h) = match (d.dtype, kind(d, it)) {
@@ -134,6 +140,9 @@ pub fn outline_inset(d: &Diagram, i: usize, b: [i64; 4], px: i64, py: i64) -> i6
 /// result also gives the centre of the status badge.
 pub fn node(d: &Diagram, i: usize, x: i64, y: i64, w: i64, h: i64) -> (String, i64, i64) {
     let it = &d.items[i];
+    if d.dtype == DiagramType::Journey {
+        return crate::svg_journey::node(it, kind(d, it), x, y, w, h);
+    }
     let s = st(it.status);
     let cx = x + idiv(w, 2);
     let cy = y + idiv(h, 2);

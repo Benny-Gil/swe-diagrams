@@ -61,7 +61,15 @@ fn split(text: &str, errs: &mut Vec<String>) -> (String, Vec<Block>) {
         quiet.clear();
         tokenize(line, ln, &mut quiet, &mut toks);
         if toks.is_empty() {
-            own.push("");
+            // Keep the text: in a class, `# name` is a protected member, not a comment.
+            match open.as_mut() {
+                Some((_, base, body)) if *base >= 0 && indent_of(line) >= *base && !line.trim().is_empty() => {
+                    body.push((li, dedent(line, *base)));
+                    own.push("");
+                }
+                Some(_) => own.push(""),
+                None => own.push(line),
+            }
             continue;
         }
         let indent = indent_of(line);
@@ -646,7 +654,7 @@ detail a \"A parts\"
             ["5: '^c' has no edge to 'a' in the parent level. Context nodes: ^b"]
         );
         assert_eq!(errors("arch\na\ndetail a\n  ^q -> x\n"), ["4: '^q': the parent level has no node 'q'"]);
-        assert_eq!(errors("arch\na\ndetail a foo\n  x\n"), ["3: unknown type 'foo' in the detail line. Types: arch, seq, plan, deps, flow, state, dataflow, change, erd, class, timeline"]);
+        assert_eq!(errors("arch\na\ndetail a foo\n  x\n"), ["3: unknown type 'foo' in the detail line. Types: arch, seq, plan, deps, flow, state, dataflow, change, erd, class, timeline, journey"]);
         assert_eq!(
             errors("arch\na\ndetail a\n  b\n  detail b\n    c\n    detail c\n      d\n      detail d\n        e\n"),
             ["9: too many levels. A diagram has 4 levels at most"]
@@ -682,5 +690,13 @@ detail a \"A parts\"
                 "3: cannot read the linked file 'none.sd'"
             ]
         );
+    }
+    #[test]
+    fn a_protected_member_is_not_a_comment() {
+        let src =
+            "class\nrepo\n  # conn Pool\n  - cache Map\ndetail repo class\n  q\n    # run(sql) Rows\n    + go()\n";
+        let l = levels(src);
+        assert_eq!(l[0].d.items[0].members.len(), 2);
+        assert_eq!(l[1].d.items[0].members.len(), 2);
     }
 }
