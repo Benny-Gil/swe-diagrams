@@ -3,6 +3,19 @@
 This file lists the changes in each version. The project uses
 [semantic versioning](https://semver.org).
 
+## Unreleased
+
+### Added
+
+- Easy install: steps for an agent (`docs/install.md`), a Claude Code
+  plugin, an install script, and prebuilt binaries for each release.
+- A CI check for each pull request.
+
+### Changed
+
+- The README shows pictures and install steps first. The diagram language
+  is in the language reference only.
+
 ## 0.1.0 - 2026-11-13
 
 The first version.
