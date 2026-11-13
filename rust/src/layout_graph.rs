@@ -9,6 +9,7 @@
 use std::collections::HashMap;
 
 use crate::model::{idiv, rdiv, Diagram};
+use crate::records::{record_size, LEAD, RUN};
 use crate::svg_shapes;
 use crate::text::{measure, measure_mono};
 
@@ -575,6 +576,9 @@ struct Graph<'a> {
     lab_c: Vec<i64>,
     root_m: i64,
     root_c: i64,
+    // Straight runs at the two ends of an edge. Records need room for marks.
+    run: i64,
+    lead: i64,
 }
 
 /// Width of the label of a group, with its icon.
@@ -807,8 +811,8 @@ impl Graph<'_> {
             if has_e && l + 2 == nl {
                 min_gap = pad_me;
             }
-            let gap = min_gap.max(label_zone + track_zone + ARROW);
-            let mut track = m + gap - track_zone - ARROW;
+            let gap = min_gap.max(self.lead + label_zone + track_zone + self.run);
+            let mut track = m + gap - track_zone - self.run;
             for &(_, le) in downs.iter().chain(ups.iter()) {
                 track += TRACK;
                 w.etrack[le] = track;
@@ -817,7 +821,7 @@ impl Graph<'_> {
                 let e = w.ee[le];
                 if w.efirst[le] && self.label_w[e] > 0 {
                     self.lab_cont[e] = c;
-                    self.lab_m[e] = m + idiv(gap - track_zone - ARROW, 2);
+                    self.lab_m[e] = m + self.lead + idiv(gap - self.lead - track_zone - self.run, 2);
                     self.lab_c[e] = w.lpos[w.es[le]] + w.esp[le];
                 }
             }
@@ -930,6 +934,12 @@ pub fn layout_graph(d: &Diagram) -> GraphLayout {
         if it.group {
             continue;
         }
+        if d.dtype.has_members() {
+            let (w, h) = record_size(d.dtype, it);
+            ms[i] = if down { h } else { w };
+            cs[i] = if down { w } else { h };
+            continue;
+        }
         let tw = measure(&it.label, 13, true).max(measure_mono(&it.sub, 95));
         let (mut w, h);
         if svg_shapes::draws(d.dtype) {
@@ -997,6 +1007,12 @@ pub fn layout_graph(d: &Diagram) -> GraphLayout {
 
     // Break cycles: a depth-first search reverses each edge that closes a
     // cycle. The stack holds a node and the position in its edge list.
+    // A parent class goes above its children, so the layering sees the
+    // edge of `a --|> b` from b to a.
+    let flip: Vec<bool> = d.edges.iter().map(|e| matches!(e.arrow, "--|>" | "..|>")).collect();
+    for e in (0..ne).filter(|&e| flip[e]) {
+        std::mem::swap(&mut ca[e], &mut cb[e]);
+    }
     let mut rev = vec![false; ne];
     let mut state = vec![0u8; n];
     let mut adj = Groups::default();
@@ -1025,6 +1041,11 @@ pub fn layout_graph(d: &Diagram) -> GraphLayout {
                 stack.push((v, adj.start[v]));
             }
         }
+    }
+
+    for e in (0..ne).filter(|&e| flip[e]) {
+        std::mem::swap(&mut ca[e], &mut cb[e]);
+        rev[e] = !rev[e];
     }
 
     let mut lend = vec![0usize; ne]; // the end on the low-rank side
@@ -1144,6 +1165,8 @@ pub fn layout_graph(d: &Diagram) -> GraphLayout {
         lab_c: vec![0; ne],
         root_m: 0,
         root_c: 0,
+        run: if d.dtype.has_members() { RUN } else { ARROW },
+        lead: if d.dtype.has_members() { LEAD } else { 0 },
     };
     g.layout_container(None, &mut Layers::default());
     g.piece_start.push(g.piece_pts.len());

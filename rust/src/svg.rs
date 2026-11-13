@@ -361,7 +361,7 @@ impl Frame {
 
 /// A path with round corners through points on a right-angle route. The
 /// line stops short of both ends, and shorter where an arrowhead sits.
-fn route_path(p: &[i64], arrow_start: bool, arrow_end: bool) -> String {
+pub(crate) fn route_path(p: &[i64], arrow_start: bool, arrow_end: bool) -> String {
     let mut pts = p.to_vec();
     let z = pts.len();
     let cut_end = GAP + if arrow_end { 5 } else { 0 };
@@ -461,6 +461,10 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
         t => t.name().to_string(),
     };
     let mut f = Frame::new(&d.title, kicker);
+    let records = d.dtype.has_members();
+    if records {
+        f.style((crate::records::LIGHT, crate::records::DARK));
+    }
     let (ox, oy) = f.origin();
     let mut inner_w = l.w;
     if d.dtype == DiagramType::Deps {
@@ -498,6 +502,11 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
         let z = p.len();
         if e.status > 0 {
             f.used[e.status] = true;
+        }
+        if records {
+            // The end marks tell the kind of a relation, so no line legend.
+            crate::records::draw_edge(&mut f.body, d.dtype, e, &p, ge.arrow_start);
+            continue;
         }
         f.lines[if e.main {
             0
@@ -553,6 +562,15 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
             }
             let gl = if it.vendor { "gl glv" } else { "gl" };
             let _ = write!(f.body, "<text class=\"{gl}\" x=\"{tx}\" y=\"{}\">{}</text>", y + 24, esc(&it.label));
+            if it.status > 0 {
+                f.badge(it.status, x + w - 2, y + 2);
+            }
+            continue;
+        }
+        if records {
+            for s in crate::records::draw_record(&mut f.body, d.dtype, it, x, y, w, h) {
+                f.used[s] = true;
+            }
             if it.status > 0 {
                 f.badge(it.status, x + w - 2, y + 2);
             }

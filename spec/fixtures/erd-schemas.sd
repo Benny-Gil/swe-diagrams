@@ -1,0 +1,29 @@
+erd "Billing and catalog"
+group billing "billing"
+  accounts "Account"
+    id uuid pk
+    owner_id uuid fk
+    plan text
+  invoices "Invoice" mod
+    id uuid pk
+    account_id uuid fk
+    due_at timestamptz null
+    legacy_ref text del
+    paid_at timestamptz null add
+group catalog "catalog"
+  products "Product"
+    id uuid pk
+    sku text uniq
+    price_cents int
+  tags "Tag" plan
+    id int pk
+  product_tags "product_tag"
+    product_id uuid pk fk
+    tag_id int pk fk
+users "User"
+  id uuid pk
+users 1--? accounts "owns"
+accounts 1--* invoices
+invoices *--* products "bills"
+products 1--* product_tags
+tags 1--* product_tags

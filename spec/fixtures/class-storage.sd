@@ -1,0 +1,13 @@
+class "Storage"
+store "Store" :interface
+  + get(key) Value
+  + put(key, value)
+mem "MemoryStore"
+  - map HashMap
+  + get(key) Value
+disk "DiskStore" add
+  - path PathBuf
+cache "Cache"
+mem ..|> store
+disk ..|> store
+cache *-- store "backend"

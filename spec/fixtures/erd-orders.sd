@@ -1,0 +1,13 @@
+erd "Orders"
+users "User"
+  id uuid pk
+  email text uniq
+orders "Order" add
+  id uuid pk
+  user_id uuid fk
+  total numeric
+items "Line item"
+  order_id uuid fk
+  sku text
+users 1--* orders "places"
+orders 1--+ items

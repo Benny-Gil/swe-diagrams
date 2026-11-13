@@ -39,6 +39,8 @@ Otherwise use a temporary directory.
 | In what order do the parts talk for one request? | `seq` |
 | What are the steps of the work, and where is the work now? | `plan` |
 | What imports what? Is there an import cycle? | `deps` |
+| What are the tables and the relations between them? | `erd` |
+| What are the types and their relations? | `class` |
 
 ## The language
 
@@ -67,6 +69,10 @@ cart --> queue "publish" plan        # -> is solid, --> is dashed, <-> has two a
 - `seq`: nodes are participants, edges are messages in time order, `-->` is
   a reply, `a -> a` is a message to self. No groups.
 - `plan`: nodes are tasks, groups are phases, `a -> b` means `a` comes first.
+- `erd` and `class`: a node is a record. Each indented line under a node
+  line is a row: `id uuid pk` in `erd`, `+ get(key) Value` in `class`.
+  `erd` arrows are `a 1--* b`, with each end one of `1 ? * +`. `class`
+  arrows are `--|>` `..|>` `*--` `o--` `->` `..>`.
 - `dir right` or `dir down` changes the direction of `arch` and `plan`.
 
 For the full rules, read [references/language.md](references/language.md).
