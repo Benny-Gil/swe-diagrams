@@ -9,7 +9,7 @@ use crate::cycles::find_cycles;
 use crate::icons::Icon;
 use crate::layout_graph::GraphLayout;
 use crate::layout_seq::SeqLayout;
-use crate::model::{idiv, Diagram, DiagramType, STATUS_NAMES};
+use crate::model::{idiv, Diagram, DiagramType, STATUS_NAMES, STATUS_WORDS};
 use crate::svg_shapes;
 use crate::text::{measure, measure_mono};
 
@@ -168,6 +168,24 @@ pub(crate) fn st(status: usize) -> String {
     } else {
         String::new()
     }
+}
+
+/// Opens the group of a node or a group. A script finds the part by these
+/// attributes. `kind` is `node` or `group`.
+pub(crate) fn open_part(out: &mut String, kind: &str, id: &str, status: usize) {
+    let _ = write!(out, "<g data-k=\"{kind}\" data-id=\"{}\" data-s=\"{}\">", esc(id), STATUS_WORDS[status]);
+}
+
+/// Opens the group of edge `k`. `kind` is `edge` or `msg`.
+pub(crate) fn open_edge(out: &mut String, kind: &str, d: &Diagram, k: usize) {
+    let e = &d.edges[k];
+    let _ = write!(
+        out,
+        "<g data-k=\"{kind}\" data-i=\"{k}\" data-from=\"{}\" data-to=\"{}\" data-s=\"{}\">",
+        esc(&d.items[e.from].id),
+        esc(&d.items[e.to].id),
+        STATUS_WORDS[e.status]
+    );
 }
 
 /// The class of the text of a part with a status that makes the text quiet.
@@ -619,9 +637,10 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
         if change && it.status == 0 {
             class.push_str(" q");
         }
+        open_part(&mut f.body, "group", &it.id, it.status);
         let _ = write!(
             f.body,
-            "<rect class=\"{class}\" x=\"{}\" y=\"{}\" width=\"{}\" height=\"{}\" rx=\"12\"/>",
+            "<rect class=\"{class}\" x=\"{}\" y=\"{}\" width=\"{}\" height=\"{}\" rx=\"12\"/></g>",
             ox + l.x[i],
             oy + l.y[i],
             l.bw[i],
@@ -641,9 +660,11 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
         if e.status > 0 {
             f.used[e.status] = true;
         }
+        open_edge(&mut f.body, "edge", d, ge.edge);
         if records {
             // The end marks tell the kind of a relation, so no line legend.
             crate::records::draw_edge(&mut f.body, d.dtype, e, &p, ge.arrow_start);
+            f.body.push_str("</g>");
             continue;
         }
         f.lines[if e.main {
@@ -665,7 +686,7 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
         if quiet_edge {
             f.body.push_str("<g class=\"q\">");
         }
-        let _ = write!(f.body, "<path class=\"{lc}\" d=\"{}\"/>", route_path(&p, ge.arrow_start, ge.arrow_end));
+        let _ = write!(f.body, "<path class=\"{lc} rt\" d=\"{}\"/>", route_path(&p, ge.arrow_start, ge.arrow_end));
         if ge.arrow_end {
             let head = arrow_head(p[z - 2], p[z - 1], (p[z - 2] - p[z - 4]).signum(), (p[z - 1] - p[z - 3]).signum());
             let _ = write!(f.body, "<path class=\"{ac}\" d=\"{head}\"/>");
@@ -677,6 +698,7 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
         if quiet_edge {
             f.body.push_str("</g>");
         }
+        f.body.push_str("</g>");
     }
 
     for (i, it) in d.items.iter().enumerate() {
@@ -690,6 +712,7 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
                 f.sources.push(ic.source.clone());
             }
         }
+        open_part(&mut f.body, if it.group { "group" } else { "node" }, &it.id, it.status);
         if it.group {
             let mut tx = x + 12;
             if let Some(ic) = icon {
@@ -715,6 +738,7 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
             if it.status > 0 {
                 f.badge(it.status, x + w - 2, y + 2);
             }
+            f.body.push_str("</g>");
             continue;
         }
         if records {
@@ -724,6 +748,7 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
             if it.status > 0 {
                 f.badge(it.status, x + w - 2, y + 2);
             }
+            f.body.push_str("</g>");
             continue;
         }
         if svg_shapes::draws(d.dtype) {
@@ -733,7 +758,9 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
             if it.status > 0 {
                 f.badge(it.status, bx, by);
             }
+            f.body.push_str("</g>");
             if let Some(k) = svg_shapes::first_loop(d, i) {
+                open_edge(&mut f.body, "edge", d, k);
                 let e = &d.edges[k];
                 let lm = if e.main { " lm" } else { "" };
                 if e.status > 0 {
@@ -748,6 +775,7 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
                     &edge_class("a", e.main, false, e.status),
                     lm,
                 ));
+                f.body.push_str("</g>");
             }
             continue;
         }
@@ -758,6 +786,7 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
             let cy = y + idiv(h, 2);
             f.badge(it.status, x + 18, cy);
             f.body.push_str(&card_text(&it.label, &it.sub, it.status, x + 11 + idiv(w, 2), cy));
+            f.body.push_str("</g>");
             continue;
         }
 
@@ -831,6 +860,7 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
         if quiet_node {
             f.body.push_str("</g>");
         }
+        f.body.push_str("</g>");
     }
 
     for (k, ge) in l.edges.iter().enumerate() {
@@ -839,6 +869,7 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
         }
         let e = &d.edges[ge.edge];
         let lm = if e.main { " lm" } else { "" };
+        open_edge(&mut f.body, "edge", d, ge.edge);
         if d.dtype == DiagramType::Dataflow {
             // The label is the data that moves, in a pill on the line.
             let (mut cx, cy) = (ge.label_x + ox, ge.label_y + oy);
@@ -855,6 +886,7 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
                 cy + 4,
                 esc(&e.label)
             );
+            f.body.push_str("</g>");
             continue;
         }
         // Across the layers the label sits above the line. Along a vertical
@@ -872,6 +904,7 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
             ge.label_y + oy + dy,
             esc(&e.label)
         );
+        f.body.push_str("</g>");
         if d.down && dx > 0 {
             inner_w = inner_w.max(shift + ge.label_x + 8 + ge.label_w);
         }
@@ -886,7 +919,8 @@ pub fn render_seq(d: &Diagram, l: &SeqLayout) -> String {
 
     for &i in &d.roots {
         let cx = ox + l.cx[i];
-        let _ = write!(f.body, "<path class=\"ll\" d=\"M{cx} {}V{bottom}\"/>", oy + l.head_h);
+        open_part(&mut f.body, "node", &d.items[i].id, d.items[i].status);
+        let _ = write!(f.body, "<path class=\"ll\" d=\"M{cx} {}V{bottom}\"/></g>", oy + l.head_h);
     }
     for (k, e) in d.edges.iter().enumerate() {
         if e.status > 0 {
@@ -897,10 +931,11 @@ pub fn render_seq(d: &Diagram, l: &SeqLayout) -> String {
         let lm = if e.main { " lm" } else { "" };
         let y = oy + l.my[k];
         let x1 = ox + l.cx[e.from];
+        open_edge(&mut f.body, "msg", d, k);
         if e.from == e.to {
             let _ = write!(
                 f.body,
-                "<path class=\"{lc}\" d=\"M{x1} {y}H{}Q{} {y} {} {}V{}Q{} {} {} {}H{}\"/>",
+                "<path class=\"{lc} rt\" d=\"M{x1} {y}H{}Q{} {y} {} {}V{}Q{} {} {} {}H{}\"/>",
                 x1 + 22,
                 x1 + 28,
                 x1 + 28,
@@ -922,13 +957,14 @@ pub fn render_seq(d: &Diagram, l: &SeqLayout) -> String {
                     esc(&e.label)
                 );
             }
+            f.body.push_str("</g>");
             continue;
         }
         let x2 = ox + l.cx[e.to];
         let dir = (x2 - x1).signum();
         if e.dashed {
             // A reply has an open arrowhead.
-            let _ = write!(f.body, "<path class=\"{lc}\" d=\"M{x1} {y}H{x2}\"/>");
+            let _ = write!(f.body, "<path class=\"{lc} rt\" d=\"M{x1} {y}H{x2}\"/>");
             let _ = write!(
                 f.body,
                 "<path class=\"{} oa\" d=\"M{} {}L{x2} {y}L{} {}\"/>",
@@ -939,7 +975,7 @@ pub fn render_seq(d: &Diagram, l: &SeqLayout) -> String {
                 y + 3
             );
         } else {
-            let _ = write!(f.body, "<path class=\"{lc}\" d=\"M{x1} {y}H{}\"/>", x2 - 5 * dir);
+            let _ = write!(f.body, "<path class=\"{lc} rt\" d=\"M{x1} {y}H{}\"/>", x2 - 5 * dir);
             let _ = write!(f.body, "<path class=\"{ac}\" d=\"M{x2} {y}l{} -3v6z\"/>", -7 * dir);
         }
         if e.bidir {
@@ -954,15 +990,18 @@ pub fn render_seq(d: &Diagram, l: &SeqLayout) -> String {
                 esc(&e.label)
             );
         }
+        f.body.push_str("</g>");
     }
     for &i in &d.roots {
         let it = &d.items[i];
         let x = ox + l.cx[i] - idiv(l.pw[i], 2);
+        open_part(&mut f.body, "node", &it.id, it.status);
         f.body.push_str(&card(it.kind, it.status, x, oy, l.pw[i], l.head_h));
         f.body.push_str(&card_text(&it.label, &it.sub, it.status, ox + l.cx[i], oy + idiv(l.head_h, 2)));
         if it.status > 0 {
             f.badge(it.status, x + l.pw[i] - 2, oy + 2);
         }
+        f.body.push_str("</g>");
     }
     f.finish(l.w, l.h)
 }

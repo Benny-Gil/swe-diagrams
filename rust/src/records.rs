@@ -331,7 +331,7 @@ fn draw_line(out: &mut String, dt: DiagramType, e: &Edge, status: usize, p: &[i6
     shorten(&mut pts, false, start_cut - GAP);
     shorten(&mut pts, true, end_cut - GAP);
     let dash = if e.dashed { " d" } else { "" };
-    let _ = write!(out, "<path class=\"e{dash}{s}\" d=\"{}\"/>", route_path(&pts, false, false));
+    let _ = write!(out, "<path class=\"e{dash}{s} rt\" d=\"{}\"/>", route_path(&pts, false, false));
     out.push_str(&start_svg);
     out.push_str(&end_svg);
 }

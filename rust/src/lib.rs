@@ -9,6 +9,7 @@ pub mod layout_graph;
 pub mod layout_seq;
 pub mod layout_timeline;
 pub mod model;
+pub mod output;
 pub mod parse;
 pub mod records;
 pub mod render;
@@ -16,7 +17,10 @@ pub mod svg;
 pub mod svg_shapes;
 pub mod svg_timeline;
 pub mod text;
+pub mod theme;
 
 pub use icons::IconOptions;
 pub use model::DiagramError;
+pub use output::Format;
 pub use render::{render, Rendered};
+pub use theme::{apply_theme, Theme};
