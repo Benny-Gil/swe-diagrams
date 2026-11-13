@@ -193,6 +193,8 @@ pub(crate) struct Frame {
     marks: Vec<(&'static str, &'static str)>,
     /// More style rules, light then dark. Only a diagram that uses them gets them.
     styles: Vec<(&'static str, &'static str)>,
+    /// Legend entries with a drawn sample: the SVG from (0, 0) to (34, 0), and the name.
+    glyphs: Vec<(String, &'static str)>,
 }
 
 impl Frame {
@@ -207,6 +209,7 @@ impl Frame {
             sources: Vec::new(),
             marks: Vec::new(),
             styles: Vec::new(),
+            glyphs: Vec::new(),
         }
     }
 
@@ -268,6 +271,17 @@ impl Frame {
                 );
                 lx += 36 + measure_mono(names[k], 100) + 24;
             }
+        }
+        for (svg, name) in &self.glyphs {
+            let _ = write!(
+                legend,
+                "<g transform=\"translate({} {})\">{svg}</g><text class=\"lg mo\" x=\"{}\" y=\"{}\">{name}</text>",
+                lx,
+                ly - 3,
+                lx + 40,
+                ly
+            );
+            lx += 40 + measure_mono(name, 100) + 24;
         }
         for &(class, name) in &self.marks {
             let _ = write!(
@@ -366,7 +380,7 @@ impl Frame {
 
 /// A path with round corners through points on a right-angle route. The
 /// line stops short of both ends, and shorter where an arrowhead sits.
-fn route_path(p: &[i64], arrow_start: bool, arrow_end: bool) -> String {
+pub(crate) fn route_path(p: &[i64], arrow_start: bool, arrow_end: bool) -> String {
     let mut pts = p.to_vec();
     let z = pts.len();
     let cut_end = GAP + if arrow_end { 5 } else { 0 };
@@ -562,6 +576,14 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
         .max()
         .unwrap_or(0)
         .max(0);
+    let records = d.dtype.has_members();
+    if records {
+        f.style((crate::records::LIGHT, crate::records::DARK));
+        f.glyphs = crate::records::class_legend(d);
+        if d.dtype == DiagramType::Class {
+            f.style((crate::records::CLASS_LIGHT, crate::records::CLASS_DARK));
+        }
+    }
     let (ox, oy) = f.origin();
     let ox = ox + shift;
     let mut inner_w = l.w + shift;
@@ -618,6 +640,11 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
         let z = p.len();
         if e.status > 0 {
             f.used[e.status] = true;
+        }
+        if records {
+            // The end marks tell the kind of a relation, so no line legend.
+            crate::records::draw_edge(&mut f.body, d.dtype, e, &p, ge.arrow_start);
+            continue;
         }
         f.lines[if e.main {
             0
@@ -685,6 +712,15 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
                 (true, true) => "gl glv q",
             };
             let _ = write!(f.body, "<text class=\"{gl}\" x=\"{tx}\" y=\"{}\">{}</text>", y + 24, esc(&it.label));
+            if it.status > 0 {
+                f.badge(it.status, x + w - 2, y + 2);
+            }
+            continue;
+        }
+        if records {
+            for s in crate::records::draw_record(&mut f.body, d.dtype, it, x, y, w, h) {
+                f.used[s] = true;
+            }
             if it.status > 0 {
                 f.badge(it.status, x + w - 2, y + 2);
             }

@@ -51,6 +51,8 @@ Put spaces around an arrow. Write `a -> b`, not `a->b`.
 | `dataflow` | Where the data goes, and what changes it | right |
 | `change` | The parts that a change adds, modifies, and removes | right |
 | `timeline` | Events and milestones on one axis, in line order | right |
+| `erd` | Tables, their fields, and the relations between them | right |
+| `class` | Types, their members, and the relations between them | down |
 
 In `seq`, each node is a participant and each edge is a message. The order of
 the lines is the order in time. `a -> a` is a message to self. `seq` has no
@@ -305,6 +307,78 @@ runs do not.
 - `--offline` or `SWE_DIAGRAMS_OFFLINE=1` stops all network use.
 - The harness does not change the colours of a logo. A white logo gets a
   dark tile. The logos are the trademarks of their owners.
+
+## Records: erd and class
+
+In `erd` and `class`, a node is a record: a header with the label, and one
+row for each member line. A member line is a line under a node line, with
+more indent. The record gets its height from its rows. A member line can
+have a status at the end. The row then gets the colour of that status.
+
+### erd
+
+```
+erd "Orders"
+users "User"
+  id uuid pk
+  email text uniq
+orders "Order" add
+  id uuid pk
+  user_id uuid fk
+  note text null
+users 1--* orders "places"
+```
+
+A member line is a field: `name type flags status`. The flags are `pk`,
+`fk`, `uniq`, and `null`. The row shows a `PK`, `FK`, or `UQ` mark, the
+name, and the type. A key field has bold text. A field with `null` shows
+its type with a `?`, for example `text?`.
+
+An arrow is `<left>--<right>`. Each end is one of these marks:
+
+| End | Meaning | Mark at that end |
+|---|---|---|
+| `1` | Exactly one | Two bars |
+| `?` | Zero or one | A bar and a ring |
+| `*` | Zero or many | A crow's foot and a ring |
+| `+` | One or many | A crow's foot and a bar |
+
+`users 1--* orders` means: one user has zero or more orders. A group is a
+schema.
+
+### class
+
+```
+class "Storage"
+store "Store" :interface
+  + get(key) Value
+mem "MemoryStore"
+  - map HashMap
+  + get(key) Value
+mem ..|> store
+```
+
+A member line with `(` is a method. The other member lines are fields. The
+record shows the fields, then the methods, each in its own section. The
+harness keeps the text of a member line as it is, so write a visibility
+mark at the start: `+`, `-`, or `~`. A `#` starts a comment, so put a
+protected member in quotes: `"# origin Point"`.
+
+The kinds are `:class` (the default), `:interface`, `:abstract`, and
+`:enum`. The kind shows above the name, for example `«interface»`. An
+abstract name is italic.
+
+| Arrow | Meaning | Mark |
+|---|---|---|
+| `a --\|> b` | a extends b | Hollow triangle at b |
+| `a ..\|> b` | a implements b | Hollow triangle at b, dashed line |
+| `a *-- b` | a is made of b | Filled diamond at a |
+| `a o-- b` | a has b | Hollow diamond at a |
+| `a -> b` | a uses b | Arrowhead at b |
+| `a ..> b` | a depends on b | Open arrowhead at b, dashed line |
+
+For `--|>` and `..|>`, the harness puts b above a, so a parent is above its
+children.
 
 ## Command
 

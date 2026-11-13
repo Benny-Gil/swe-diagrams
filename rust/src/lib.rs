@@ -10,6 +10,7 @@ pub mod layout_seq;
 pub mod layout_timeline;
 pub mod model;
 pub mod parse;
+pub mod records;
 pub mod render;
 pub mod svg;
 pub mod svg_shapes;
