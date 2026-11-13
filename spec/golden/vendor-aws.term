@@ -1,0 +1,31 @@
+architecture
+Web app on AWS
+
+outline: the drawing needs 148 columns, and the limit is 100.
+
+• User
+[AWS Cloud]
+  [us-east-1]
+    • CloudFront
+    [VPC]
+      [Availability Zone A]
+        [Public subnet]
+          • ALB
+        [Private subnet]
+          • App  EC2 fleet
+          • Orders DB
+    • Assets
+    • Jobs
+    • Worker
+    • Legacy
+[Home office]
+  • Laptop
+
+Edges
+  User → CloudFront
+  CloudFront → ALB
+  ALB → App
+  App → Orders DB  sql
+  App ⇢ Jobs
+  Jobs → Worker
+  CloudFront → Assets

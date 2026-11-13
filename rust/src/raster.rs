@@ -70,6 +70,30 @@ pub fn rasterize(svg: &str, scale: f32) -> Result<Pixmap, String> {
     Ok(pixmap)
 }
 
+/// A box in SVG units: x, y, width, and height.
+pub type SvgBox = (f32, f32, f32, f32);
+
+/// The box of the first node group of each id. An id with no group gives
+/// `None`.
+pub fn node_boxes(svg: &str, ids: &[&str]) -> Result<Vec<Option<SvgBox>>, String> {
+    // usvg keeps a group with an id, so each node group gets a temporary id.
+    let mut marked = svg.to_string();
+    for (k, id) in ids.iter().enumerate() {
+        let open = format!("<g data-k=\"node\" data-id=\"{}\" ", crate::svg::esc(id));
+        if let Some(at) = marked.find(&open) {
+            marked.insert_str(at + 3, &format!("id=\"sd-tour-{k}\" "));
+        }
+    }
+    let opts = usvg::Options { fontdb: fonts(), font_resolver: resolver(), ..usvg::Options::default() };
+    let tree = usvg::Tree::from_str(&marked, &opts).map_err(|e| format!("cannot read the SVG: {e}"))?;
+    Ok((0..ids.len())
+        .map(|k| {
+            let r = tree.node_by_id(&format!("sd-tour-{k}"))?.abs_bounding_box()?;
+            Some((r.x(), r.y(), r.width(), r.height()))
+        })
+        .collect())
+}
+
 /// The PNG file of an SVG, `scale` times its size.
 pub fn png(svg: &str, scale: f32) -> Result<Vec<u8>, String> {
     rasterize(svg, scale)?.encode_png().map_err(|e| format!("cannot write the PNG: {e}"))

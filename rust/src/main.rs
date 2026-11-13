@@ -1,17 +1,19 @@
 //! Command line entry: swe-diagrams render <file|-> [-o out] [--format F]
-//! [--theme T] [--level path] [--scale N] [--animate] [--story T] [--fps N] [--speed X]
-//! [--icons dir] [--offline]
+//! [--theme T] [--level path] [--scale N] [--animate] [--story T] [--tour]
+//! [--fps N] [--speed X] [--color C] [--width N] [--icons dir] [--offline]
 
 use std::ffi::OsString;
-use std::io::{self, Read, Write};
+use std::io::{self, IsTerminal, Read, Write};
 use std::process::ExitCode;
 
 use swe_diagrams::anim::{self, FrameOptions};
+use swe_diagrams::text_out::to_text;
+use swe_diagrams::tour::{tour_frames, TourOptions};
 use swe_diagrams::vendor::{self, Cloud};
 use swe_diagrams::video::{encode_gif, encode_video};
 use swe_diagrams::{apply_theme, html_at, png, render_path, Format, IconOptions, Rendered, Theme};
 
-const USAGE: &str = "usage: swe-diagrams render <file.sd|-> [-o out] [--format svg|html|png|txt|gif|mp4|webm] [--theme auto|light|dark] [--level path] [--scale N] [--animate] [--story title] [--fps N] [--speed X] [--icons dir] [--offline]\n";
+const USAGE: &str = "usage: swe-diagrams render <file.sd|-> [-o out] [--format svg|html|png|txt|gif|mp4|webm] [--theme auto|light|dark] [--level path] [--scale N] [--animate] [--story title] [--tour] [--fps N] [--speed X] [--color auto|always|never] [--width N] [--icons dir] [--offline]\n";
 const VERSION: &str = concat!("swe-diagrams ", env!("CARGO_PKG_VERSION"), "\n");
 
 /// The options of the output.
@@ -27,6 +29,11 @@ struct Out<'a> {
     /// The path of the level to show: one level for SVG and PNG, the
     /// first level for HTML.
     level: &'a str,
+    tour: bool,
+    /// ANSI colour in the text output.
+    color: bool,
+    /// The columns of the text output.
+    width: usize,
 }
 
 /// The bytes of the output, or `None` when ffmpeg wrote the file, and a
@@ -38,9 +45,24 @@ fn produce(r: &Rendered, o: &Out) -> Result<(Option<Vec<u8>>, String), String> {
         return Err(format!("no level '{}'; levels: {list}", o.level));
     };
     let animated = matches!(o.format, Format::Gif | Format::Mp4 | Format::Webm) || o.animate;
-    // The stories are of the top level only.
+    // The stories are of the top level only, and a tour starts at the top.
     if animated && !lv.path.is_empty() {
-        return Err("--level works with svg, html, png, and txt; a story moves on the top level only".to_string());
+        return Err("--level works with svg, html, png, and txt; a story and a tour start at the top level".to_string());
+    }
+    if o.tour {
+        let to = TourOptions {
+            fps: o.fps,
+            speed: o.speed,
+            scale: o.scale.unwrap_or(1.0),
+            theme: o.theme.unwrap_or(Theme::Light),
+        };
+        let t = tour_frames(r, &to)?;
+        let note = format!(" tour={} frames={}", t.levels, t.frames.len());
+        if o.format == Format::Gif {
+            return Ok((Some(encode_gif(&t.frames, o.fps)?), note));
+        }
+        encode_video(&t.frames, o.fps, o.path.ok_or("a video needs -o <file>")?)?;
+        return Ok((None, note));
     }
     let story = if animated { anim::pick(r, o.story)? } else { None };
     let note = match story {
@@ -65,6 +87,7 @@ fn produce(r: &Rendered, o: &Out) -> Result<(Option<Vec<u8>>, String), String> {
             Some(png(&apply_theme(&lv.svg, o.theme.unwrap_or(Theme::Light)), o.scale.unwrap_or(2.0))?),
             String::new(),
         )),
+        Format::Txt => Ok((Some(to_text(&lv.diagram, o.color, o.width).into_bytes()), String::new())),
         Format::Gif | Format::Mp4 | Format::Webm => {
             let fo = FrameOptions {
                 fps: o.fps,
@@ -81,13 +104,16 @@ fn produce(r: &Rendered, o: &Out) -> Result<(Option<Vec<u8>>, String), String> {
             encode_video(&frames, o.fps, path)?;
             Ok((None, note))
         }
-        f => Err(format!("the {} format is not ready", f.name())),
     }
 }
 
-/// True for the formats that this build can write.
-fn ready(format: Format) -> bool {
-    matches!(format, Format::Svg | Format::Png | Format::Html | Format::Gif | Format::Mp4 | Format::Webm)
+/// The columns of the text: `--width`, then `$COLUMNS`, then the
+/// terminal, then 100.
+fn text_width(width: Option<usize>) -> usize {
+    width
+        .or_else(|| std::env::var("COLUMNS").ok().and_then(|v| v.trim().parse().ok()).filter(|&n| n > 0))
+        .or_else(|| terminal_size::terminal_size().map(|(w, _)| usize::from(w.0)))
+        .unwrap_or(100)
 }
 
 // A closed pipe must not cause a panic, so the two functions report a
@@ -136,6 +162,9 @@ fn run(argv: &[OsString]) -> u8 {
     let mut fps: u32 = 15;
     let mut speed: f64 = 1.0;
     let mut level = String::new();
+    let mut tour = false;
+    let mut color: Option<bool> = None;
+    let mut width: Option<usize> = None;
     let mut k = 2;
     while k < argv.len() {
         let value = argv.get(k + 1).and_then(|v| v.to_str());
@@ -174,6 +203,32 @@ fn run(argv: &[OsString]) -> u8 {
         } else if argv[k] == "--animate" {
             animate = true;
             k += 1;
+        } else if argv[k] == "--tour" {
+            tour = true;
+            k += 1;
+        } else if argv[k] == "--color" && k + 1 < argv.len() {
+            color = match value {
+                Some("auto") => None,
+                Some("always") => Some(true),
+                Some("never") => Some(false),
+                _ => {
+                    to_stderr(&format!(
+                        "error: unknown color mode {}; use auto, always, or never\n",
+                        argv[k + 1].to_string_lossy()
+                    ));
+                    return 1;
+                }
+            };
+            k += 2;
+        } else if argv[k] == "--width" && k + 1 < argv.len() {
+            match value.and_then(|v| v.parse::<usize>().ok()) {
+                Some(n) if (20..=1000).contains(&n) => width = Some(n),
+                _ => {
+                    to_stderr("error: the width must be a whole number from 20 to 1000\n");
+                    return 1;
+                }
+            }
+            k += 2;
         } else if argv[k] == "--story" && k + 1 < argv.len() {
             let Some(t) = value else {
                 to_stderr("error: the story title must be UTF-8\n");
@@ -216,8 +271,12 @@ fn run(argv: &[OsString]) -> u8 {
         }
     }
     let format = format.unwrap_or_else(|| output.map_or(Format::Svg, |o| Format::from_path(std::path::Path::new(o))));
-    if !ready(format) {
-        to_stderr(&format!("error: the {} format is not ready\n", format.name()));
+    if tour && story.is_some() {
+        to_stderr("error: use --tour or --story, not both; a tour visits the levels, a story moves on one level\n");
+        return 1;
+    }
+    if tour && !matches!(format, Format::Gif | Format::Mp4 | Format::Webm) {
+        to_stderr(&format!("error: --tour writes gif, mp4, or webm, not {}; use -o tour.gif\n", format.name()));
         return 1;
     }
     if animate && format != Format::Svg {
@@ -239,6 +298,10 @@ fn run(argv: &[OsString]) -> u8 {
     let file = (input != "-").then(|| std::path::Path::new(input));
     match render_path(&src, file, &opts) {
         Ok(r) => {
+            // NO_COLOR with any value but the empty string turns colour off.
+            let auto_color = output.is_none()
+                && io::stdout().is_terminal()
+                && std::env::var_os("NO_COLOR").is_none_or(|v| v.is_empty());
             let out = Out {
                 format,
                 theme,
@@ -249,6 +312,9 @@ fn run(argv: &[OsString]) -> u8 {
                 speed,
                 path: output.map(std::path::Path::new),
                 level: &level,
+                tour,
+                color: color.unwrap_or(auto_color),
+                width: text_width(width),
             };
             let (data, note) = match produce(&r, &out) {
                 Ok(v) => v,

@@ -18,6 +18,13 @@ This file lists the changes in each version. The project uses
   `:vpc`, `:vnet`, `:subnet`, `:public`, `:private`, and `:rg` inside. An
   AWS group follows the AWS guide.
 - `swe-diagrams icons <aws|gcp|azure> [filter]` lists the icon names.
+- The npm package `swe-diagrams`: a launcher with no dependencies. The
+  first run downloads the release binary and checks its SHA-256 sum.
+  `npx swe-diagrams` works on Linux, macOS, and Windows.
+- The crate `swe-diagrams` is ready for crates.io, so
+  `cargo install swe-diagrams` works after the first `cargo publish`.
+- `scripts/bump-version.sh` sets the version in each file that holds it.
+- Release steps in `docs/release.md`.
 - Output formats: `--format svg|html|png`, or the extension of `-o`.
 - HTML output: one self-contained page with pan, zoom, a fit button,
   hover highlights, a status filter in the legend, and arrow-key steps.
@@ -48,6 +55,14 @@ This file lists the changes in each version. The project uses
   with a click or `Enter`, and has a breadcrumb, `Escape`, and a hash path.
   A node with no status takes a status from its detail level. The summary
   line adds `levels=` and `details=`.
+- Terminal text output (`text_out::to_text`) for all eleven types. It
+  draws with Unicode box drawing, shows status symbols, and can add ANSI
+  colours. A drawing that is too wide becomes an outline.
+- `--format txt` (or `-o x.txt`) writes the terminal text. `--color
+  auto|always|never` sets the ANSI colour, and `--width N` sets the
+  columns. `--level` works for the text.
+- `--tour` writes a GIF or a video that zooms into each detail level,
+  depth first, and back out. The summary line adds `tour=` and `frames=`.
 
 ### Changed
 

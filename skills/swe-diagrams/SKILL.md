@@ -21,7 +21,9 @@ layout is deterministic, and the summary line reports what the harness drew.
 
    If the command is not found, install it with the steps in
    https://github.com/Benny-Gil/swe-diagrams/blob/main/docs/install.md
-   (ask the user first).
+   (ask the user first). If `npx` is present, also give the user this
+   choice: `npx swe-diagrams` downloads the program on the first run and
+   works in place of `swe-diagrams`.
 4. Read the summary line, for example `ok plan nodes=6 edges=5 plan.svg`.
    An `implicit=` list names ids that only an edge uses. An id there that
    you did not intend is a typing error. A `noicon=` list names logos that
@@ -45,12 +47,20 @@ The extension of `-o` gives the format.
   move along the edges of the first story. It needs no script.
 - `.gif`: motion for a chat that does not show SVG. `.mp4` and `.webm`
   need `ffmpeg`.
+- `.gif` with `--tour`: a zoom tour that visits each detail level, depth
+  first, and comes back to the top level. The diagram needs a `detail`
+  block or a `>file.sd` link.
 
 To show the order of calls or the path of data, add a story: a
 `story "Title"` line, then one indented step for each edge, for example
 `web -> api "POST /cart"`. `-->` is a reply. `a -> b & a -> c` runs two
 steps at the same time. Without a story, the `=>` edges make one. The
 HTML page has a player for the stories.
+
+To show a diagram in the terminal, use `--format txt`. It draws boxes
+and lines with Unicode characters on standard output. A wide diagram
+becomes an outline. `--width N` sets the columns, and `--color never`
+removes the ANSI colour.
 
 Keep the files in `docs/diagrams/` when the user wants to keep them.
 Otherwise use a temporary directory.

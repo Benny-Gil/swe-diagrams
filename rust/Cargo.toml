@@ -8,6 +8,8 @@ repository = "https://github.com/Benny-Gil/swe-diagrams"
 readme = "../README.md"
 keywords = ["diagram", "svg", "architecture", "agent", "cli"]
 categories = ["command-line-utilities", "visualization"]
+# The tests read files in ../spec, so the crate does not include them.
+include = ["src/**/*", "fonts/*", "Cargo.toml", "Cargo.lock", "LICENSE", "README.md"]
 
 [lib]
 name = "swe_diagrams"
@@ -29,6 +31,7 @@ miniz_oxide = "0.9"
 color_quant = "1.1"
 gif = "0.14"
 resvg = { version = "0.50.0", default-features = false, features = ["text", "raster-images"] }
+terminal_size = "0.4"
 
 # The rasterizer is slow without optimization, and the tests draw each fixture.
 [profile.dev.package."*"]

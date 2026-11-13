@@ -83,6 +83,8 @@ pub struct RenderedLevel {
     pub dtype: DiagramType,
     pub svg: String,
     pub order: Vec<Step>,
+    /// The parsed level, for the text output.
+    pub diagram: Diagram,
 }
 
 /// The SVG of a diagram, with the logos in `icons`.
@@ -207,21 +209,14 @@ pub fn render(src: &str, opts: &IconOptions) -> Result<Rendered, DiagramError> {
 pub fn render_path(src: &str, file: Option<&Path>, opts: &IconOptions) -> Result<Rendered, DiagramError> {
     let mut levels = load(src, file)?;
     let mut missing: Vec<String> = Vec::new();
-    let mut out: Vec<RenderedLevel> = Vec::with_capacity(levels.len());
+    let mut svgs: Vec<String> = Vec::with_capacity(levels.len());
     let mut top_icons: Vec<Option<Icon>> = Vec::new();
-    for lv in &levels {
+    for (k, lv) in levels.iter().enumerate() {
         let icons = icons_of(&lv.d, opts, &mut missing);
-        let svg = draw(&lv.d, &icons);
-        if out.is_empty() {
+        svgs.push(draw(&lv.d, &icons));
+        if k == 0 {
             top_icons = icons;
         }
-        out.push(RenderedLevel {
-            path: lv.key(),
-            title: lv.d.title.clone(),
-            dtype: lv.d.dtype,
-            svg,
-            order: order(&lv.d),
-        });
     }
     // The stories and the progress drawings are of the top level only.
     let stories = stories(&levels[0].d);
@@ -258,12 +253,25 @@ pub fn render_path(src: &str, file: Option<&Path>, opts: &IconOptions) -> Result
         summary.push_str(" noicon=");
         summary.push_str(&missing.join(","));
     }
+    let (dtype, title) = (d.dtype, d.title.clone());
+    let out: Vec<RenderedLevel> = levels
+        .into_iter()
+        .zip(svgs)
+        .map(|(lv, svg)| RenderedLevel {
+            path: lv.key(),
+            title: lv.d.title.clone(),
+            dtype: lv.d.dtype,
+            svg,
+            order: order(&lv.d),
+            diagram: lv.d,
+        })
+        .collect();
     let top = &out[0];
     Ok(Rendered {
         svg: top.svg.clone(),
         summary,
-        dtype: d.dtype,
-        title: d.title.clone(),
+        dtype,
+        title,
         order: top.order.clone(),
         levels: out,
         stories,

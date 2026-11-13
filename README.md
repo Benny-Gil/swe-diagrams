@@ -45,11 +45,25 @@ The script puts the program in `~/.local/bin` and the skill in
 `~/.claude/skills`. To put the skill in another place, set
 `SWE_DIAGRAMS_SKILL_DIR`. To skip the skill, set it to `none`.
 
+### npm (all systems)
+
+```bash
+npx swe-diagrams render app.sd -o app.svg
+```
+
+The npm package is a small launcher. On the first run, it downloads the
+release binary for your platform and checks it against `SHA256SUMS`. To
+keep the command, run `npm install -g swe-diagrams`.
+
 ### Cargo (all systems)
 
 ```bash
-cargo install --git https://github.com/Benny-Gil/swe-diagrams swe-diagrams
+cargo install swe-diagrams
 ```
+
+This builds the program from [crates.io](https://crates.io/crates/swe-diagrams).
+To build the code on `main`, run
+`cargo install --git https://github.com/Benny-Gil/swe-diagrams swe-diagrams`.
 
 Then copy the folder `skills/swe-diagrams` into the skills folder of your
 agent.
@@ -79,6 +93,8 @@ swe-diagrams render plan.sd -o plan.svg    # SVG, light and dark theme
 swe-diagrams render plan.sd -o plan.html   # page with pan, zoom, and highlights
 swe-diagrams render plan.sd -o plan.png    # PNG image, light theme
 swe-diagrams render plan.sd -o plan.png --theme dark --scale 3
+swe-diagrams render plan.sd --format txt   # boxes in the terminal
+swe-diagrams render plan.sd -o tour.gif --tour   # zoom through each detail level
 ```
 
 The HTML page is one file that loads nothing from the network, so it also

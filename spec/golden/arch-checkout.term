@@ -1,0 +1,30 @@
+architecture
+Checkout service
+
+outline: the drawing needs 208 columns, and the limit is 100.
+
+• Shopper  browser
+[Edge]
+  • Web app ✓  next.js
+  • API gateway ✓  rest
+[Core services]
+  • Cart service ◐  go
+  • Payments ○  worker
+  [Data]
+    • Postgres ✓  orders db
+    • Redis ◐  session cache
+    • Order events ○  topic
+• Stripe  card processor
+
+Edges
+  Shopper → Web app  browse
+  Web app → API gateway  REST
+  API gateway → Cart service  add item
+  API gateway → Payments  charge ○
+  Cart service → Postgres  write
+  Cart service → Redis  read
+  Cart service ⇢ Order events  publish ○
+  Payments → Stripe  capture ○
+  Order events ⇢ Payments  ○
+
+✓ done   ◐ in progress   ○ planned
