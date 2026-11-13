@@ -30,7 +30,7 @@ fn text(bytes: &[u8]) -> &str {
 fn version_goes_to_stdout() {
     let out = run(&["--version"]);
     assert_eq!(out.status.code(), Some(0));
-    assert_eq!(text(&out.stdout), "swe-diagrams 0.1.0\n");
+    assert_eq!(text(&out.stdout), concat!("swe-diagrams ", env!("CARGO_PKG_VERSION"), "\n"));
     assert_eq!(text(&out.stderr), "");
 }
 

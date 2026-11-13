@@ -5,6 +5,10 @@ This file lists the changes in each version. The project uses
 
 ## Unreleased
 
+## 0.2.0 - 2026-11-13
+
+This version adds nine diagram types, motion, zoom, and more output formats.
+
 ### Added
 
 - Easy install: steps for an agent (`docs/install.md`), a Claude Code
@@ -74,7 +78,6 @@ This file lists the changes in each version. The project uses
   to hold the labels of its edges.
 - Text widths come from the bundled Geist faces, with a margin for
   fallback faces, so a long title or label does not clip.
-
 - The README shows pictures and install steps first. The diagram language
   is in the language reference only.
 
