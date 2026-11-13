@@ -105,12 +105,12 @@ fn a_gif_loops_and_has_one_frame_for_each_time_step() {
     let file = spec("fixtures/arch-story.sd");
     let out = run(&["render", file.to_str().unwrap(), "-o", &target, "--fps", "10"], None);
     assert_eq!(out.status.code(), Some(0), "{}", text(&out.stderr));
-    // Six steps of 400 to 583 ms, and a pause of 1000 ms: 4350 ms.
-    assert!(text(&out.stdout).starts_with("ok arch nodes=5 edges=4 frames=44 story=\"Add an item\" "));
+    // Six steps of 400 to 600 ms, and a pause of 1000 ms: 46 frames at 10 fps.
+    assert!(text(&out.stdout).starts_with("ok arch nodes=5 edges=4 frames=46 story=\"Add an item\" "));
     let (w, h, n, looped) = gif_info(&fs::read(&target).unwrap());
-    assert_eq!((w, h, n, looped), (700, 256, 44, true));
+    assert_eq!((w, h, n, looped), (716, 256, 46, true));
     let still = fs::read(spec("golden/arch-story.svg")).unwrap();
-    assert!(text(&still).contains("width=\"700\" height=\"256\""));
+    assert!(text(&still).contains("width=\"716\" height=\"256\""));
 }
 
 #[test]

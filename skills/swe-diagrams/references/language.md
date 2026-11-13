@@ -55,6 +55,7 @@ Put spaces around an arrow. Write `a -> b`, not `a->b`.
 | `timeline` | Events and milestones on one axis, in line order | right |
 | `erd` | Tables, their fields, and the relations between them | right |
 | `class` | Types, their members, and the relations between them | down |
+| `journey` | The pages of an app, and the user actions between them | right |
 
 In `seq`, each node is a participant and each edge is a message. The order of
 the lines is the order in time. `a -> a` is a message to self. `seq` has no
@@ -173,8 +174,8 @@ wh -> dash "sql"
 
 Each node is a place where the data is, or a step that changes the data.
 `a -> b` means that data moves from `a` to `b`. Write the data that moves
-as the label. The label is a pill on the line. When two pills touch, they
-go beside their lines. The arrows are `->` and `-->`.
+as the label. The label is a pill on the line. When a pill touches another
+pill or line, it goes beside its line. The arrows are `->` and `-->`.
 
 | Kind | Shape |
 |---|---|
@@ -205,6 +206,30 @@ lower opacity, so the changed parts stand out.
 The title line counts the changed nodes and groups, for example
 `change / +1 ~1 -1`. The summary line adds
 `added=1 changed=1 removed=1`. The counts do not include the edges.
+
+### journey
+
+```
+journey "Sign up"
+home "Home" "/"
+signup "Sign up" "/signup"
+login "Sign in" "/login" :modal
+docs "Docs" "docs.example.com" :external
+home => signup "click Start"
+home -> login "click Sign in"
+signup --> docs "read terms"
+```
+
+Each node is a page, and each edge is a user action. Write the action as
+the label, for example `click Buy` or `submit form`. The second string is
+the route. It shows in mono in the bar of the page. Use `=>` for the main
+path. The arrows are `=>`, `->`, and `-->`.
+
+| Kind | Shape |
+|---|---|
+| `:page` | A browser frame with three dots and the route. This is the default. |
+| `:modal` | A smaller frame with a close mark |
+| `:external` | A browser frame with a dashed border, for a page that the app does not own |
 ## timeline
 
 ```
@@ -250,6 +275,10 @@ with that id as the label, in the group of the edge line. The summary line
 lists these ids after `implicit=`, so an id with a typing error is visible.
 
 An edge end can be a group. An edge cannot join a group and its own member.
+
+When the layers go down, a label is at one side of its line. The label
+takes the side with no other line, or moves along its line to a clear
+place. A group grows to hold the labels of its edges.
 
 ## Stories
 
@@ -423,8 +452,9 @@ mem ..|> store
 A member line with `(` is a method. The other member lines are fields. The
 record shows the fields, then the methods, each in its own section. The
 harness keeps the text of a member line as it is, so write a visibility
-mark at the start: `+`, `-`, or `~`. A `#` starts a comment, so put a
-protected member in quotes: `"# origin Point"`.
+mark at the start: `+` (public), `-` (private), `#` (protected), or `~`
+(package). In a class member line, a `#` at the start is the protected
+mark. In all other places, a `#` starts a comment.
 
 The kinds are `:class` (the default), `:interface`, `:abstract`, and
 `:enum`. The kind shows above the name, for example `«interface»`. An

@@ -226,7 +226,18 @@ pub fn parse(src: &str) -> Result<Diagram, DiagramError> {
         let ln = li + 1;
         let line = raw.strip_suffix('\r').unwrap_or(raw);
         toks.clear();
-        tokenize(line, ln, &mut errs, &mut toks);
+        // In a class member line, a `#` at the start is the protected mark,
+        // not a comment.
+        let body = line.trim_start_matches([' ', '\t']);
+        let mark = d.dtype == DiagramType::Class
+            && body.starts_with('#')
+            && member_of.is_some_and(|(_, base)| indent_of(line) > base);
+        if mark {
+            toks.push(Tok::Word("#"));
+            tokenize(&body[1..], ln, &mut errs, &mut toks);
+        } else {
+            tokenize(line, ln, &mut errs, &mut toks);
+        }
         if toks.is_empty() {
             continue;
         }
@@ -637,6 +648,27 @@ store :interface
         let texts: Vec<&str> = d.items[0].members.iter().map(|m| m.text.as_str()).collect();
         assert_eq!(texts, ["+ get(key) Value", "+ put(key, value)", "- apply(f) -> Value"]);
         assert!(d.edges.is_empty());
+    }
+
+    #[test]
+    fn a_number_sign_starts_a_protected_class_member() {
+        let d = parse(
+            "class
+store
+  # origin Point
+  #draw() # a comment
+# a comment line
+other
+  # x
+",
+        )
+        .unwrap();
+        let texts: Vec<&str> = d.items[0].members.iter().map(|m| m.text.as_str()).collect();
+        assert_eq!(texts, ["# origin Point", "# draw()"]);
+        assert_eq!(d.items[1].members.len(), 1);
+        // In erd, the number sign stays a comment.
+        let d = parse("erd\nusers\n  # note\n  id uuid pk\n").unwrap();
+        assert_eq!(d.items[0].members.len(), 1);
     }
 
     #[test]

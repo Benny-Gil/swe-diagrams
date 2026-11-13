@@ -63,9 +63,9 @@ fn the_viewer_script_is_small() {
 #[test]
 fn the_stories_have_steps_with_times() {
     let out = page("arch-story", Theme::Auto);
-    assert!(out.contains("\"stories\":[{\"title\":\"Add an item\",\"mode\":\"steps\",\"total\":4350,\"beats\":[{\"t\":0,\"d\":400,\"moves\":[{\"i\":0,\"back\":false,\"hollow\":false,\"cap\":\"click Add\",\"label\":\"\"}],\"node\":null},"));
+    assert!(out.contains("\"stories\":[{\"title\":\"Add an item\",\"mode\":\"steps\",\"total\":4600,\"beats\":[{\"t\":0,\"d\":400,\"moves\":[{\"i\":0,\"back\":false,\"hollow\":false,\"cap\":\"click Add\",\"label\":\"\"}],\"node\":null},"));
     // The parallel steps of "Cache read" are one beat.
-    assert!(out.contains("{\"title\":\"Cache read\",\"mode\":\"steps\",\"total\":2542,\"beats\":[{\"t\":0,\"d\":542,\"moves\":[{\"i\":2,"));
+    assert!(out.contains("{\"title\":\"Cache read\",\"mode\":\"steps\",\"total\":2700,\"beats\":[{\"t\":0,\"d\":600,\"moves\":[{\"i\":2,"));
     assert!(out.contains("<div class=\"sd-player\""));
     assert!(out.contains("Space plays the story."));
 }
