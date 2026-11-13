@@ -1,0 +1,14 @@
+{
+  "name": "swe-diagrams",
+  "owner": {
+    "name": "Benny-Gil"
+  },
+  "description": "The swe-diagrams skill: fast software diagrams that an agent writes in a compact language.",
+  "plugins": [
+    {
+      "name": "swe-diagrams",
+      "source": "./",
+      "description": "Diagrams of software that an agent writes in seconds: architecture, sequence and plan, with status and product logos."
+    }
+  ]
+}

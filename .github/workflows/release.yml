@@ -1,0 +1,68 @@
+# Builds the binaries when a version tag arrives, and attaches them to the
+# GitHub release of that tag.
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-24.04, target: x86_64-unknown-linux-musl }
+          - { os: ubuntu-24.04-arm, target: aarch64-unknown-linux-musl }
+          - { os: macos-15, target: aarch64-apple-darwin }
+          - { os: macos-15, target: x86_64-apple-darwin }
+          - { os: windows-2025, target: x86_64-pc-windows-msvc }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: rustup target add ${{ matrix.target }}
+      # A musl binary is static, so it runs on old and new Linux systems.
+      - if: contains(matrix.target, 'musl')
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
+      - run: cargo build --release --locked --target ${{ matrix.target }} --manifest-path rust/Cargo.toml
+      - name: Package
+        shell: bash
+        run: |
+          name="swe-diagrams-${{ matrix.target }}"
+          cd "rust/target/${{ matrix.target }}/release"
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            7z a "$GITHUB_WORKSPACE/$name.zip" swe-diagrams.exe
+          else
+            tar -czf "$GITHUB_WORKSPACE/$name.tar.gz" swe-diagrams
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.target }}
+          path: swe-diagrams-${{ matrix.target }}.*
+
+  publish:
+    needs: build
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd dist
+          sha256sum swe-diagrams-* > SHA256SUMS
+          tag="$GITHUB_REF_NAME"
+          # The notes are the section of CHANGELOG.md for this version.
+          awk -v v="${tag#v}" '$0 ~ "^## " v " " {on=1; next} /^## / {on=0} on' ../CHANGELOG.md > notes.md
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" swe-diagrams-* SHA256SUMS --clobber
+          else
+            gh release create "$tag" --verify-tag --title "$tag" --notes-file notes.md swe-diagrams-* SHA256SUMS
+          fi

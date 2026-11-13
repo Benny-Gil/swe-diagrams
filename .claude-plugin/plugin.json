@@ -1,0 +1,10 @@
+{
+  "name": "swe-diagrams",
+  "version": "0.2.0",
+  "description": "Diagrams of software that an agent writes in seconds: architecture, sequence and plan, with status and product logos.",
+  "author": { "name": "Benny-Gil" },
+  "homepage": "https://github.com/Benny-Gil/swe-diagrams",
+  "repository": "https://github.com/Benny-Gil/swe-diagrams",
+  "license": "MIT",
+  "keywords": ["diagram", "svg", "architecture", "skill"]
+}

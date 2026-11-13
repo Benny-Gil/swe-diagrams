@@ -19,8 +19,9 @@ layout is deterministic, and the summary line reports what the harness drew.
    swe-diagrams render plan.sd -o plan.svg
    ```
 
-   If the command is not found, tell the user to install the harness:
-   `cargo install --git https://github.com/Benny-Gil/swe-diagrams swe-diagrams`.
+   If the command is not found, install it with the steps in
+   https://github.com/Benny-Gil/swe-diagrams/blob/main/docs/install.md
+   (ask the user first).
 4. Read the summary line, for example `ok plan nodes=6 edges=5 plan.svg`.
    An `implicit=` list names ids that only an edge uses. An id there that
    you did not intend is a typing error. A `noicon=` list names logos that

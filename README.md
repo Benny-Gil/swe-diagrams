@@ -1,101 +1,103 @@
 # swe-diagrams
 
-Diagrams of software that an agent can write in seconds.
+Diagrams of software that an agent draws in seconds.
 
-An agent writes a short text file. The harness sets all positions and writes
-an SVG file. Each part of the diagram can carry a status, so one picture
-shows what the agent has built, what it builds now, and what it plans.
-An architecture node can show the logo of its product: `db "Postgres"
-@postgres`.
+Ask your agent to show what it built, what it is building, or what it plans.
+The agent writes a few lines of text, and swe-diagrams turns them into an
+SVG diagram. Each part can show a status: done, in progress, planned, added,
+changed, or removed. An architecture node can show the logo of its product.
 
-```
-arch "Checkout service"
-
-user "Shopper" "browser" :actor
-group edge "Edge"
-  web "Web app" "next.js" done
-  gw "API gateway" "rest" done
-group core "Core services" :vendor
-  cart "Cart service" "go" wip
-  pay "Payments" "worker" plan
-  group data "Data"
-    db "Postgres" "orders db" :store done
-    cache "Redis" "session cache" :store wip
-    q "Order events" "topic" :queue plan
-stripe "Stripe" "card processor" :ext
-
-user => web "browse"
-web => gw "REST"
-gw => cart "add item"
-gw -> pay "charge" plan
-cart => db "write"
-cart -> cache "read"
-cart --> q "publish" plan
-pay -> stripe "capture" plan
-q --> pay plan
-```
-
-![Architecture diagram of a checkout service](spec/golden/arch-checkout.svg)
-
-A plan and a sequence use the same language:
+![Architecture diagram of a checkout service, with the status of each part](spec/golden/arch-checkout.svg)
 
 ![Plan graph for a rate limit feature](spec/golden/plan-ratelimit.svg)
 
 ![Sequence diagram of a login](spec/golden/seq-login.svg)
 
-## Why
-
-- **Few tokens.** A diagram is 10 to 30 short lines. The agent does not
-  write coordinates, styles, or markup.
-- **No check loop.** The layout is deterministic. The agent reads a
-  one-line summary. It does not render an image and look at it.
-- **Status is part of the language.** `done`, `wip`, and `plan` show
-  progress. `add`, `mod`, and `del` show the effect of a change.
-- **One file out.** The SVG has no script and no external file. It has a
-  light theme and a dark theme. It works in a README and in a pull request.
-- **Fast.** One diagram takes about 3 milliseconds.
-
-## Status
-
-This is an early version. The harness draws three diagram types: `arch`,
-`seq`, and `plan`, and writes SVG. The language reference is
-[skills/swe-diagrams/references/language.md](skills/swe-diagrams/references/language.md).
-
 ## Install
+
+### Give it to your agent
+
+Paste this into Claude Code, Codex, Cursor, or another coding agent:
+
+```
+Install swe-diagrams for me. Follow the steps in
+https://github.com/Benny-Gil/swe-diagrams/blob/main/docs/install.md
+```
+
+The agent installs the program and the skill, and draws a test diagram.
+
+### Claude Code plugin
+
+```
+/plugin install swe-diagrams --marketplace Benny-Gil/swe-diagrams
+```
+
+The plugin gives Claude Code the skill. The skill also needs the program:
+install it with one of the next two ways.
+
+### Install script (macOS and Linux)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Benny-Gil/swe-diagrams/main/install.sh | sh
+```
+
+The script puts the program in `~/.local/bin` and the skill in
+`~/.claude/skills`. To put the skill in another place, set
+`SWE_DIAGRAMS_SKILL_DIR`. To skip the skill, set it to `none`.
+
+### Cargo (all systems)
 
 ```bash
 cargo install --git https://github.com/Benny-Gil/swe-diagrams swe-diagrams
-swe-diagrams render diagram.sd -o diagram.svg
 ```
 
-In a clone of the repo, use `cargo install --path rust`.
+Then copy the folder `skills/swe-diagrams` into the skills folder of your
+agent.
 
-The harness is one binary with no dependencies. It uses `curl` to get a
-logo the first time a diagram names that logo, and keeps the file in
-`~/.cache/swe-diagrams/icons`. With `--offline`, it does not use the network.
+### Prebuilt binaries
 
-The folder `skills/swe-diagrams/` is an agent skill. Copy it into the skills
-folder of your agent.
+From version 0.2.0, each [release](https://github.com/Benny-Gil/swe-diagrams/releases)
+has binaries for macOS, Linux, and Windows, and a `SHA256SUMS` file.
 
-## Logos
+## Use
 
-The harness gets logos from svgl, devicon, and gilbarbara/logos. It does not
-include logo files, and it does not change the colours of a logo. The logos
-are the trademarks of their owners. A diagram that uses logos names the
-sources below the canvas.
+Ask your agent, for example:
+
+- "Draw the architecture of this repo."
+- "Make a plan diagram for this change, and update it as you work."
+- "Show the request path of a login as a sequence diagram."
+- "Draw what this pull request adds, changes, and removes."
+
+The agent writes the diagram source and runs `swe-diagrams render`. You get
+an SVG file that works in a README, a pull request, or a browser. It has a
+light theme and a dark theme.
+
+To write a diagram by hand, read the
+[language reference](skills/swe-diagrams/references/language.md).
+
+## How it works
+
+- **Few tokens.** A diagram is 10 to 30 short lines. The agent does not
+  write coordinates, styles, or markup.
+- **No check loop.** The layout is deterministic. The program prints a
+  one-line summary, so the agent does not render an image to check it.
+- **Fast.** One diagram takes about 3 milliseconds.
+- **Logos.** The program gets a logo the first time a diagram names it,
+  from svgl, devicon, or gilbarbara/logos, and keeps it in
+  `~/.cache/swe-diagrams/icons`. With `--offline`, it does not use the
+  network. It does not change the colours of a logo. The logos are the
+  trademarks of their owners.
 
 ## Develop
 
 | Folder | Content |
 |---|---|
+| `rust/` | The program. `cargo test`, `cargo build --release` |
 | `skills/swe-diagrams/` | The skill: instructions and the language reference |
-| `rust/` | The harness. `cargo test`, `cargo build --release` |
-| `spec/fixtures/` | Diagram sources |
-| `spec/golden/` | The SVG and the summary line that each source must give |
-| `spec/errors/` | Sources with errors, and the messages that they must give |
-| `spec/icons/` | Logos for the tests. They are not real product logos. |
+| `spec/` | Diagram sources, the expected output, and error cases |
+| `docs/` | Install steps and design notes |
 
-To change the output, change the harness, run
+To change the output, change the program, run
 `UPDATE_GOLDEN=1 cargo test --test golden` in `rust/`, and look at the new
 SVG files in `spec/golden/` before you keep them.
 
@@ -105,11 +107,11 @@ The look of the diagrams comes from
 [stack-diagram](https://github.com/caru-ini/stack-diagram) by caru-ini: the
 graph-paper canvas, the logo tiles with the label below, the tinted group
 boxes, the colour values, and the rules for edges and labels. The order of
-the logo sources (svgl, devicon, gilbarbara/logos) comes from that project
-too. stack-diagram has the MIT License, Copyright (c) 2026 caru-ini.
+the logo sources comes from that project too. stack-diagram has the MIT
+License, Copyright (c) 2026 caru-ini.
 
 swe-diagrams does not include code from that project. The language, the
-automatic layout, the status model, and the harness are new.
+automatic layout, the status model, and the program are new.
 
 ## Versions
 
