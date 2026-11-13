@@ -1,8 +1,10 @@
 // Golden tests. Set UPDATE_GOLDEN=1 to write the expected files again.
-// The logos come from spec/icons, and the network is off.
+// The logos come from spec/icons, the vendor packages come from the fake
+// zips in spec/vendor, and the network is off.
 
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::OnceLock;
 
 use swe_diagrams::{render, IconOptions, Rendered};
 
@@ -22,8 +24,29 @@ fn sources(dir: &str) -> Vec<PathBuf> {
     list
 }
 
+/// A copy of spec/icons with the zips of spec/vendor in its `vendor` folder.
+/// The render writes the vendor index there, so the spec stays clean.
+fn icon_dir() -> PathBuf {
+    static DIR: OnceLock<PathBuf> = OnceLock::new();
+    DIR.get_or_init(|| {
+        let dir = std::env::temp_dir().join(format!("swe-diagrams-golden-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(dir.join("vendor")).unwrap();
+        for (from, to) in [("icons", dir.clone()), ("vendor", dir.join("vendor"))] {
+            for entry in fs::read_dir(spec(from)).unwrap() {
+                let path = entry.unwrap().path();
+                if path.extension().is_some_and(|ext| ext == "svg" || ext == "png" || ext == "zip") {
+                    fs::copy(&path, to.join(path.file_name().unwrap())).unwrap();
+                }
+            }
+        }
+        dir
+    })
+    .clone()
+}
+
 fn draw(src: &str) -> Result<Rendered, swe_diagrams::DiagramError> {
-    render(src, &IconOptions { dir: Some(spec("icons")), offline: true })
+    render(src, &IconOptions { dir: Some(icon_dir()), offline: true })
 }
 
 /// The expected text. In update mode, the actual text becomes the expected text.

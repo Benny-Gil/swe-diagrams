@@ -10,6 +10,14 @@ This file lists the changes in each version. The project uses
 - Easy install: steps for an agent (`docs/install.md`), a Claude Code
   plugin, an install script, and prebuilt binaries for each release.
 - A CI check for each pull request.
+- Cloud vendor icons in `arch` and `change`: `@aws/<name>`, `@gcp/<name>`,
+  and `@azure/<name>`. The first use downloads the official package of the
+  vendor into the icon directory. Short names such as `s3`, `gke`, and `aks`
+  work.
+- Vendor groups: `:aws`, `:gcp`, and `:azure`, with `:region`, `:az`,
+  `:vpc`, `:vnet`, `:subnet`, `:public`, `:private`, and `:rg` inside. An
+  AWS group follows the AWS guide.
+- `swe-diagrams icons <aws|gcp|azure> [filter]` lists the icon names.
 
 ### Changed
 

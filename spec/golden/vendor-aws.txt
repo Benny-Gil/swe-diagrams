@@ -1,0 +1,1 @@
+ok arch nodes=10 edges=7 noicon=aws/no-such-icon

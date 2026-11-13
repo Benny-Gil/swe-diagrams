@@ -588,8 +588,10 @@ struct Graph<'a> {
 }
 
 /// Width of the label of a group, with its icon.
-fn group_label_w(it: &crate::model::Item) -> i64 {
-    measure(&it.label, 12, true) + if it.icon.is_empty() { 0 } else { 20 }
+fn group_label_w(items: &[crate::model::Item], c: usize) -> i64 {
+    let it = &items[c];
+    let icon = !it.icon.is_empty() || crate::svg_vendor::group_icon(items, c).is_some();
+    measure(&it.label, 12, true) + if icon { 20 } else { 0 }
 }
 
 fn slot_of(c: Option<usize>) -> usize {
@@ -759,7 +761,7 @@ impl Graph<'_> {
                         first = w.lpos[v];
                     }
                 }
-                let need = group_label_w(&items[c]) + 24;
+                let need = group_label_w(items, c) + 24;
                 if first + shift < need {
                     shift = need - first;
                 }
@@ -844,7 +846,7 @@ impl Graph<'_> {
 
         // The box must be wide enough for the group label.
         if let Some(c) = c {
-            let need = group_label_w(&items[c]) + 28;
+            let need = group_label_w(items, c) + 28;
             if down {
                 if csize < need {
                     csize = need;

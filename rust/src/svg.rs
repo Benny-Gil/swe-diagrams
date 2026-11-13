@@ -11,6 +11,7 @@ use crate::layout_graph::GraphLayout;
 use crate::layout_seq::SeqLayout;
 use crate::model::{idiv, Diagram, DiagramType, STATUS_NAMES};
 use crate::svg_shapes;
+use crate::svg_vendor;
 use crate::text::{measure, measure_mono};
 
 const CSS: &str = concat!(
@@ -226,7 +227,7 @@ impl Frame {
         (PAD + INNER, self.top() + INNER)
     }
 
-    fn style(&mut self, rules: (&'static str, &'static str)) {
+    pub(crate) fn style(&mut self, rules: (&'static str, &'static str)) {
         if !self.styles.contains(&rules) {
             self.styles.push(rules);
         }
@@ -607,6 +608,12 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
         if !it.group {
             continue;
         }
+        let quiet_group = change && it.status == 0;
+        if let Some(svg) = svg_vendor::group_box(&d.items, i, quiet_group, ox + l.x[i], oy + l.y[i], l.bw[i], l.bh[i]) {
+            f.style(svg_vendor::STYLE);
+            f.body.push_str(&svg);
+            continue;
+        }
         let mut class = String::from("g");
         if it.vendor {
             class.push_str(" gv");
@@ -691,6 +698,13 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
             }
         }
         if it.group {
+            if let Some(svg) = svg_vendor::group_label(&d.items, i, icon, change && it.status == 0, x, y) {
+                f.body.push_str(&svg);
+                if it.status > 0 {
+                    f.badge(it.status, x + w - 2, y + 2);
+                }
+                continue;
+            }
             let mut tx = x + 12;
             if let Some(ic) = icon {
                 // The plate keeps a dark mark visible on the dark theme.
@@ -775,20 +789,25 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
             class.push_str(" x");
         }
         class.push_str(&st(it.status));
-        let _ = write!(
-            f.body,
-            "<rect class=\"sh\" x=\"{tx}\" y=\"{}\" width=\"{tw}\" height=\"{th}\" rx=\"12\"/><rect class=\"{class}\" x=\"{tx}\" y=\"{y}\" width=\"{tw}\" height=\"{th}\" rx=\"12\"/>",
-            y + 1
-        );
+        // An AWS icon carries its own square, so it has no tile.
+        let bare = icon.is_some_and(|ic| ic.square) && svg_vendor::bare_tile(&d.items, i);
+        if !bare {
+            let _ = write!(
+                f.body,
+                "<rect class=\"sh\" x=\"{tx}\" y=\"{}\" width=\"{tw}\" height=\"{th}\" rx=\"12\"/><rect class=\"{class}\" x=\"{tx}\" y=\"{y}\" width=\"{tw}\" height=\"{th}\" rx=\"12\"/>",
+                y + 1
+            );
+        }
         let icy = y + idiv(th, 2);
+        let side = if bare { svg_vendor::BARE } else { 34 };
         match icon {
             Some(ic) => {
                 let _ = write!(
                     f.body,
-                    "<image href=\"{}\" x=\"{}\" y=\"{}\" width=\"34\" height=\"34\"/>",
+                    "<image href=\"{}\" x=\"{}\" y=\"{}\" width=\"{side}\" height=\"{side}\"/>",
                     ic.uri,
-                    cx - 17,
-                    icy - 17
+                    cx - idiv(side, 2),
+                    icy - idiv(side, 2)
                 );
             }
             None => {
@@ -826,7 +845,11 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
             );
         }
         if it.status > 0 {
-            f.badge(it.status, tx + tw - 2, y + 2);
+            if bare {
+                f.badge(it.status, cx + idiv(side, 2) - 2, icy - idiv(side, 2) + 2);
+            } else {
+                f.badge(it.status, tx + tw - 2, y + 2);
+            }
         }
         if quiet_node {
             f.body.push_str("</g>");

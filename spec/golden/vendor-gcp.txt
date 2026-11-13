@@ -1,0 +1,1 @@
+ok arch nodes=7 edges=6 noicon=gcp/lb

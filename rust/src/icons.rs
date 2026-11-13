@@ -25,6 +25,8 @@ pub struct Icon {
     pub uri: String,
     /// The mark is white, so it needs a dark ground.
     pub dark_tile: bool,
+    /// The mark fills its own coloured square, as an AWS service icon does.
+    pub square: bool,
     /// "svgl", "devicon", "gilbarbara", or "local".
     pub source: String,
 }
@@ -38,9 +40,12 @@ const MIN_SVG: usize = 50;
 /// One result for each name, in order. `None` means no logo, and the caller
 /// draws a generic icon.
 pub fn resolve(names: &[String], opts: &IconOptions) -> Vec<Option<Icon>> {
-    let slugs: Vec<Option<String>> = names.iter().map(|n| slug(n).map(alias)).collect();
+    // A name such as `aws/s3` comes from a vendor package, not from the logo sources.
+    let vendor = crate::vendor::resolve(names, opts);
+    let slugs: Vec<Option<String>> =
+        names.iter().zip(&vendor).map(|(n, v)| if v.is_some() { None } else { slug(n).map(alias) }).collect();
     let Some(dir) = opts.dir.clone().or_else(default_dir) else {
-        return vec![None; names.len()];
+        return vendor.into_iter().map(Option::flatten).collect();
     };
     let mut distinct: Vec<&str> = slugs.iter().flatten().map(String::as_str).collect();
     distinct.sort_unstable();
@@ -64,7 +69,11 @@ pub fn resolve(names: &[String], opts: &IconOptions) -> Vec<Option<Icon>> {
     });
     slugs
         .iter()
-        .map(|s| {
+        .zip(vendor)
+        .map(|(s, v)| {
+            if v.is_some() {
+                return v.flatten();
+            }
             let i = distinct.binary_search(&s.as_deref()?).ok()?;
             found[i].clone()
         })
@@ -143,7 +152,7 @@ fn lookup(dir: &Path, slug: &str, offline: bool) -> Option<Icon> {
 
 fn icon(body: &[u8], mime: &str, source: String) -> Icon {
     let dark_tile = mime == SVG && white_mark(&String::from_utf8_lossy(body));
-    Icon { uri: format!("data:{mime};base64,{}", base64(body)), dark_tile, source }
+    Icon { uri: format!("data:{mime};base64,{}", base64(body)), dark_tile, square: false, source }
 }
 
 /// A file that a person puts in the directory has no `.src` file.
@@ -157,7 +166,7 @@ fn cached_source(dir: &Path, slug: &str) -> String {
 
 /// The write goes to a temporary name first, so a parallel run never reads
 /// half of a file.
-fn put(dir: &Path, file: &str, body: &[u8]) -> std::io::Result<()> {
+pub(crate) fn put(dir: &Path, file: &str, body: &[u8]) -> std::io::Result<()> {
     fs::create_dir_all(dir)?;
     let tmp = dir.join(format!(".{file}.{}.tmp", std::process::id()));
     fs::write(&tmp, body)?;
@@ -297,7 +306,7 @@ fn url_encode(s: &str) -> String {
 }
 
 /// Standard alphabet, with padding.
-fn base64(bytes: &[u8]) -> String {
+pub(crate) fn base64(bytes: &[u8]) -> String {
     const ABC: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
     let mut out = String::with_capacity(bytes.len().div_ceil(3) * 4);
     for chunk in bytes.chunks(3) {

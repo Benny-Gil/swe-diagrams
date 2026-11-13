@@ -1,0 +1,15 @@
+arch "Pipeline on Google Cloud"
+
+app "Web app" :actor
+group g "Google Cloud" :gcp
+  group proj "project: shop-prod" :rg
+    run "API" @gcp/run
+    ps "Events" @gcp/pubsub
+    bq "Warehouse" @gcp/bq
+    gcs "Exports" @gcp/gcs
+    fs "Profiles" @gcp/firestore
+    lb "Edge" @gcp/lb
+
+app => lb => run => ps => bq
+run -> fs
+bq -> gcs

@@ -48,7 +48,10 @@ fn png_hit_gives_a_png_data_uri() {
     let dir = fresh("png");
     put(&dir, "logo.png", b"foobar");
     let icon = one(&dir, "logo").unwrap();
-    assert_eq!(icon, Icon { uri: format!("{PNG_URI}Zm9vYmFy"), dark_tile: false, source: "local".into() });
+    assert_eq!(
+        icon,
+        Icon { uri: format!("{PNG_URI}Zm9vYmFy"), dark_tile: false, square: false, source: "local".into() }
+    );
 }
 
 #[test]
