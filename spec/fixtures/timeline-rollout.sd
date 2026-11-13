@@ -1,0 +1,9 @@
+timeline "Rate limit roll-out"   # phases, milestones, and a "now" mark
+group design "Design" done
+  spec "Spec" "Nov 3" done
+  algo "Choose algorithm" "Nov 5" done
+group build "Build"
+  mw "Middleware" "Nov 12" wip
+  ship "Ship to 1%" "Nov 20" :milestone plan
+  ga "GA" "Dec 1" :milestone plan
+retro "Retro" "Dec 8"

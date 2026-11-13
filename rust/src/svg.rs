@@ -137,7 +137,7 @@ const PAD: i64 = 24; // page padding
 const INNER: i64 = 32; // canvas padding
 const GAP: i64 = 4; // clear space between a line end and its target
 
-fn esc(s: &str) -> String {
+pub(crate) fn esc(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
     for ch in s.chars() {
         match ch {
@@ -151,7 +151,7 @@ fn esc(s: &str) -> String {
     out
 }
 
-fn st(status: usize) -> String {
+pub(crate) fn st(status: usize) -> String {
     if status > 0 {
         format!(" s{status}")
     } else {
@@ -160,7 +160,7 @@ fn st(status: usize) -> String {
 }
 
 /// The class of the text of a part with a status that makes the text quiet.
-fn quiet(status: usize) -> &'static str {
+pub(crate) fn quiet(status: usize) -> &'static str {
     match status {
         3 => " p3",
         6 => " p6",
@@ -169,17 +169,17 @@ fn quiet(status: usize) -> &'static str {
 }
 
 /// The frame that all diagram types share: page, header, canvas, legend.
-struct Frame {
-    body: String,
+pub(crate) struct Frame {
+    pub(crate) body: String,
     title: String,
     kicker: String,
-    used: [bool; 7],
+    pub(crate) used: [bool; 7],
     lines: [bool; 3], // main flow, connection, dashed
     sources: Vec<String>,
 }
 
 impl Frame {
-    fn new(title: &str, kicker: String) -> Frame {
+    pub(crate) fn new(title: &str, kicker: String) -> Frame {
         Frame {
             body: String::new(),
             title: title.to_string(),
@@ -199,16 +199,16 @@ impl Frame {
     }
 
     /// Origin of the diagram content.
-    fn origin(&self) -> (i64, i64) {
+    pub(crate) fn origin(&self) -> (i64, i64) {
         (PAD + INNER, self.top() + INNER)
     }
 
-    fn badge(&mut self, status: usize, x: i64, y: i64) {
+    pub(crate) fn badge(&mut self, status: usize, x: i64, y: i64) {
         self.used[status] = true;
         let _ = write!(self.body, "<use href=\"#b{status}\" x=\"{x}\" y=\"{y}\"/>");
     }
 
-    fn finish(self, inner_w: i64, inner_h: i64) -> String {
+    pub(crate) fn finish(self, inner_w: i64, inner_h: i64) -> String {
         let top = self.top();
         let ch = inner_h + 2 * INNER;
 

@@ -3,9 +3,11 @@
 use crate::icons::{resolve, Icon, IconOptions};
 use crate::layout_graph::layout_graph;
 use crate::layout_seq::layout_seq;
+use crate::layout_timeline::layout_timeline;
 use crate::model::{DiagramError, DiagramType};
 use crate::parse::parse;
 use crate::svg::{render_graph, render_seq};
+use crate::svg_timeline::render_timeline;
 
 pub struct Rendered {
     pub svg: String,
@@ -17,6 +19,8 @@ pub fn render(src: &str, opts: &IconOptions) -> Result<Rendered, DiagramError> {
     let mut missing: Vec<&str> = Vec::new();
     let svg = if d.dtype == DiagramType::Seq {
         render_seq(&d, &layout_seq(&d))
+    } else if d.dtype == DiagramType::Timeline {
+        render_timeline(&d, &layout_timeline(&d))
     } else {
         // Only a diagram with tiles draws logos. The other types draw cards.
         let mut icons: Vec<Option<Icon>> = d.items.iter().map(|_| None).collect();

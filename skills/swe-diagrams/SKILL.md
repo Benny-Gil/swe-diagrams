@@ -38,6 +38,7 @@ Otherwise use a temporary directory.
 | What are the parts, and how do they connect? What does this change touch? | `arch` |
 | In what order do the parts talk for one request? | `seq` |
 | What are the steps of the work, and where is the work now? | `plan` |
+| What happens in which order, and where are we now? | `timeline` |
 
 ## The language
 
