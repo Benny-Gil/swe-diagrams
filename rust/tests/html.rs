@@ -34,8 +34,9 @@ fn the_page_is_self_contained() {
 fn the_data_has_the_type_the_title_and_the_order() {
     let out = page("seq-login", Theme::Auto);
     assert!(out.contains(
-        "<script type=\"application/json\" id=\"sd-data\">{\"type\":\"seq\",\"title\":\"Login with refresh token\",\"levels\":[],\"stories\":[],\"order\":[{\"k\":\"msg\",\"i\":0},"
+        "<script type=\"application/json\" id=\"sd-data\">{\"type\":\"seq\",\"title\":\"Login with refresh token\",\"levels\":[],\"stories\":[{\"title\":\"Messages\",\"mode\":\"steps\","
     ));
+    assert!(out.contains("\"variants\":{},\"order\":[{\"k\":\"msg\",\"i\":0},"));
     let out = page("plan-ratelimit", Theme::Auto);
     assert!(out.contains("\"type\":\"plan\""));
     assert!(out.contains("\"order\":[{\"k\":\"node\",\"id\":"));
@@ -57,6 +58,40 @@ fn the_theme_follows_the_page_attribute() {
 fn the_viewer_script_is_small() {
     let js = fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("src/html/viewer.js")).unwrap();
     assert!(js.len() < 10 * 1024, "the viewer script has {} bytes", js.len());
+}
+
+#[test]
+fn the_stories_have_steps_with_times() {
+    let out = page("arch-story", Theme::Auto);
+    assert!(out.contains("\"stories\":[{\"title\":\"Add an item\",\"mode\":\"steps\",\"total\":4600,\"beats\":[{\"t\":0,\"d\":400,\"moves\":[{\"i\":0,\"back\":false,\"hollow\":false,\"cap\":\"click Add\",\"label\":\"\"}],\"node\":null},"));
+    // The parallel steps of "Cache read" are one beat.
+    assert!(out.contains("{\"title\":\"Cache read\",\"mode\":\"steps\",\"total\":2700,\"beats\":[{\"t\":0,\"d\":600,\"moves\":[{\"i\":2,"));
+    assert!(out.contains("<div class=\"sd-player\""));
+    assert!(out.contains("Space plays the story."));
+}
+
+#[test]
+fn a_plan_page_has_the_status_drawings() {
+    let out = page("plan-ratelimit", Theme::Auto);
+    assert!(out.contains("\"mode\":\"progress\""));
+    // The status of the source follows the drawings, for the done count.
+    assert!(out.contains("\\u003c/g\\u003e\",1],\"bucket\":["));
+    assert!(out.contains(
+        "\"variants\":{\"spec\":[\"\\u003cg data-k=\\\"node\\\" data-id=\\\"spec\\\" data-s=\\\"plan\\\"\\u003e"
+    ));
+}
+
+#[test]
+fn a_diagram_with_no_story_has_no_player() {
+    let out = page("erd-orders", Theme::Auto);
+    assert!(out.contains("\"stories\":[]"));
+    assert!(!out.contains("<div class=\"sd-player\""));
+}
+
+#[test]
+fn the_player_script_is_small() {
+    let js = fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("src/html/player.js")).unwrap();
+    assert!(js.len() < 10 * 1024, "the player script has {} bytes", js.len());
 }
 
 fn levels_page(name: &str) -> String {

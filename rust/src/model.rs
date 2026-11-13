@@ -181,6 +181,29 @@ pub struct Diagram {
     pub items: Vec<Item>,
     pub edges: Vec<Edge>,
     pub roots: Vec<usize>,
+    /// The `story` blocks, in line order.
+    pub stories: Vec<StoryDef>,
+}
+
+/// A `story` block of the source.
+#[derive(Debug)]
+pub struct StoryDef {
+    pub title: String,
+    pub line: usize,
+    /// The steps in order. The steps of one entry run at the same time.
+    pub beats: Vec<Vec<StepDef>>,
+}
+
+/// One step of a story: a token moves along an edge.
+#[derive(Debug)]
+pub struct StepDef {
+    pub edge: usize,
+    /// True when the token moves from `to` to `from` of the edge.
+    pub back: bool,
+    /// `-->`: a hollow token, for a reply or an event.
+    pub hollow: bool,
+    pub caption: String,
+    pub line: usize,
 }
 
 /// All errors of one source text. Each error starts with the line number.

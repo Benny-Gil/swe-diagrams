@@ -1,0 +1,5 @@
+timeline "No stories"
+a
+b
+story "S"
+  a -> b

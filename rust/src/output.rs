@@ -10,6 +10,7 @@ pub enum Format {
     Txt,
     Gif,
     Mp4,
+    Webm,
 }
 
 impl Format {
@@ -21,6 +22,7 @@ impl Format {
             "txt" => Some(Format::Txt),
             "gif" => Some(Format::Gif),
             "mp4" => Some(Format::Mp4),
+            "webm" => Some(Format::Webm),
             _ => None,
         }
     }
@@ -33,6 +35,7 @@ impl Format {
             Format::Txt => "txt",
             Format::Gif => "gif",
             Format::Mp4 => "mp4",
+            Format::Webm => "webm",
         }
     }
 
@@ -48,7 +51,7 @@ impl Format {
 
     /// A binary format cannot go to a terminal, so it needs a file.
     pub fn binary(self) -> bool {
-        matches!(self, Format::Png | Format::Gif | Format::Mp4)
+        matches!(self, Format::Png | Format::Gif | Format::Mp4 | Format::Webm)
     }
 }
 
@@ -63,5 +66,7 @@ mod tests {
         assert_eq!(Format::from_path(Path::new("b.htm")), Format::Html);
         assert_eq!(Format::from_path(Path::new("b.diagram")), Format::Svg);
         assert_eq!(Format::from_path(Path::new("b")), Format::Svg);
+        assert_eq!(Format::from_path(Path::new("b.gif")), Format::Gif);
+        assert_eq!(Format::from_path(Path::new("b.webm")), Format::Webm);
     }
 }

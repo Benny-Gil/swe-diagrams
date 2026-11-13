@@ -1,0 +1,4 @@
+5: write a step as: a -> b "caption", and join steps at the same time with &
+6: write a step as: a -> b "caption", and join steps at the same time with &
+7: the story "Login" is already on line 4
+9: the story "Empty" has no steps. Indent the steps under the story line

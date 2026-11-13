@@ -280,6 +280,63 @@ When the layers go down, a label is at one side of its line. The label
 takes the side with no other line, or moves along its line to a clear
 place. A group grows to hold the labels of its edges.
 
+## Stories
+
+A story shows motion: a request that goes from part to part, or data that
+moves through a pipeline. A story is a list of steps. Each step moves a
+token along one edge of the diagram.
+
+```
+arch "Checkout"
+user "Shopper" :actor
+web "Web app"
+gw "API gateway"
+cart "Cart service"
+db "Postgres" :store
+
+user => web => gw => cart => db
+
+story "Add an item"
+  user -> web "click Add"
+  web -> gw "POST /cart"
+  gw -> cart & cart -> db
+  db --> cart "row"
+  cart --> gw "200 OK"
+```
+
+- `story "Title"` starts a story. Each line with more indent is a step.
+  A line without more indent ends the story.
+- A step names an edge in either direction. `db --> cart` moves the token
+  from `db` to `cart` on the edge `cart => db`. A step between two nodes
+  with no edge is an error.
+- `->` gives a solid token. `-->` gives a hollow token, for a reply or an
+  event.
+- The string is the caption. The token carries it when it is not the
+  same text as the edge label.
+- `&` joins steps that run at the same time: `a -> b & a -> c`.
+- When two nodes have more than one edge, as in `seq`, a step takes the
+  next edge after the edge of the step before it.
+- A diagram can have many stories. Each title must be unique.
+- `timeline` has no stories, because it has no edges.
+
+With no story, each type has a default story. When the source has
+stories, the default story comes after them in the list.
+
+| Type | Default story |
+|---|---|
+| `seq` | "Messages": each message, one at a time. |
+| `flow` | "Main path": the `=>` edges. Without them, a walk from the `:start` node. |
+| `state` | "Walk": a walk from the `:initial` state. It takes each transition one time. The event is the caption. |
+| `dataflow` | "Stream": tokens move along each edge without stop. |
+| `plan`, `timeline` | "Progress": the items change from planned to in progress to done, in line order, up to their status. A `done` item goes to done. A `wip` item stops at in progress. The other items do not change. The done count in the kicker follows each frame and ends at the real count. With no `done` or `wip` item, there is no story. |
+| the other types | "Main path": the `=>` edges, in line order. With no `=>` edge, there is no story. |
+
+The time of a step comes from the length of its edge: 120 px each
+second, with 400 ms at minimum and 1600 ms at maximum. The steps of one
+line take the time of the longest step. A story stops for 1000 ms at the
+end, and then it starts again. A progress step takes 800 ms. `--speed`
+divides all times.
+
 ## Status
 
 A status shows the state of the work on a node, a group, or an edge.
@@ -486,6 +543,9 @@ swe-diagrams render - < diagram.sd > diagram.svg
 swe-diagrams render diagram.sd -o diagram.svg --icons ./icons --offline
 swe-diagrams render diagram.sd -o diagram.html
 swe-diagrams render diagram.sd -o diagram.png --theme dark --scale 3
+swe-diagrams render diagram.sd -o diagram.svg --animate --story "Add an item"
+swe-diagrams render diagram.sd -o diagram.gif --fps 15 --speed 1.5
+swe-diagrams render diagram.sd -o diagram.mp4
 ```
 
 The options:
@@ -493,10 +553,14 @@ The options:
 | Option | Effect |
 |---|---|
 | `-o <file>` | Writes the output to the file. Without `-o`, the output goes to standard output. |
-| `--format <F>` | Sets the format: `svg`, `html`, `png`, `txt`, `gif`, or `mp4`. |
+| `--format <F>` | Sets the format: `svg`, `html`, `png`, `txt`, `gif`, `mp4`, or `webm`. |
 | `--theme <T>` | Sets the palette: `auto`, `light`, or `dark`. |
+| `--scale <N>` | Sets the pixel scale of a PNG, a GIF, or a video, from 0.1 to 16. The default is 2 for a PNG and 1 for a GIF or a video. |
+| `--animate` | Adds motion to an SVG: the first story, or the story of `--story`. |
+| `--story <title>` | Selects the story of an animated SVG, a GIF, or a video. |
+| `--fps <N>` | Sets the frames each second of a GIF or a video, from 1 to 50. The default is 15. |
+| `--speed <X>` | Divides the times of a story, from 0.1 to 10. The default is 1. |
 | `--level <path>` | Writes the detail level at the path, for example `cart` or `cart/svc`. For HTML, the page opens at that level. |
-| `--scale <N>` | Sets the pixel scale of a PNG, from 0.1 to 16. The default is 2. |
 | `--icons <dir>` | Looks for logos in the directory first. |
 | `--offline` | Does not use the network for logos. |
 
@@ -510,7 +574,17 @@ extension gives SVG. Without `-o`, the format is SVG.
 | `svg` | One SVG file. It works in a README, a pull request, and a browser. | `auto` |
 | `html` | One page with the SVG, a stylesheet, and a script. It loads nothing from the network. | `auto` |
 | `png` | A PNG image. It needs `-o`. | `light` |
-| `txt`, `gif`, `mp4` | Not ready. The command gives an error. | |
+| `gif` | A GIF that loops one time through the story. It needs `-o`. | `light` |
+| `mp4`, `webm` | A video of the story, made with `ffmpeg`. It needs `-o`, and `ffmpeg` on the PATH. | `light` |
+| `txt` | Not ready. The command gives an error. | |
+
+An SVG with `--animate` moves without a script, with SMIL motion on the
+edge paths. It works where an SVG works as an image, for example in a
+GitHub README. With `prefers-reduced-motion`, the viewer sees the still
+diagram. Without `--animate`, the SVG has no motion.
+
+A GIF or a video of a diagram with no story is one still frame. The
+summary then says `story=none`.
 
 The themes:
 
@@ -531,6 +605,12 @@ page:
   bright. Click it again to clear it.
 - The arrow keys step through the diagram: the messages of a `seq`, and
   the nodes of the other types in line order. `Escape` clears the step.
+- A diagram with a story gets a player: a list of the stories, play and
+  pause, step back, step forward, and the speed. The active edge is
+  bright, the other edges are quiet, and the node at the end of a step
+  pulses. A caption panel shows the step number, the caption, and the
+  edge label. The space key plays and pauses. In a page with a player,
+  the left and right arrow keys step through the story.
 - A click on a node with a zoom mark opens its detail level. `Tab` moves
   to such a node, and `Enter` opens it. The view zooms into the node, and
   the detail level grows from the node box. With `prefers-reduced-motion`,
@@ -554,7 +634,8 @@ node has the id `^name` and the class `cx`, and the frame group has the id
 The data of the page (`#sd-data`) has a `levels` list when the diagram has
 more than one level. Each entry has the `path`, the `title`, the `type`,
 the `order` of steps, and the `svg` text. The `svg` of the top level is
-`null`, because the page holds it.
+`null`, because the page holds it. The data holds the stories in
+`stories`, with the times at speed 1.
 
 ## Summary and errors
 
@@ -562,6 +643,13 @@ On success, the harness prints one summary line:
 
 ```
 ok arch nodes=4 edges=3 diagram.svg
+```
+
+An animated output adds the story, and a GIF or a video adds the frame
+count:
+
+```
+ok arch nodes=5 edges=4 frames=66 story="Add an item" diagram.gif
 ```
 
 The counts are the counts of the top level. A diagram with detail levels

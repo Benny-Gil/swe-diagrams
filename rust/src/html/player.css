@@ -1,0 +1,20 @@
+.sd-player{position:fixed;left:max(12px,env(safe-area-inset-left));bottom:max(12px,env(safe-area-inset-bottom));right:max(12px,env(safe-area-inset-right));display:flex;flex-wrap:wrap;align-items:center;gap:4px;pointer-events:none}
+.sd-player>*{pointer-events:auto}
+.sd-player[hidden]{display:none}
+.sd-player button,.sd-player select{height:36px;min-width:36px;padding:0 10px;border:1px solid var(--line);border-radius:8px;background:var(--btn);color:var(--fg);font:600 13px ui-monospace,Menlo,Consolas,monospace;cursor:pointer}
+.sd-player select{max-width:14em}
+.sd-player button:hover,.sd-player select:hover{border-color:var(--accent)}
+.sd-player button:focus-visible,.sd-player select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.sd-cap{margin:0 0 0 6px;padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:var(--btn);font:12px/1.4 ui-monospace,Menlo,Consolas,monospace;max-width:40em}
+.sd-cap:empty{display:none}
+.sd-cap b{color:var(--accent);font-weight:600}
+.sd-play [data-k=edge],.sd-play [data-k=msg]{opacity:.25}
+.sd-play .sd-act{opacity:1}
+.sd-play .sd-act .rt{stroke:var(--accent);stroke-width:2.6}
+.sd-tk{fill:var(--accent);stroke:var(--bg);stroke-width:2;pointer-events:none}
+.sd-tk.sd-h{fill:var(--bg);stroke:var(--accent);stroke-width:2.2}
+.sd-pulse{animation:sd-pulse .5s ease-out;transform-box:fill-box;transform-origin:center}
+@keyframes sd-pulse{40%{transform:scale(1.08);opacity:.7}}
+@media (prefers-reduced-motion:reduce){.sd-pulse{animation:none}}
+/* Keep the bar off the legend and the credit line at the bottom of the diagram. */
+.sd-view{bottom:calc(60px + env(safe-area-inset-bottom,0px))}

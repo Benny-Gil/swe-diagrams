@@ -4,12 +4,16 @@
 
 use std::fmt::Write;
 
+use crate::anim::{routes, timing};
 use crate::render::{Rendered, Step};
 use crate::svg::{esc, BADGES};
 use crate::theme::{apply_theme, page_theme, Theme};
 
 const CSS: &str = include_str!("viewer.css");
 const JS: &str = include_str!("viewer.js");
+const PLAYER_CSS: &str = include_str!("player.css");
+const PLAYER_JS: &str = include_str!("player.js");
+const PLAYER: &str = "<div class=\"sd-player\" role=\"group\" aria-label=\"Story player\"><select aria-label=\"Story\"></select><button type=\"button\" data-p=\"back\" aria-label=\"Step back\">&#9664;&#9664;</button><button type=\"button\" data-p=\"play\" aria-label=\"Play\">&#9654;</button><button type=\"button\" data-p=\"next\" aria-label=\"Step forward\">&#9654;&#9654;</button><button type=\"button\" data-p=\"speed\" aria-label=\"Speed\">1x</button><p class=\"sd-cap\" aria-live=\"polite\"></p></div>\n";
 const LEVELS_JS: &str = include_str!("levels.js");
 
 /// A JSON string. In a script element, `</` must not occur, so `<` is
@@ -65,6 +69,69 @@ fn inline_badges(svg: &str) -> String {
     out
 }
 
+/// The stories, with the times at speed 1.
+fn stories_json(r: &Rendered) -> String {
+    let routes = routes(&r.svg);
+    let mut out = Vec::new();
+    for s in &r.stories {
+        let tm = timing(s, &routes, 1.0);
+        let beats: Vec<String> = s
+            .beats
+            .iter()
+            .zip(&tm.beats)
+            .map(|(b, &(t, d))| {
+                let moves: Vec<String> = b
+                    .moves
+                    .iter()
+                    .map(|m| {
+                        format!(
+                            "{{\"i\":{},\"back\":{},\"hollow\":{},\"cap\":{},\"label\":{}}}",
+                            m.edge,
+                            m.back,
+                            m.hollow,
+                            json_str(&m.caption),
+                            json_str(&m.label)
+                        )
+                    })
+                    .collect();
+                let node = match &b.node {
+                    Some((id, last)) => format!("{{\"id\":{},\"s\":{last}}}", json_str(id)),
+                    None => "null".to_string(),
+                };
+                format!("{{\"t\":{t},\"d\":{d},\"moves\":[{}],\"node\":{node}}}", moves.join(","))
+            })
+            .collect();
+        out.push(format!(
+            "{{\"title\":{},\"mode\":\"{}\",\"total\":{},\"beats\":[{}]}}",
+            json_str(&s.title),
+            s.mode.name(),
+            tm.total,
+            beats.join(",")
+        ));
+    }
+    format!("[{}]", out.join(","))
+}
+
+/// The node groups of each progress node at the statuses planned, in
+/// progress, and done, then the status of the source.
+fn variants_json(r: &Rendered) -> String {
+    let list: Vec<String> = r
+        .variants
+        .iter()
+        .map(|v| {
+            format!(
+                "{}:[{},{},{},{}]",
+                json_str(&v.id),
+                json_str(&inline_badges(&v.planned)),
+                json_str(&inline_badges(&v.wip)),
+                json_str(&inline_badges(&v.done)),
+                v.status
+            )
+        })
+        .collect();
+    format!("{{{}}}", list.join(","))
+}
+
 fn order_json(order: &[Step]) -> String {
     let steps: Vec<String> = order
         .iter()
@@ -107,10 +174,12 @@ fn data_with(r: &Rendered, theme: Theme, start: &str) -> String {
     }
     let start = if start.is_empty() { String::new() } else { format!(",\"start\":{}", json_str(start)) };
     format!(
-        "{{\"type\":{},\"title\":{},\"levels\":[{}],\"stories\":[],\"order\":{}{start}}}",
+        "{{\"type\":{},\"title\":{},\"levels\":[{}],\"stories\":{},\"variants\":{},\"order\":{}{start}}}",
         json_str(r.dtype.name()),
         json_str(&r.title),
         levels.join(","),
+        stories_json(r),
+        variants_json(r),
         order_json(&r.order)
     )
 }
@@ -131,12 +200,17 @@ pub fn html_at(r: &Rendered, theme: Theme, start: &str) -> String {
         Theme::Light => " class=\"sd-light\"",
         Theme::Dark => " class=\"sd-dark\"",
     };
+    // A diagram with no story gets no player.
+    let play = !r.stories.is_empty();
     let title = if r.title.is_empty() { format!("{} diagram", r.dtype.name()) } else { r.title.clone() };
     format!(
-        "<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<title>{}</title>\n<style>{CSS}</style>\n</head>\n<body{fixed}>\n<main class=\"sd-view\" tabindex=\"0\" aria-label=\"Diagram. Drag to pan, wheel or plus and minus keys to zoom, arrow keys to step.\">\n{}</main>\n<div class=\"sd-tools\" role=\"toolbar\" aria-label=\"Zoom\"><button type=\"button\" data-act=\"in\" aria-label=\"Zoom in\">+</button><button type=\"button\" data-act=\"out\" aria-label=\"Zoom out\">&#8722;</button><button type=\"button\" data-act=\"fit\">fit</button></div>\n<nav class=\"sd-crumbs\" aria-label=\"Levels\" hidden></nav>\n<script type=\"application/json\" id=\"sd-data\">{}</script>\n<script>{JS}{LEVELS_JS}</script>\n</body>\n</html>\n",
+        "<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<title>{}</title>\n<style>{CSS}{}</style>\n</head>\n<body{fixed}>\n<main class=\"sd-view\" tabindex=\"0\" aria-label=\"Diagram. Drag to pan, wheel or plus and minus keys to zoom, arrow keys to step.\">\n{}</main>\n<div class=\"sd-tools\" role=\"toolbar\" aria-label=\"Zoom\"><button type=\"button\" data-act=\"in\" aria-label=\"Zoom in\">+</button><button type=\"button\" data-act=\"out\" aria-label=\"Zoom out\">&#8722;</button><button type=\"button\" data-act=\"fit\">fit</button></div>\n<nav class=\"sd-crumbs\" aria-label=\"Levels\" hidden></nav>\n{}<script type=\"application/json\" id=\"sd-data\">{}</script>\n<script>{JS}{LEVELS_JS}{}</script>\n</body>\n</html>\n",
         esc(&title),
+        if play { PLAYER_CSS } else { "" },
         svg.trim_end(),
-        data_with(r, theme, start)
+        if play { PLAYER } else { "" },
+        data_with(r, theme, start),
+        if play { PLAYER_JS } else { "" }
     )
 }
 

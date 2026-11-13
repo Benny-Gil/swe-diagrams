@@ -25,6 +25,8 @@ panic = "abort"
 strip = true
 
 [dependencies]
+color_quant = "1.1"
+gif = "0.14"
 resvg = { version = "0.50.0", default-features = false, features = ["text", "raster-images"] }
 
 # The rasterizer is slow without optimization, and the tests draw each fixture.

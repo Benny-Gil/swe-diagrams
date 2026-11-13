@@ -1,36 +1,92 @@
 //! Command line entry: swe-diagrams render <file|-> [-o out] [--format F]
-//! [--theme T] [--level path] [--scale N] [--icons dir] [--offline]
+//! [--theme T] [--level path] [--scale N] [--animate] [--story T] [--fps N] [--speed X]
+//! [--icons dir] [--offline]
 
 use std::ffi::OsString;
 use std::io::{self, Read, Write};
 use std::process::ExitCode;
 
+use swe_diagrams::anim::{self, FrameOptions};
+use swe_diagrams::video::{encode_gif, encode_video};
 use swe_diagrams::{apply_theme, html_at, png, render_path, Format, IconOptions, Rendered, Theme};
 
-const USAGE: &str = "usage: swe-diagrams render <file.sd|-> [-o out] [--format svg|html|png|txt|gif|mp4] [--theme auto|light|dark] [--level path] [--scale N] [--icons dir] [--offline]\n";
+const USAGE: &str = "usage: swe-diagrams render <file.sd|-> [-o out] [--format svg|html|png|txt|gif|mp4|webm] [--theme auto|light|dark] [--level path] [--scale N] [--animate] [--story title] [--fps N] [--speed X] [--icons dir] [--offline]\n";
 const VERSION: &str = concat!("swe-diagrams ", env!("CARGO_PKG_VERSION"), "\n");
 
-/// The bytes of the output in format `format`.
-/// `level` is the path of the level to show: one level for SVG and PNG,
-/// the first level for HTML.
-fn produce(r: &Rendered, format: Format, theme: Option<Theme>, scale: f32, level: &str) -> Result<Vec<u8>, String> {
-    let Some(lv) = r.level(level) else {
+/// The options of the output.
+struct Out<'a> {
+    format: Format,
+    theme: Option<Theme>,
+    scale: Option<f32>,
+    animate: bool,
+    story: Option<&'a str>,
+    fps: u32,
+    speed: f64,
+    path: Option<&'a std::path::Path>,
+    /// The path of the level to show: one level for SVG and PNG, the
+    /// first level for HTML.
+    level: &'a str,
+}
+
+/// The bytes of the output, or `None` when ffmpeg wrote the file, and a
+/// note for the summary.
+fn produce(r: &Rendered, o: &Out) -> Result<(Option<Vec<u8>>, String), String> {
+    let Some(lv) = r.level(o.level) else {
         let paths: Vec<&str> = r.levels.iter().skip(1).map(|l| l.path.as_str()).collect();
         let list = if paths.is_empty() { "the diagram has no detail levels".to_string() } else { paths.join(", ") };
-        return Err(format!("no level '{level}'; levels: {list}"));
+        return Err(format!("no level '{}'; levels: {list}", o.level));
     };
-    match format {
-        Format::Svg => Ok(apply_theme(&lv.svg, theme.unwrap_or(Theme::Auto)).into_bytes()),
-        Format::Html => Ok(html_at(r, theme.unwrap_or(Theme::Auto), &lv.path).into_bytes()),
+    let animated = matches!(o.format, Format::Gif | Format::Mp4 | Format::Webm) || o.animate;
+    // The stories are of the top level only.
+    if animated && !lv.path.is_empty() {
+        return Err("--level works with svg, html, png, and txt; a story moves on the top level only".to_string());
+    }
+    let story = if animated { anim::pick(r, o.story)? } else { None };
+    let note = match story {
+        Some(s) => format!(" story=\"{}\"", s.title),
+        None if animated => " story=none (a still picture: the diagram has no story and no => edges)".to_string(),
+        None => String::new(),
+    };
+    match o.format {
+        Format::Svg => {
+            let svg = match story {
+                Some(s) if o.animate => {
+                    let routes = anim::routes(&r.svg);
+                    anim::animate_svg(&r.svg, &r.variants, &routes, s, &anim::timing(s, &routes, o.speed))
+                }
+                _ => lv.svg.clone(),
+            };
+            Ok((Some(apply_theme(&svg, o.theme.unwrap_or(Theme::Auto)).into_bytes()), note))
+        }
+        Format::Html => Ok((Some(html_at(r, o.theme.unwrap_or(Theme::Auto), &lv.path).into_bytes()), String::new())),
         // A PNG has one palette. Light is the default.
-        Format::Png => png(&apply_theme(&lv.svg, theme.unwrap_or(Theme::Light)), scale),
+        Format::Png => Ok((
+            Some(png(&apply_theme(&lv.svg, o.theme.unwrap_or(Theme::Light)), o.scale.unwrap_or(2.0))?),
+            String::new(),
+        )),
+        Format::Gif | Format::Mp4 | Format::Webm => {
+            let fo = FrameOptions {
+                fps: o.fps,
+                speed: o.speed,
+                scale: o.scale.unwrap_or(1.0),
+                theme: o.theme.unwrap_or(Theme::Light),
+            };
+            let frames = anim::frames(r, story, &fo)?;
+            let note = format!(" frames={}{note}", frames.len());
+            if o.format == Format::Gif {
+                return Ok((Some(encode_gif(&frames, o.fps)?), note));
+            }
+            let path = o.path.ok_or("a video needs -o <file>")?;
+            encode_video(&frames, o.fps, path)?;
+            Ok((None, note))
+        }
         f => Err(format!("the {} format is not ready", f.name())),
     }
 }
 
 /// True for the formats that this build can write.
 fn ready(format: Format) -> bool {
-    matches!(format, Format::Svg | Format::Png | Format::Html)
+    matches!(format, Format::Svg | Format::Png | Format::Html | Format::Gif | Format::Mp4 | Format::Webm)
 }
 
 // A closed pipe must not cause a panic, so the two functions report a
@@ -70,7 +126,11 @@ fn run(argv: &[OsString]) -> u8 {
     let mut output: Option<&OsString> = None;
     let mut format: Option<Format> = None;
     let mut theme: Option<Theme> = None;
-    let mut scale: f32 = 2.0;
+    let mut scale: Option<f32> = None;
+    let mut animate = false;
+    let mut story: Option<&str> = None;
+    let mut fps: u32 = 15;
+    let mut speed: f64 = 1.0;
     let mut level = String::new();
     let mut k = 2;
     while k < argv.len() {
@@ -78,7 +138,7 @@ fn run(argv: &[OsString]) -> u8 {
         if argv[k] == "--format" && k + 1 < argv.len() {
             let Some(f) = value.and_then(Format::from_name) else {
                 to_stderr(&format!(
-                    "error: unknown format {}; use svg, html, png, txt, gif, or mp4\n",
+                    "error: unknown format {}; use svg, html, png, txt, gif, mp4, or webm\n",
                     argv[k + 1].to_string_lossy()
                 ));
                 return 1;
@@ -100,9 +160,38 @@ fn run(argv: &[OsString]) -> u8 {
             k += 2;
         } else if argv[k] == "--scale" && k + 1 < argv.len() {
             match value.and_then(|v| v.parse::<f32>().ok()) {
-                Some(n) if (0.1..=16.0).contains(&n) => scale = n,
+                Some(n) if (0.1..=16.0).contains(&n) => scale = Some(n),
                 _ => {
                     to_stderr("error: the scale must be a number from 0.1 to 16\n");
+                    return 1;
+                }
+            }
+            k += 2;
+        } else if argv[k] == "--animate" {
+            animate = true;
+            k += 1;
+        } else if argv[k] == "--story" && k + 1 < argv.len() {
+            let Some(t) = value else {
+                to_stderr("error: the story title must be UTF-8\n");
+                return 1;
+            };
+            story = Some(t);
+            k += 2;
+        } else if argv[k] == "--fps" && k + 1 < argv.len() {
+            // A GIF delay under 2 hundredths of a second plays slowly in browsers.
+            match value.and_then(|v| v.parse::<u32>().ok()) {
+                Some(n) if (1..=50).contains(&n) => fps = n,
+                _ => {
+                    to_stderr("error: the fps must be a whole number from 1 to 50\n");
+                    return 1;
+                }
+            }
+            k += 2;
+        } else if argv[k] == "--speed" && k + 1 < argv.len() {
+            match value.and_then(|v| v.parse::<f64>().ok()) {
+                Some(n) if (0.1..=10.0).contains(&n) => speed = n,
+                _ => {
+                    to_stderr("error: the speed must be a number from 0.1 to 10\n");
                     return 1;
                 }
             }
@@ -127,6 +216,10 @@ fn run(argv: &[OsString]) -> u8 {
         to_stderr(&format!("error: the {} format is not ready\n", format.name()));
         return 1;
     }
+    if animate && format != Format::Svg {
+        to_stderr("error: --animate is for an SVG; a GIF, a video, and the HTML page move without it\n");
+        return 1;
+    }
     if format.binary() && output.is_none() {
         to_stderr(&format!("error: the {} format needs -o <file>\n", format.name()));
         return 1;
@@ -142,14 +235,25 @@ fn run(argv: &[OsString]) -> u8 {
     let file = (input != "-").then(|| std::path::Path::new(input));
     match render_path(&src, file, &opts) {
         Ok(r) => {
-            let data = match produce(&r, format, theme, scale, &level) {
-                Ok(data) => data,
+            let out = Out {
+                format,
+                theme,
+                scale,
+                animate,
+                story,
+                fps,
+                speed,
+                path: output.map(std::path::Path::new),
+                level: &level,
+            };
+            let (data, note) = match produce(&r, &out) {
+                Ok(v) => v,
                 Err(msg) => {
                     to_stderr(&format!("error: {msg}\n"));
                     return 1;
                 }
             };
-            write_output(&r, output, &data)
+            write_output(&format!("{}{note}", r.summary), output, data.as_deref())
         }
         Err(err) => {
             let mut text = String::new();
@@ -163,14 +267,15 @@ fn run(argv: &[OsString]) -> u8 {
 }
 
 /// Writes the output to the file or to standard output, and the summary.
-fn write_output(r: &Rendered, output: Option<&OsString>, data: &[u8]) -> u8 {
+/// `None` is a file that ffmpeg wrote.
+fn write_output(summary: &str, output: Option<&OsString>, data: Option<&[u8]>) -> u8 {
     match output {
         None => {
             let ok = {
                 let mut out = io::stdout().lock();
-                out.write_all(data).and_then(|()| out.flush()).is_ok()
+                out.write_all(data.unwrap_or_default()).and_then(|()| out.flush()).is_ok()
             };
-            to_stderr(&format!("{}\n", r.summary));
+            to_stderr(&format!("{summary}\n"));
             if ok {
                 0
             } else {
@@ -178,11 +283,13 @@ fn write_output(r: &Rendered, output: Option<&OsString>, data: &[u8]) -> u8 {
             }
         }
         Some(output) => {
-            if std::fs::write(output, data).is_err() {
-                to_stderr(&format!("error: cannot write {}\n", output.to_string_lossy()));
-                return 1;
+            if let Some(data) = data {
+                if std::fs::write(output, data).is_err() {
+                    to_stderr(&format!("error: cannot write {}\n", output.to_string_lossy()));
+                    return 1;
+                }
             }
-            if to_stdout(&format!("{} {}\n", r.summary, output.to_string_lossy())) {
+            if to_stdout(&format!("{summary} {}\n", output.to_string_lossy())) {
                 0
             } else {
                 1

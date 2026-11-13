@@ -6,6 +6,7 @@ use std::collections::HashMap;
 use crate::model::{
     is_arrow_word, Diagram, DiagramError, DiagramType, Edge, Item, Member, ERD_FLAGS, STATUS_WORDS, TYPES,
 };
+use crate::parse_story::StoryLines;
 
 pub(crate) enum Tok<'a> {
     Word(&'a str),
@@ -21,7 +22,7 @@ impl<'a> Tok<'a> {
         }
     }
 
-    fn is_str(&self) -> bool {
+    pub(crate) fn is_str(&self) -> bool {
         matches!(self, Tok::Str(_))
     }
 
@@ -206,7 +207,9 @@ pub fn parse(src: &str) -> Result<Diagram, DiagramError> {
         items: Vec::new(),
         edges: Vec::new(),
         roots: Vec::new(),
+        stories: Vec::new(),
     };
+    let mut stories = StoryLines::default();
     let mut by_id: HashMap<&str, usize> = HashMap::new();
     // The open groups, with the indent of each group line.
     let mut stack: Vec<(i64, Option<usize>)> = vec![(-1, None)];
@@ -259,6 +262,10 @@ pub fn parse(src: &str) -> Result<Diagram, DiagramError> {
         }
 
         let indent = indent_of(line);
+        if stories.take(&toks, indent, ln) {
+            member_of = None;
+            continue;
+        }
         if let Some((owner, base)) = member_of {
             if indent > base {
                 add_member(&mut d, owner, &toks, ln, &mut errs);
@@ -469,6 +476,8 @@ pub fn parse(src: &str) -> Result<Diagram, DiagramError> {
             }
         }
     }
+
+    stories.resolve(&mut d, &by_id, &mut errs);
 
     if !header {
         errs.push(format!("1: the file is empty. The first line must name a diagram type: {}", TYPES.join(", ")));

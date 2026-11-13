@@ -9,6 +9,7 @@ use crate::layout_seq::layout_seq;
 use crate::layout_timeline::layout_timeline;
 use crate::levels::load;
 use crate::model::{Diagram, DiagramError, DiagramType};
+use crate::story::{stories, Story};
 use crate::svg::{change_counts, render_graph, render_seq};
 use crate::svg_timeline::render_timeline;
 
@@ -20,8 +21,37 @@ pub struct Rendered {
     /// The parts in the order of the diagram, for a viewer that steps
     /// through them.
     pub order: Vec<Step>,
+    /// The source stories, then the default story of the type.
+    pub stories: Vec<Story>,
+    /// The parts of each node of a progress story at the statuses planned,
+    /// in progress, and done.
+    pub variants: Vec<Variant>,
     /// All levels, the top level first, in depth-first order.
     pub levels: Vec<RenderedLevel>,
+}
+
+/// The SVG text of the node groups of one id, drawn at the statuses
+/// planned, in progress, and done. One id can have two groups: a timeline
+/// draws a "now" mark for an item in progress.
+#[derive(Clone, Debug)]
+pub struct Variant {
+    pub id: String,
+    pub planned: String,
+    pub wip: String,
+    pub done: String,
+    /// The status of the source, for the done count of the kicker.
+    pub status: usize,
+}
+
+impl Variant {
+    /// The text for a status: 1 done, 2 in progress, else planned.
+    pub fn at(&self, status: usize) -> &str {
+        match status {
+            1 => &self.done,
+            2 => &self.wip,
+            _ => &self.planned,
+        }
+    }
 }
 
 /// One part in the order of a diagram.
@@ -54,16 +84,98 @@ pub struct RenderedLevel {
     pub order: Vec<Step>,
 }
 
-/// The SVG of one diagram. A logo that no source has goes in `missing`.
-fn draw(d: &Diagram, opts: &IconOptions, missing: &mut Vec<String>) -> String {
+/// The SVG of a diagram, with the logos in `icons`.
+fn draw(d: &Diagram, icons: &[Option<Icon>]) -> String {
     if d.dtype == DiagramType::Seq {
-        return render_seq(d, &layout_seq(d));
+        render_seq(d, &layout_seq(d))
+    } else if d.dtype == DiagramType::Timeline {
+        render_timeline(d, &layout_timeline(d))
+    } else {
+        render_graph(d, &layout_graph(d), icons)
     }
-    if d.dtype == DiagramType::Timeline {
-        return render_timeline(d, &layout_timeline(d));
+}
+
+/// Draws the diagram three times, with the nodes of the progress beats at
+/// each status, and keeps the node groups.
+fn variants(d: &mut Diagram, stories: &[Story], icons: &[Option<Icon>]) -> Vec<Variant> {
+    let ids: Vec<String> =
+        stories.iter().flat_map(|s| s.beats.iter().filter_map(|b| b.node.as_ref().map(|n| n.0.clone()))).collect();
+    if ids.is_empty() {
+        return Vec::new();
     }
-    // Only a diagram with tiles draws logos. The other types draw cards.
+    let real: Vec<usize> = d.items.iter().map(|it| it.status).collect();
+    let status_of = |id: &str| d.items.iter().position(|it| it.id == id).map_or(0, |i| real[i]);
+    let statuses: Vec<usize> = ids.iter().map(|id| status_of(id)).collect();
+    let mut texts: [Vec<String>; 3] = Default::default();
+    for (k, status) in [3, 2, 1].into_iter().enumerate() {
+        for it in d.items.iter_mut().filter(|it| !it.group) {
+            it.status = status;
+        }
+        let svg = draw(d, icons);
+        texts[k] = ids.iter().map(|id| node_groups(&svg, id).concat()).collect();
+    }
+    for (it, &s) in d.items.iter_mut().zip(&real) {
+        it.status = s;
+    }
+    let [planned, wip, done] = texts;
+    let mut out: Vec<Variant> = Vec::new();
+    for (k, id) in ids.into_iter().enumerate() {
+        if !out.iter().any(|v| v.id == id) {
+            out.push(Variant {
+                id,
+                planned: planned[k].clone(),
+                wip: wip[k].clone(),
+                done: done[k].clone(),
+                status: statuses[k],
+            });
+        }
+    }
+    out
+}
+
+/// The byte ranges of the node groups of `id`, in SVG order.
+pub fn node_spans(svg: &str, id: &str) -> Vec<std::ops::Range<usize>> {
+    let open = format!("<g data-k=\"node\" data-id=\"{}\" ", crate::svg::esc(id));
+    let mut out = Vec::new();
+    let mut from = 0;
+    while let Some(at) = svg[from..].find(&open) {
+        let start = from + at;
+        // The groups nest, so count the open and the close tags.
+        let mut depth = 0;
+        let mut k = start;
+        let end = loop {
+            let next_open = svg[k..].find("<g").map(|x| x + k);
+            let next_close = svg[k..].find("</g>").map(|x| x + k);
+            match (next_open, next_close) {
+                (Some(o), Some(c)) if o < c => {
+                    depth += 1;
+                    k = o + 2;
+                }
+                (_, Some(c)) => {
+                    depth -= 1;
+                    k = c + 4;
+                    if depth == 0 {
+                        break k;
+                    }
+                }
+                _ => break svg.len(),
+            }
+        };
+        out.push(start..end);
+        from = end;
+    }
+    out
+}
+
+fn node_groups<'a>(svg: &'a str, id: &str) -> Vec<&'a str> {
+    node_spans(svg, id).into_iter().map(|r| &svg[r]).collect()
+}
+
+/// The logos of the nodes of `d`. A logo that no source has goes in
+/// `missing`.
+fn icons_of(d: &Diagram, opts: &IconOptions, missing: &mut Vec<String>) -> Vec<Option<Icon>> {
     let mut icons: Vec<Option<Icon>> = d.items.iter().map(|_| None).collect();
+    // Only a diagram with tiles draws logos. The other types draw cards.
     if d.dtype.has_tiles() {
         let wanted: Vec<usize> = (0..d.items.len()).filter(|&i| !d.items[i].icon.is_empty()).collect();
         let names: Vec<String> = wanted.iter().map(|&i| d.items[i].icon.clone()).collect();
@@ -74,7 +186,7 @@ fn draw(d: &Diagram, opts: &IconOptions, missing: &mut Vec<String>) -> String {
             icons[i] = found;
         }
     }
-    render_graph(d, &layout_graph(d), &icons)
+    icons
 }
 
 /// Renders a source with no file path. A file link is relative to the
@@ -86,11 +198,16 @@ pub fn render(src: &str, opts: &IconOptions) -> Result<Rendered, DiagramError> {
 /// Renders a source and all its levels. `file` is the path of the source,
 /// for the file links.
 pub fn render_path(src: &str, file: Option<&Path>, opts: &IconOptions) -> Result<Rendered, DiagramError> {
-    let levels = load(src, file)?;
+    let mut levels = load(src, file)?;
     let mut missing: Vec<String> = Vec::new();
     let mut out: Vec<RenderedLevel> = Vec::with_capacity(levels.len());
+    let mut top_icons: Vec<Option<Icon>> = Vec::new();
     for lv in &levels {
-        let svg = draw(&lv.d, opts, &mut missing);
+        let icons = icons_of(&lv.d, opts, &mut missing);
+        let svg = draw(&lv.d, &icons);
+        if out.is_empty() {
+            top_icons = icons;
+        }
         out.push(RenderedLevel {
             path: lv.key(),
             title: lv.d.title.clone(),
@@ -99,6 +216,9 @@ pub fn render_path(src: &str, file: Option<&Path>, opts: &IconOptions) -> Result
             order: order(&lv.d),
         });
     }
+    // The stories and the progress drawings are of the top level only.
+    let stories = stories(&levels[0].d);
+    let variants = variants(&mut levels[0].d, &stories, &top_icons);
     let d = &levels[0].d;
     let nodes = d.items.iter().filter(|it| !it.group).count();
     // The summary lists the ids that only an edge names, so a typing error
@@ -139,6 +259,8 @@ pub fn render_path(src: &str, file: Option<&Path>, opts: &IconOptions) -> Result
         title: d.title.clone(),
         order: top.order.clone(),
         levels: out,
+        stories,
+        variants,
     })
 }
 

@@ -7,6 +7,7 @@
   if (!data.levels || data.levels.length < 2) return;
   var view = document.querySelector(".sd-view");
   var nav = document.querySelector(".sd-crumbs");
+  var player = document.querySelector(".sd-player");
   var still = window.matchMedia("(prefers-reduced-motion: reduce)");
   var levels = {};
   data.levels.forEach(function (l) {
@@ -50,6 +51,8 @@
     data.order = lv.order;
     sd.mount(el);
     cur = path;
+    // The stories move on the top level only.
+    if (player) player.hidden = path !== "";
     el.querySelectorAll("[data-z]").forEach(function (n) {
       n.setAttribute("tabindex", "0");
       n.setAttribute("role", "button");

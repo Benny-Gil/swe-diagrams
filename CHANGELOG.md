@@ -22,6 +22,17 @@ This file lists the changes in each version. The project uses
   `:external`.
 - Each part of the SVG is in a group with `data-k` and other data
   attributes, so a script can find it.
+- Stories: `story "Title"` blocks with steps along the edges, `->` and
+  `-->` tokens, captions, and `&` for steps at the same time. Each type
+  has a default story.
+- `--animate` writes an SVG with SMIL motion and no script.
+  `prefers-reduced-motion` shows the still diagram.
+- GIF output (`-o x.gif`) and video output (`-o x.mp4`, `-o x.webm`,
+  with `ffmpeg`). `--fps`, `--speed`, and `--story` set the motion.
+- A story player in the HTML page: play, pause, steps, speed, a story
+  list, a caption panel, and keys.
+- A progress story of a `plan` or a `timeline` moves each item up to its
+  status, and the done count of the kicker follows each frame.
 - Zoom levels: `detail <id> [type] ["Title"]` blocks, `>file.sd` links,
   and `^name` for a node of the parent level. A detail level shows the
   context of the parent level, and a node with a detail level gets a zoom
