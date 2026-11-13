@@ -295,3 +295,27 @@ pub fn self_loop(d: &Diagram, i: usize, b: [i64; 4], line: &str, head: &str, lm:
     }
     out
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::parse::parse;
+
+    #[test]
+    fn the_inset_reaches_the_slanted_side() {
+        let right = parse("flow\ndir right\nq :decision\nio :io\n").unwrap();
+        let b = [0, 0, 120, 60];
+        // On the axis of a diamond the outline is the box side.
+        assert_eq!(outline_inset(&right, 0, b, 120, 30), 0);
+        // 10 off the axis, the outline is 10 * w / h inside the box.
+        assert_eq!(outline_inset(&right, 0, b, 120, 40), 20);
+        assert_eq!(outline_inset(&right, 0, b, 0, 20), 20);
+        // The left side of a parallelogram slants from x + SKEW at the top.
+        assert_eq!(outline_inset(&right, 1, b, 0, 0), SKEW);
+        assert_eq!(outline_inset(&right, 1, b, 0, 60), 0);
+        assert_eq!(outline_inset(&right, 1, b, 120, 60), SKEW);
+        let down = parse("flow\nq :decision\nio :io\n").unwrap();
+        assert_eq!(outline_inset(&down, 0, b, 70, 60), 5);
+        assert_eq!(outline_inset(&down, 1, b, 70, 60), 0);
+    }
+}

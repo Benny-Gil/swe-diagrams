@@ -458,8 +458,9 @@ fn shape_box(d: &Diagram, l: &GraphLayout, i: usize) -> [i64; 4] {
     }
 }
 
-/// Moves the end of the route `p` at item `i` from the box side to the
-/// outline of a slanted shape. The end keeps room for the arrowhead.
+/// Moves the end of the route `p` at item `i` from the box side into the
+/// box, to the outline of a slanted shape. The last run gets longer, so the
+/// arrowhead keeps its gap.
 fn to_outline(d: &Diagram, l: &GraphLayout, i: usize, p: &mut [i64]) {
     if !svg_shapes::slanted(d, i) {
         return;
@@ -476,9 +477,8 @@ fn to_outline(d: &Diagram, l: &GraphLayout, i: usize, p: &mut [i64]) {
         return;
     };
     let m = usize::from(d.down); // index of the main coordinate
-    let run = (p[k + m] - p[j + m]).abs();
-    let inset = svg_shapes::outline_inset(d, i, b, p[k], p[k + 1]).min(run - 12).max(0);
-    p[k + m] -= inset * (p[k + m] - p[j + m]).signum();
+    let inset = svg_shapes::outline_inset(d, i, b, p[k], p[k + 1]);
+    p[k + m] += inset * (p[k + m] - p[j + m]).signum();
 }
 
 /// True when the route `p` starts in the left half of its first node.
