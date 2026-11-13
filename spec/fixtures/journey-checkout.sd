@@ -1,0 +1,21 @@
+journey "Checkout"   # kinds, groups, statuses, and a down layout
+dir down
+product "Product" "/p/:slug"
+cart "Cart" "/cart"
+login "Sign in" "/cart?login" :modal add
+group pay "Payment"
+  checkout "Checkout" "/checkout" mod
+  stripe "Stripe" "checkout.stripe.com" :external
+  failed "Payment failed" "/checkout/error" :modal
+done "Order placed" "/orders/:id" wip
+help "Help center" "help.example.com" :external plan
+
+product => cart "add to cart"
+cart -> login "checkout, signed out"
+login -> cart "sign in"
+cart => checkout "checkout"
+checkout => stripe "pay"
+stripe => done "success"
+stripe --> failed "card declined"
+failed -> checkout "try again"
+done --> help "get help"

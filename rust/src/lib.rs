@@ -17,6 +17,7 @@ pub mod raster;
 pub mod records;
 pub mod render;
 pub mod svg;
+pub mod svg_journey;
 pub mod svg_shapes;
 pub mod svg_timeline;
 pub mod text;

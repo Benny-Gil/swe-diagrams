@@ -17,6 +17,9 @@ This file lists the changes in each version. The project uses
 - PNG output with resvg and bundled fonts (Geist, JetBrains Mono).
   `--scale` sets the pixel scale.
 - `--theme auto|light|dark` sets the palette of each format.
+- The `journey` type: pages as small browser frames with the title and
+  the route, and user actions as edges. Kinds: `:page`, `:modal`,
+  `:external`.
 - Each part of the SVG is in a group with `data-k` and other data
   attributes, so a script can find it.
 

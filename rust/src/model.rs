@@ -2,8 +2,8 @@
 
 use std::fmt;
 
-pub const TYPES: [&str; 11] =
-    ["arch", "seq", "plan", "deps", "flow", "state", "dataflow", "change", "erd", "class", "timeline"];
+pub const TYPES: [&str; 12] =
+    ["arch", "seq", "plan", "deps", "flow", "state", "dataflow", "change", "erd", "class", "timeline", "journey"];
 pub const STATUS_WORDS: [&str; 7] = ["", "done", "wip", "plan", "add", "mod", "del"];
 pub const STATUS_NAMES: [&str; 7] = ["", "done", "in progress", "planned", "added", "changed", "removed"];
 /// The kinds of `arch`, `change`, `seq`, and `plan`.
@@ -15,6 +15,7 @@ pub const DATAFLOW_KINDS: [&str; 5] = ["transform", "source", "sink", "store", "
 pub const ERD_KINDS: [&str; 1] = ["entity"];
 pub const CLASS_KINDS: [&str; 4] = ["class", "interface", "abstract", "enum"];
 pub const TIMELINE_KINDS: [&str; 2] = ["event", "milestone"];
+pub const JOURNEY_KINDS: [&str; 3] = ["page", "modal", "external"];
 
 pub const ARROWS: [&str; 4] = ["=>", "->", "-->", "<->"];
 pub const LINK_ARROWS: [&str; 2] = ["->", "-->"];
@@ -41,6 +42,7 @@ pub enum DiagramType {
     Erd,
     Class,
     Timeline,
+    Journey,
 }
 
 impl DiagramType {
@@ -51,7 +53,8 @@ impl DiagramType {
 
     pub fn from_name(name: &str) -> Option<DiagramType> {
         use DiagramType::*;
-        const ALL: [DiagramType; 11] = [Arch, Seq, Plan, Deps, Flow, State, Dataflow, Change, Erd, Class, Timeline];
+        const ALL: [DiagramType; 12] =
+            [Arch, Seq, Plan, Deps, Flow, State, Dataflow, Change, Erd, Class, Timeline, Journey];
         TYPES.iter().position(|&t| t == name).map(|i| ALL[i])
     }
 
@@ -66,6 +69,7 @@ impl DiagramType {
             DiagramType::Erd => &ERD_KINDS,
             DiagramType::Class => &CLASS_KINDS,
             DiagramType::Timeline => &TIMELINE_KINDS,
+            DiagramType::Journey => &JOURNEY_KINDS,
         }
     }
 
@@ -74,7 +78,7 @@ impl DiagramType {
         match self {
             DiagramType::Arch | DiagramType::Seq | DiagramType::Plan | DiagramType::Change => &ARROWS,
             DiagramType::Deps | DiagramType::State | DiagramType::Dataflow => &LINK_ARROWS,
-            DiagramType::Flow => &FLOW_ARROWS,
+            DiagramType::Flow | DiagramType::Journey => &FLOW_ARROWS,
             DiagramType::Erd => &ERD_ARROWS,
             DiagramType::Class => &CLASS_ARROWS,
             DiagramType::Timeline => &[],

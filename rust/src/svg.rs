@@ -538,6 +538,7 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
         DiagramType::Erd => "entities".to_string(),
         DiagramType::Class => "classes".to_string(),
         DiagramType::Arch => "architecture".to_string(),
+        DiagramType::Journey => "user journey".to_string(),
         DiagramType::Change => {
             let [add, m, del] = change_counts(d);
             format!("change / +{add} ~{m} -{del}")
@@ -559,6 +560,9 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
     }
     if d.dtype == DiagramType::Dataflow {
         f.style(svg_shapes::DATAFLOW_STYLE);
+    }
+    if d.dtype == DiagramType::Journey {
+        f.style(crate::svg_journey::STYLE);
     }
     let change = d.dtype == DiagramType::Change;
     if change {
