@@ -4,7 +4,14 @@ name: pages
 on:
   push:
     branches: [main]
-    paths: ["site/**", ".github/workflows/pages.yml"]
+    paths:
+      - "site/**"
+      - ".github/workflows/pages.yml"
+      # These files go into llms-full.txt.
+      - "README.md"
+      - "docs/install.md"
+      - "skills/swe-diagrams/SKILL.md"
+      - "skills/swe-diagrams/references/language.md"
 
 permissions:
   contents: read
@@ -24,6 +31,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
+      # Language models read one file instead of four links.
+      - name: Make llms-full.txt
+        run: |
+          for f in README.md docs/install.md skills/swe-diagrams/SKILL.md skills/swe-diagrams/references/language.md; do
+            printf '<!-- %s -->\n\n' "$f"
+            cat "$f"
+            printf '\n\n'
+          done > site/llms-full.txt
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site

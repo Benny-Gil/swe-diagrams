@@ -1,0 +1,35 @@
+# swe-diagrams
+
+> Open-source CLI and agent skill that draws diagrams of software. A coding agent such as Claude Code, Codex, or Cursor writes 10 to 30 short lines in the `.sd` language, and the program draws the diagram in about 3 milliseconds. Each part can show a status: done, in progress, planned, added, changed, or removed.
+
+- Twelve diagram types: `arch`, `seq`, `plan`, `deps`, `flow`, `state`, `dataflow`, `change`, `erd`, `class`, `timeline`, and `journey`.
+- Outputs: SVG (light and dark theme), interactive HTML, PNG, GIF, MP4, WebM, and terminal text. The extension of the output file sets the format.
+- Render: `swe-diagrams render diagram.sd -o diagram.svg`. Add `--animate` for motion without a script.
+- Install: tell the agent "Install swe-diagrams for me. Follow the steps in https://github.com/Benny-Gil/swe-diagrams/blob/main/docs/install.md". Or run `npx swe-diagrams`, `cargo install swe-diagrams`, or the install script for macOS and Linux.
+- License: MIT. Current version: 0.2.0.
+
+Example source:
+
+```
+arch "Checkout"
+user "Shopper" :actor
+web "Next.js" "app router" @nextjs done
+api "Hono" "http api" @hono wip
+db "Neon" "postgres" :store @neon add
+user => web => api => db
+```
+
+## Docs
+
+- [Full text for language models](https://swe-diagrams.bennygil.me/llms-full.txt): the README, the install steps, the agent skill, and the language reference in one file
+- [Language reference](https://raw.githubusercontent.com/Benny-Gil/swe-diagrams/main/skills/swe-diagrams/references/language.md): the syntax of each diagram type, edges, stories, status, and the command options
+- [Agent skill](https://raw.githubusercontent.com/Benny-Gil/swe-diagrams/main/skills/swe-diagrams/SKILL.md): when an agent draws a diagram, and how
+- [Install steps for an agent](https://raw.githubusercontent.com/Benny-Gil/swe-diagrams/main/docs/install.md)
+- [README](https://raw.githubusercontent.com/Benny-Gil/swe-diagrams/main/README.md)
+
+## Optional
+
+- [Changelog](https://raw.githubusercontent.com/Benny-Gil/swe-diagrams/main/CHANGELOG.md)
+- [Source code](https://github.com/Benny-Gil/swe-diagrams)
+- [npm package](https://www.npmjs.com/package/swe-diagrams)
+- [crates.io crate](https://crates.io/crates/swe-diagrams)

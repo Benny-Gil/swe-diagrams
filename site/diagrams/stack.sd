@@ -1,0 +1,27 @@
+arch "Tech stack"
+user "Customer" :actor
+group app "Vercel" @vercel :vendor
+  web "Web app" "next.js" @nextjs done
+  api "API" "hono" @hono done
+group svc "Services" :vendor
+  auth "Auth" "clerk" @clerk done
+  pay "Payments" "stripe" @stripe wip
+group data "Data"
+  db "Postgres" "neon" :store @neon done
+  cache "Cache" "redis" :store @redis plan
+ci "CI" "github actions" @githubactions done
+
+user => web => api => db
+web -> auth "sign in"
+api -> pay "charge"
+api -> cache "sessions"
+ci -> app "deploy"
+
+story "Place an order"
+  user -> web "click Buy"
+  web -> auth "check session"
+  web -> api "POST /orders"
+  api -> db "insert order" & api -> pay "charge card"
+  pay --> api "paid"
+  api --> web "201 Created"
+  web --> user "order page"

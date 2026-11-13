@@ -6,3 +6,4 @@ target/
 
 # brag video work folder
 /brag-output/
+/site/llms-full.txt

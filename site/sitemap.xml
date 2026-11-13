@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1" xmlns:video="http://www.google.com/schemas/sitemap-video/1.1">
+  <url>
+    <loc>https://swe-diagrams.bennygil.me/</loc>
+    <lastmod>2026-11-13</lastmod>
+    <image:image><image:loc>https://swe-diagrams.bennygil.me/img/stack.svg</image:loc></image:image>
+    <image:image><image:loc>https://swe-diagrams.bennygil.me/img/arch-checkout.svg</image:loc></image:image>
+    <image:image><image:loc>https://swe-diagrams.bennygil.me/img/plan-ratelimit.svg</image:loc></image:image>
+    <image:image><image:loc>https://swe-diagrams.bennygil.me/img/seq-login.svg</image:loc></image:image>
+    <image:image><image:loc>https://swe-diagrams.bennygil.me/img/journey-checkout.svg</image:loc></image:image>
+    <image:image><image:loc>https://swe-diagrams.bennygil.me/img/erd-schemas.svg</image:loc></image:image>
+    <image:image><image:loc>https://swe-diagrams.bennygil.me/img/state-order.svg</image:loc></image:image>
+    <video:video>
+      <video:thumbnail_loc>https://swe-diagrams.bennygil.me/poster.jpg</video:thumbnail_loc>
+      <video:title>swe-diagrams demo</video:title>
+      <video:description>An agent writes six lines of text, one command runs, and a diagram appears.</video:description>
+      <video:content_loc>https://swe-diagrams.bennygil.me/brag.mp4</video:content_loc>
+      <video:duration>22</video:duration>
+    </video:video>
+  </url>
+</urlset>
