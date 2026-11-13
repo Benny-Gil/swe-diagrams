@@ -1,6 +1,6 @@
 {
   "name": "swe-diagrams",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Fast diagrams of software, written by agents in a compact language",
   "keywords": ["diagram", "svg", "architecture", "agent", "cli"],
   "homepage": "https://github.com/Benny-Gil/swe-diagrams",
