@@ -430,6 +430,8 @@ dependencies = [
 name = "swe-diagrams"
 version = "0.1.0"
 dependencies = [
+ "color_quant",
+ "gif",
  "resvg",
 ]
 
