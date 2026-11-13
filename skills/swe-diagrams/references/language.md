@@ -49,6 +49,7 @@ Put spaces around an arrow. Write `a -> b`, not `a->b`.
 | `flow` | The steps and the decisions of a process | down |
 | `state` | The states of a thing, and the events that change the state | right |
 | `dataflow` | Where the data goes, and what changes it | right |
+| `change` | The parts that a change adds, modifies, and removes | right |
 
 In `seq`, each node is a participant and each edge is a message. The order of
 the lines is the order in time. `a -> a` is a message to self. `seq` has no
@@ -177,6 +178,28 @@ go beside their lines. The arrows are `->` and `-->`.
 | `:sink` | A box with a thick right side |
 | `:store` | A cylinder |
 | `:queue` | A box with two bars at the right end |
+
+### change
+
+```
+change "Replace the session cache"
+api "API" @hono mod
+cache "Redis" :store @redis del
+kv "Workers KV" :store @cloudflare add
+db "Postgres" :store @postgres
+api -> cache del
+api -> kv add
+api -> db
+```
+
+The language of `change` is the language of `arch`: the same kinds, logos,
+groups, and arrows. Give `add`, `mod`, or `del` to each part that the change
+touches. A node, a group, or an edge with no status is quiet: it has a
+lower opacity, so the changed parts stand out.
+
+The title line counts the changed nodes and groups, for example
+`change / +1 ~1 -1`. The summary line adds
+`added=1 changed=1 removed=1`. The counts do not include the edges.
 
 ## Edges
 

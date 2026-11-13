@@ -35,13 +35,14 @@ Otherwise use a temporary directory.
 
 | Question | Type |
 |---|---|
-| What are the parts, and how do they connect? What does this change touch? | `arch` |
+| What are the parts, and how do they connect? | `arch` |
 | In what order do the parts talk for one request? | `seq` |
 | What are the steps of the work, and where is the work now? | `plan` |
 | What imports what? Is there an import cycle? | `deps` |
 | What are the steps and the decisions of a process? | `flow` |
 | What states can a thing be in, and what changes the state? | `state` |
 | Where does the data go, and what changes it? | `dataflow` |
+| What does this change touch? | `change` |
 
 ## The language
 
@@ -91,5 +92,5 @@ For the full rules, read [references/language.md](references/language.md).
   neutral, so the work is easy to see.
 - For a plan: `done` for work that is complete, `wip` for the current step,
   `plan` for the rest. Render the plan again when the status changes.
-- For a change: `add`, `mod`, and `del` on the parts that the change adds,
-  modifies, and removes.
+- For a change: use `change`, with `add`, `mod`, and `del` on the parts
+  that the change adds, modifies, and removes.

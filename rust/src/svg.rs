@@ -139,6 +139,9 @@ const GLYPHS: [&str; 5] = [
 const CYCLE_STYLE: (&str, &str) =
     (".e.cy{stroke:#cc3340}.a.cy{fill:#cc3340}", ".e.cy{stroke:#f0626c}.a.cy{fill:#f0626c}");
 
+/// In a change diagram, a part with no status is quiet.
+const QUIET_STYLE: (&str, &str) = (".q{opacity:.38}", "");
+
 const LABEL_END_STYLE: (&str, &str) = (".le{text-anchor:end}", "");
 
 const PAD: i64 = 24; // page padding
@@ -489,6 +492,17 @@ fn left_of_centre(l: &GraphLayout, p: &[i64], from: usize, to: usize) -> bool {
     p[0] < l.x[i] + idiv(l.bw[i], 2)
 }
 
+/// The count of the nodes and groups with `add`, `mod`, and `del`.
+pub fn change_counts(d: &Diagram) -> [usize; 3] {
+    let mut out = [0; 3];
+    for it in &d.items {
+        if (4..=6).contains(&it.status) {
+            out[it.status - 4] += 1;
+        }
+    }
+    out
+}
+
 pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> String {
     let tiles = d.dtype.has_tiles();
     let kicker = match d.dtype {
@@ -503,6 +517,10 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
         DiagramType::Erd => "entities".to_string(),
         DiagramType::Class => "classes".to_string(),
         DiagramType::Arch => "architecture".to_string(),
+        DiagramType::Change => {
+            let [add, m, del] = change_counts(d);
+            format!("change / +{add} ~{m} -{del}")
+        }
         t => t.name().to_string(),
     };
     let mut f = Frame::new(&d.title, kicker);
@@ -553,6 +571,10 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
     if d.dtype == DiagramType::Dataflow {
         f.style(svg_shapes::DATAFLOW_STYLE);
     }
+    let change = d.dtype == DiagramType::Change;
+    if change {
+        f.style(QUIET_STYLE);
+    }
     if d.dtype == DiagramType::Deps {
         f.line_names[1] = "import";
         f.line_names[2] = "type-only / dev";
@@ -572,6 +594,9 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
             class.push_str(" gn");
         }
         class.push_str(&st(it.status));
+        if change && it.status == 0 {
+            class.push_str(" q");
+        }
         let _ = write!(
             f.body,
             "<rect class=\"{class}\" x=\"{}\" y=\"{}\" width=\"{}\" height=\"{}\" rx=\"12\"/>",
@@ -609,6 +634,10 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
             f.style(CYCLE_STYLE);
             f.mark("e cy", "cycle");
         }
+        let quiet_edge = change && e.status == 0;
+        if quiet_edge {
+            f.body.push_str("<g class=\"q\">");
+        }
         let _ = write!(f.body, "<path class=\"{lc}\" d=\"{}\"/>", route_path(&p, ge.arrow_start, ge.arrow_end));
         if ge.arrow_end {
             let head = arrow_head(p[z - 2], p[z - 1], (p[z - 2] - p[z - 4]).signum(), (p[z - 1] - p[z - 3]).signum());
@@ -617,6 +646,9 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
         if ge.arrow_start {
             let head = arrow_head(p[0], p[1], (p[0] - p[2]).signum(), (p[1] - p[3]).signum());
             let _ = write!(f.body, "<path class=\"{ac}\" d=\"{head}\"/>");
+        }
+        if quiet_edge {
+            f.body.push_str("</g>");
         }
     }
 
@@ -646,7 +678,12 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
                 );
                 tx += 20;
             }
-            let gl = if it.vendor { "gl glv" } else { "gl" };
+            let gl = match (it.vendor, change && it.status == 0) {
+                (false, false) => "gl",
+                (true, false) => "gl glv",
+                (false, true) => "gl q",
+                (true, true) => "gl glv q",
+            };
             let _ = write!(f.body, "<text class=\"{gl}\" x=\"{tx}\" y=\"{}\">{}</text>", y + 24, esc(&it.label));
             if it.status > 0 {
                 f.badge(it.status, x + w - 2, y + 2);
@@ -688,6 +725,10 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
             continue;
         }
 
+        let quiet_node = change && it.status == 0;
+        if quiet_node {
+            f.body.push_str("<g class=\"q\">");
+        }
         // An arch node: the tile, the icon, then the name and the role.
         let (tw, th) = if d.down { (l.tile[i], 60) } else { (60, l.tile[i]) };
         let tx = x + idiv(w - tw, 2);
@@ -751,6 +792,9 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
         if it.status > 0 {
             f.badge(it.status, tx + tw - 2, y + 2);
         }
+        if quiet_node {
+            f.body.push_str("</g>");
+        }
     }
 
     for (k, ge) in l.edges.iter().enumerate() {
@@ -786,7 +830,8 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
         }
         let _ = write!(
             f.body,
-            "<text class=\"el mo{ls}{lm}\" x=\"{}\" y=\"{}\">{}</text>",
+            "<text class=\"el mo{ls}{lm}{}\" x=\"{}\" y=\"{}\">{}</text>",
+            if change && e.status == 0 { " q" } else { "" },
             ge.label_x + ox + dx,
             ge.label_y + oy + dy,
             esc(&e.label)

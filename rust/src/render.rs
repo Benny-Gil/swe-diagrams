@@ -6,7 +6,7 @@ use crate::layout_graph::layout_graph;
 use crate::layout_seq::layout_seq;
 use crate::model::{DiagramError, DiagramType};
 use crate::parse::parse;
-use crate::svg::{render_graph, render_seq};
+use crate::svg::{change_counts, render_graph, render_seq};
 
 pub struct Rendered {
     pub svg: String,
@@ -38,6 +38,10 @@ pub fn render(src: &str, opts: &IconOptions) -> Result<Rendered, DiagramError> {
     // in an id is visible. It also lists the logos that no source has.
     let implicit: Vec<&str> = d.items.iter().filter(|it| !it.group && it.implicit).map(|it| it.id.as_str()).collect();
     let mut summary = format!("ok {} nodes={} edges={}", d.dtype.name(), nodes, d.edges.len());
+    if d.dtype == DiagramType::Change {
+        let [add, m, del] = change_counts(&d);
+        summary.push_str(&format!(" added={add} changed={m} removed={del}"));
+    }
     if d.dtype == DiagramType::Deps {
         summary.push_str(&format!(" cycles={}", find_cycles(&d).count));
     }

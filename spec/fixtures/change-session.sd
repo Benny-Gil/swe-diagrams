@@ -1,0 +1,8 @@
+change "Replace the session cache"   # the example of the design
+api "API" @hono mod
+cache "Redis" :store @redis del
+kv "Workers KV" :store @cloudflare add
+db "Postgres" :store @postgres
+api -> cache del
+api -> kv add
+api -> db
