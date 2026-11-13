@@ -70,6 +70,7 @@ Otherwise use a temporary directory.
 | What happens in which order, and where are we now? | `timeline` |
 | What are the tables and the relations between them? | `erd` |
 | What are the types and their relations? | `class` |
+| How does a user move through the pages of the app? | `journey` |
 
 ## The language
 

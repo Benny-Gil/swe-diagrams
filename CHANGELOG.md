@@ -17,6 +17,9 @@ This file lists the changes in each version. The project uses
 - PNG output with resvg and bundled fonts (Geist, JetBrains Mono).
   `--scale` sets the pixel scale.
 - `--theme auto|light|dark` sets the palette of each format.
+- The `journey` type: pages as small browser frames with the title and
+  the route, and user actions as edges. Kinds: `:page`, `:modal`,
+  `:external`.
 - Each part of the SVG is in a group with `data-k` and other data
   attributes, so a script can find it.
 - Stories: `story "Title"` blocks with steps along the edges, `->` and
@@ -39,6 +42,15 @@ This file lists the changes in each version. The project uses
   line adds `levels=` and `details=`.
 
 ### Changed
+
+- A class member line that starts with `#` is a protected member, not
+  a comment.
+- In a layout that goes down, an edge label takes the free side of its
+  line, or moves along the line, so it does not sit on another line. A
+  node gets a wider port for a label with no free place. A group grows
+  to hold the labels of its edges.
+- Text widths come from the bundled Geist faces, with a margin for
+  fallback faces, so a long title or label does not clip.
 
 - The README shows pictures and install steps first. The diagram language
   is in the language reference only.
