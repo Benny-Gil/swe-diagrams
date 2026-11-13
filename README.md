@@ -93,6 +93,8 @@ swe-diagrams render plan.sd -o plan.svg    # SVG, light and dark theme
 swe-diagrams render plan.sd -o plan.html   # page with pan, zoom, and highlights
 swe-diagrams render plan.sd -o plan.png    # PNG image, light theme
 swe-diagrams render plan.sd -o plan.png --theme dark --scale 3
+swe-diagrams render plan.sd --format txt   # boxes in the terminal
+swe-diagrams render plan.sd -o tour.gif --tour   # zoom through each detail level
 ```
 
 The HTML page is one file that loads nothing from the network, so it also

@@ -1,0 +1,14 @@
+timeline / 2 of 6 done
+Rate limit roll-out
+
+Spec ✓         Middleware ◐    GA ○
+ Nov 3            Nov 12       Dec 1
+   │                 │           │
+───●──────●──────────●┄┄┄┄┄┄◇┄┄┄┄◇┄┄┄┄┄●┄┄
+          │                 │          │
+ Choose algorithm ✓   Ship to 1% ○   Retro
+        Nov 5            Nov 20      Dec 8
+
+ ├─ Design ✓ ─┤    ├─ Build ───────┤
+
+✓ done   ◐ in progress   ○ planned

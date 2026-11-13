@@ -30,6 +30,7 @@ strip = true
 color_quant = "1.1"
 gif = "0.14"
 resvg = { version = "0.50.0", default-features = false, features = ["text", "raster-images"] }
+terminal_size = "0.4"
 
 # The rasterizer is slow without optimization, and the tests draw each fixture.
 [profile.dev.package."*"]

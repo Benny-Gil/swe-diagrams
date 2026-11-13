@@ -5,7 +5,7 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output, Stdio};
 
-const USAGE: &str = "usage: swe-diagrams render <file.sd|-> [-o out] [--format svg|html|png|txt|gif|mp4|webm] [--theme auto|light|dark] [--level path] [--scale N] [--animate] [--story title] [--fps N] [--speed X] [--icons dir] [--offline]\n";
+const USAGE: &str = "usage: swe-diagrams render <file.sd|-> [-o out] [--format svg|html|png|txt|gif|mp4|webm] [--theme auto|light|dark] [--level path] [--scale N] [--animate] [--story title] [--tour] [--fps N] [--speed X] [--color auto|always|never] [--width N] [--icons dir] [--offline]\n";
 
 fn spec(rel: &str) -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("spec").join(rel)
@@ -117,19 +117,69 @@ fn tmp(name: &str) -> String {
     Path::new(env!("CARGO_TARGET_TMPDIR")).join(name).to_str().unwrap().to_string()
 }
 
-#[test]
-fn formats_that_are_not_ready_give_an_error() {
-    let file = spec("fixtures/seq-login.sd");
-    let file = file.to_str().unwrap();
-    for f in ["txt"] {
-        let target = tmp(&format!("not-ready.{f}"));
-        for args in [vec!["render", file, "--format", f, "-o", &target], vec!["render", file, "-o", &target]] {
-            let out = run(&args);
-            assert_eq!(out.status.code(), Some(1), "{args:?}");
-            assert_eq!(text(&out.stdout), "");
-            assert_eq!(text(&out.stderr), format!("error: the {f} format is not ready\n"));
-        }
+fn run_env(args: &[&str], env: &[(&str, &str)]) -> Output {
+    let mut cmd = binary();
+    cmd.env_remove("NO_COLOR").env_remove("COLUMNS");
+    for (k, v) in env {
+        cmd.env(k, v);
     }
+    cmd.args(args).stdin(Stdio::null()).output().unwrap()
+}
+
+#[test]
+fn text_goes_to_stdout_and_the_summary_to_stderr() {
+    let file = spec("fixtures/plan-ratelimit.sd");
+    let file = file.to_str().unwrap();
+    let out = run_env(&["render", file, "--format", "txt", "--color", "never", "--width", "100"], &[]);
+    assert_eq!(out.status.code(), Some(0));
+    let golden = fs::read_to_string(spec("golden/plan-ratelimit.term")).unwrap();
+    assert_eq!(text(&out.stdout), golden);
+    assert!(text(&out.stderr).starts_with("ok plan nodes="), "{}", text(&out.stderr));
+    // Standard output is a pipe here, so auto gives no colour.
+    let auto = run_env(&["render", file, "--format", "txt", "--width", "100"], &[]);
+    assert_eq!(text(&auto.stdout), golden);
+}
+
+#[test]
+fn color_always_adds_the_escape_codes() {
+    let file = spec("fixtures/plan-ratelimit.sd");
+    let file = file.to_str().unwrap();
+    let out = run_env(&["render", file, "--format", "txt", "--color", "always"], &[("NO_COLOR", "1")]);
+    assert_eq!(out.status.code(), Some(0));
+    assert!(text(&out.stdout).contains("\x1b["));
+    // A .txt file gets no colour with auto.
+    let target = tmp("plain.txt");
+    let out = run_env(&["render", file, "-o", &target], &[]);
+    assert_eq!(out.status.code(), Some(0));
+    let saved = fs::read_to_string(&target).unwrap();
+    assert!(saved.contains("Add rate limiting") && !saved.contains('\x1b'));
+    assert!(text(&out.stdout).ends_with(&format!(" {target}\n")));
+}
+
+#[test]
+fn the_width_sets_the_columns() {
+    let file = spec("fixtures/arch-checkout.sd");
+    let file = file.to_str().unwrap();
+    let widest = |out: &Output| text(&out.stdout).lines().map(|l| l.chars().count()).max().unwrap_or(0);
+    let wide = run_env(&["render", file, "--format", "txt", "--width", "200"], &[]);
+    let narrow = run_env(&["render", file, "--format", "txt", "--width", "40"], &[]);
+    assert!(widest(&wide) > 40, "{}", widest(&wide));
+    assert!(widest(&narrow) <= 40, "{}", text(&narrow.stdout));
+    // Without --width, $COLUMNS sets the width.
+    let cols = run_env(&["render", file, "--format", "txt"], &[("COLUMNS", "40")]);
+    assert_eq!(cols.stdout, narrow.stdout);
+    let bad = run_env(&["render", file, "--format", "txt", "--width", "5"], &[]);
+    assert_eq!(text(&bad.stderr), "error: the width must be a whole number from 20 to 1000\n");
+}
+
+#[test]
+fn text_shows_a_detail_level() {
+    let file = spec("fixtures/plan-zoom.sd");
+    let out =
+        run_env(&["render", file.to_str().unwrap(), "--format", "txt", "--level", "build", "--color", "never"], &[]);
+    assert_eq!(out.status.code(), Some(0));
+    assert!(text(&out.stdout).contains("Build tasks"));
+    assert!(text(&out.stdout).contains("Middleware"));
 }
 
 #[test]

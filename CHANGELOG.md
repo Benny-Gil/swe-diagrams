@@ -47,6 +47,14 @@ This file lists the changes in each version. The project uses
   with a click or `Enter`, and has a breadcrumb, `Escape`, and a hash path.
   A node with no status takes a status from its detail level. The summary
   line adds `levels=` and `details=`.
+- Terminal text output (`text_out::to_text`) for all eleven types. It
+  draws with Unicode box drawing, shows status symbols, and can add ANSI
+  colours. A drawing that is too wide becomes an outline.
+- `--format txt` (or `-o x.txt`) writes the terminal text. `--color
+  auto|always|never` sets the ANSI colour, and `--width N` sets the
+  columns. `--level` works for the text.
+- `--tour` writes a GIF or a video that zooms into each detail level,
+  depth first, and back out. The summary line adds `tour=` and `frames=`.
 
 ### Changed
 

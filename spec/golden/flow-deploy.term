@@ -1,0 +1,27 @@
+flow
+Deploy a release
+
+outline: the drawing needs 204 columns, and the limit is 100.
+
+• Push a tag ✓
+• Build ✓  cargo build --release
+• Tests green? ◐
+• Canary to 1% ○
+• Error rate above 0.5%? ○
+• Roll back ○
+• Write the release notes ○
+• Live ○
+• Fix the build
+
+Edges
+  Push a tag → Build
+  Build → Tests green?
+  Tests green? → Canary to 1%  yes
+  Tests green? → Fix the build  no
+  Fix the build ⇢ Push a tag  new tag
+  Canary to 1% → Error rate above 0.5%?
+  Error rate above 0.5%? → Roll back  yes
+  Error rate above 0.5%? → Write the release notes  no
+  Write the release notes → Live
+
+✓ done   ◐ in progress   ○ planned

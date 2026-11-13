@@ -1,0 +1,23 @@
+plan / 1 of 4 done
+Add rate limiting
+
+╭───────────╮
+│ Design ✓  │
+│  phase 1  │
+╰────┬──────╯
+     ▼
+ ╭─────────╮
+ │ Build ◐ │   ╭┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄╮
+ │ phase 2 │   ┆   Security review ○    ┆
+ │         │   ╰┄┄┄┄┄┄┬┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄╯
+ ╰───┬─────╯          │
+     │               sign-off
+     └────────┐       │
+              │ ┌─────┘
+              ▼ ▼
+        ╭┄┄┄┄┄┄┄┄┄┄╮
+        ┆  Ship ○  ┆
+        ┆ phase 3  ┆
+        ╰┄┄┄┄┄┄┄┄┄┄╯
+
+✓ done   ◐ in progress   ○ planned

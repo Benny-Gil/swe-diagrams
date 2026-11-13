@@ -1,0 +1,546 @@
+architecture
+Synthetic system, 200 nodes
+
+outline: the drawing needs 2937 columns, and the limit is 100.
+
+[Domain 0]
+  • Service 0.0 ✓  pkg/n0_0
+  • Service 0.1 ✓  pkg/n0_1
+  • Service 0.2  pkg/n0_2
+  • Service 0.3 ✓  pkg/n0_3
+  • Service 0.4 ○  pkg/n0_4
+  • Service 0.5 ◐  pkg/n0_5
+  • Service 0.6 ✓  pkg/n0_6
+  • Service 0.7 ✓  pkg/n0_7
+  • Service 0.8  pkg/n0_8
+  • Service 0.9 ◐  pkg/n0_9
+[Domain 1]
+  • Service 1.0 ◐  pkg/n1_0
+  • Service 1.1 ✓  pkg/n1_1
+  • Service 1.2  pkg/n1_2
+  • Service 1.3 ✓  pkg/n1_3
+  • Service 1.4 ◐  pkg/n1_4
+  • Service 1.5 ○  pkg/n1_5
+  • Service 1.6 ○  pkg/n1_6
+  • Service 1.7 ○  pkg/n1_7
+  • Service 1.8 ✓  pkg/n1_8
+  • Service 1.9 ✓  pkg/n1_9
+[Domain 2]
+  • Service 2.0 ◐  pkg/n2_0
+  • Service 2.1  pkg/n2_1
+  • Service 2.2 ◐  pkg/n2_2
+  • Service 2.3 ✓  pkg/n2_3
+  • Service 2.4 ○  pkg/n2_4
+  • Service 2.5  pkg/n2_5
+  • Service 2.6 ○  pkg/n2_6
+  • Service 2.7 ✓  pkg/n2_7
+  • Service 2.8 ○  pkg/n2_8
+  • Service 2.9 ○  pkg/n2_9
+[Domain 3]
+  • Service 3.0 ○  pkg/n3_0
+  • Service 3.1 ○  pkg/n3_1
+  • Service 3.2 ◐  pkg/n3_2
+  • Service 3.3 ✓  pkg/n3_3
+  • Service 3.4 ✓  pkg/n3_4
+  • Service 3.5 ✓  pkg/n3_5
+  • Service 3.6  pkg/n3_6
+  • Service 3.7 ◐  pkg/n3_7
+  • Service 3.8 ○  pkg/n3_8
+  • Service 3.9 ✓  pkg/n3_9
+[Domain 4]
+  • Service 4.0 ◐  pkg/n4_0
+  • Service 4.1 ◐  pkg/n4_1
+  • Service 4.2  pkg/n4_2
+  • Service 4.3 ✓  pkg/n4_3
+  • Service 4.4 ◐  pkg/n4_4
+  • Service 4.5 ✓  pkg/n4_5
+  • Service 4.6  pkg/n4_6
+  • Service 4.7 ○  pkg/n4_7
+  • Service 4.8 ✓  pkg/n4_8
+  • Service 4.9 ○  pkg/n4_9
+[Domain 5]
+  • Service 5.0 ◐  pkg/n5_0
+  • Service 5.1 ✓  pkg/n5_1
+  • Service 5.2 ○  pkg/n5_2
+  • Service 5.3  pkg/n5_3
+  • Service 5.4  pkg/n5_4
+  • Service 5.5 ✓  pkg/n5_5
+  • Service 5.6 ✓  pkg/n5_6
+  • Service 5.7  pkg/n5_7
+  • Service 5.8 ✓  pkg/n5_8
+  • Service 5.9 ✓  pkg/n5_9
+[Domain 6]
+  • Service 6.0 ✓  pkg/n6_0
+  • Service 6.1 ○  pkg/n6_1
+  • Service 6.2 ✓  pkg/n6_2
+  • Service 6.3 ○  pkg/n6_3
+  • Service 6.4  pkg/n6_4
+  • Service 6.5 ✓  pkg/n6_5
+  • Service 6.6 ○  pkg/n6_6
+  • Service 6.7 ✓  pkg/n6_7
+  • Service 6.8 ◐  pkg/n6_8
+  • Service 6.9 ◐  pkg/n6_9
+[Domain 7]
+  • Service 7.0 ✓  pkg/n7_0
+  • Service 7.1 ✓  pkg/n7_1
+  • Service 7.2 ○  pkg/n7_2
+  • Service 7.3 ◐  pkg/n7_3
+  • Service 7.4 ◐  pkg/n7_4
+  • Service 7.5  pkg/n7_5
+  • Service 7.6  pkg/n7_6
+  • Service 7.7 ✓  pkg/n7_7
+  • Service 7.8 ✓  pkg/n7_8
+  • Service 7.9 ○  pkg/n7_9
+[Domain 8]
+  • Service 8.0 ○  pkg/n8_0
+  • Service 8.1 ○  pkg/n8_1
+  • Service 8.2  pkg/n8_2
+  • Service 8.3  pkg/n8_3
+  • Service 8.4 ✓  pkg/n8_4
+  • Service 8.5  pkg/n8_5
+  • Service 8.6 ◐  pkg/n8_6
+  • Service 8.7 ✓  pkg/n8_7
+  • Service 8.8 ◐  pkg/n8_8
+  • Service 8.9  pkg/n8_9
+[Domain 9]
+  • Service 9.0 ○  pkg/n9_0
+  • Service 9.1  pkg/n9_1
+  • Service 9.2 ○  pkg/n9_2
+  • Service 9.3 ○  pkg/n9_3
+  • Service 9.4 ◐  pkg/n9_4
+  • Service 9.5 ○  pkg/n9_5
+  • Service 9.6 ◐  pkg/n9_6
+  • Service 9.7 ✓  pkg/n9_7
+  • Service 9.8 ✓  pkg/n9_8
+  • Service 9.9  pkg/n9_9
+[Domain 10]
+  • Service 10.0  pkg/n10_0
+  • Service 10.1 ◐  pkg/n10_1
+  • Service 10.2 ○  pkg/n10_2
+  • Service 10.3 ✓  pkg/n10_3
+  • Service 10.4 ✓  pkg/n10_4
+  • Service 10.5 ◐  pkg/n10_5
+  • Service 10.6 ○  pkg/n10_6
+  • Service 10.7  pkg/n10_7
+  • Service 10.8 ✓  pkg/n10_8
+  • Service 10.9 ✓  pkg/n10_9
+[Domain 11]
+  • Service 11.0 ○  pkg/n11_0
+  • Service 11.1 ○  pkg/n11_1
+  • Service 11.2 ✓  pkg/n11_2
+  • Service 11.3 ○  pkg/n11_3
+  • Service 11.4 ◐  pkg/n11_4
+  • Service 11.5  pkg/n11_5
+  • Service 11.6 ○  pkg/n11_6
+  • Service 11.7 ○  pkg/n11_7
+  • Service 11.8  pkg/n11_8
+  • Service 11.9 ✓  pkg/n11_9
+[Domain 12]
+  • Service 12.0  pkg/n12_0
+  • Service 12.1 ○  pkg/n12_1
+  • Service 12.2  pkg/n12_2
+  • Service 12.3  pkg/n12_3
+  • Service 12.4  pkg/n12_4
+  • Service 12.5 ◐  pkg/n12_5
+  • Service 12.6  pkg/n12_6
+  • Service 12.7 ○  pkg/n12_7
+  • Service 12.8  pkg/n12_8
+  • Service 12.9  pkg/n12_9
+[Domain 13]
+  • Service 13.0 ○  pkg/n13_0
+  • Service 13.1  pkg/n13_1
+  • Service 13.2 ◐  pkg/n13_2
+  • Service 13.3 ✓  pkg/n13_3
+  • Service 13.4  pkg/n13_4
+  • Service 13.5  pkg/n13_5
+  • Service 13.6 ○  pkg/n13_6
+  • Service 13.7 ✓  pkg/n13_7
+  • Service 13.8 ✓  pkg/n13_8
+  • Service 13.9  pkg/n13_9
+[Domain 14]
+  • Service 14.0 ○  pkg/n14_0
+  • Service 14.1  pkg/n14_1
+  • Service 14.2 ✓  pkg/n14_2
+  • Service 14.3 ◐  pkg/n14_3
+  • Service 14.4 ◐  pkg/n14_4
+  • Service 14.5 ◐  pkg/n14_5
+  • Service 14.6  pkg/n14_6
+  • Service 14.7  pkg/n14_7
+  • Service 14.8 ✓  pkg/n14_8
+  • Service 14.9 ○  pkg/n14_9
+[Domain 15]
+  • Service 15.0 ✓  pkg/n15_0
+  • Service 15.1  pkg/n15_1
+  • Service 15.2 ◐  pkg/n15_2
+  • Service 15.3 ○  pkg/n15_3
+  • Service 15.4 ◐  pkg/n15_4
+  • Service 15.5  pkg/n15_5
+  • Service 15.6 ◐  pkg/n15_6
+  • Service 15.7 ◐  pkg/n15_7
+  • Service 15.8 ◐  pkg/n15_8
+  • Service 15.9 ◐  pkg/n15_9
+[Domain 16]
+  • Service 16.0 ✓  pkg/n16_0
+  • Service 16.1  pkg/n16_1
+  • Service 16.2  pkg/n16_2
+  • Service 16.3  pkg/n16_3
+  • Service 16.4 ○  pkg/n16_4
+  • Service 16.5 ✓  pkg/n16_5
+  • Service 16.6 ◐  pkg/n16_6
+  • Service 16.7  pkg/n16_7
+  • Service 16.8 ✓  pkg/n16_8
+  • Service 16.9 ✓  pkg/n16_9
+[Domain 17]
+  • Service 17.0 ○  pkg/n17_0
+  • Service 17.1  pkg/n17_1
+  • Service 17.2 ✓  pkg/n17_2
+  • Service 17.3  pkg/n17_3
+  • Service 17.4 ○  pkg/n17_4
+  • Service 17.5 ◐  pkg/n17_5
+  • Service 17.6  pkg/n17_6
+  • Service 17.7 ◐  pkg/n17_7
+  • Service 17.8 ✓  pkg/n17_8
+  • Service 17.9  pkg/n17_9
+[Domain 18]
+  • Service 18.0 ◐  pkg/n18_0
+  • Service 18.1 ○  pkg/n18_1
+  • Service 18.2 ○  pkg/n18_2
+  • Service 18.3  pkg/n18_3
+  • Service 18.4  pkg/n18_4
+  • Service 18.5 ○  pkg/n18_5
+  • Service 18.6  pkg/n18_6
+  • Service 18.7  pkg/n18_7
+  • Service 18.8  pkg/n18_8
+  • Service 18.9 ◐  pkg/n18_9
+[Domain 19]
+  • Service 19.0  pkg/n19_0
+  • Service 19.1 ◐  pkg/n19_1
+  • Service 19.2 ○  pkg/n19_2
+  • Service 19.3  pkg/n19_3
+  • Service 19.4 ◐  pkg/n19_4
+  • Service 19.5  pkg/n19_5
+  • Service 19.6 ✓  pkg/n19_6
+  • Service 19.7 ✓  pkg/n19_7
+  • Service 19.8  pkg/n19_8
+  • Service 19.9  pkg/n19_9
+
+Edges
+  Service 2.2 → Service 15.8
+  Service 2.5 → Service 18.2  call 65 ◐
+  Service 11.6 ⇢ Service 11.1  ◐
+  Service 18.9 → Service 18.2  call 50 ○
+  Service 19.6 → Service 15.1  call 81 ○
+  Service 16.0 → Service 16.5  call 62 ✓
+  Service 6.0 ⇢ Service 18.3  call 83 ○
+  Service 3.9 ⇢ Service 19.4  call 20 ✓
+  Service 8.3 ⇢ Service 3.8  ◐
+  Service 18.0 ⇢ Service 19.0  ○
+  Service 7.6 ⇢ Service 19.1
+  Service 16.2 ⇢ Service 7.0
+  Service 4.5 → Service 12.5  call 21 ○
+  Service 8.5 → Service 12.8  call 0 ◐
+  Service 15.8 → Service 3.8  call 60 ◐
+  Service 13.5 → Service 7.3  ◐
+  Service 6.2 → Service 5.8  call 39 ◐
+  Service 4.8 → Service 19.7  call 26 ✓
+  Service 12.3 → Service 9.2  ○
+  Service 11.8 ⇢ Service 8.1  ✓
+  Service 16.6 → Service 18.8  ○
+  Service 1.5 → Service 3.4  ✓
+  Service 10.1 ⇢ Service 15.1  ○
+  Service 3.7 ⇢ Service 0.7  call 70
+  Service 10.1 → Service 16.4  ◐
+  Service 9.4 → Service 19.6
+  Service 19.7 → Service 18.1  ○
+  Service 10.9 → Service 2.3  ○
+  Service 14.3 ⇢ Service 12.4  call 75
+  Service 10.4 → Service 15.9  ✓
+  Service 4.6 → Service 1.4  ○
+  Service 17.6 → Service 17.3  ✓
+  Service 1.7 → Service 5.6
+  Service 0.4 ⇢ Service 9.9
+  Service 15.5 → Service 9.3  call 86 ✓
+  Service 11.7 → Service 12.4  call 42 ○
+  Service 9.2 → Service 15.8  call 87 ◐
+  Service 9.2 → Service 11.0  call 8 ○
+  Service 16.5 → Service 15.6  ✓
+  Service 4.8 ⇢ Service 3.6
+  Service 10.5 → Service 2.3  call 16 ○
+  Service 16.7 → Service 7.9  call 14 ◐
+  Service 0.7 → Service 13.8  ○
+  Service 12.4 → Service 17.7  ○
+  Service 10.1 → Service 12.6  ○
+  Service 12.9 → Service 13.3  ◐
+  Service 16.8 ⇢ Service 14.0  call 41 ○
+  Service 19.1 → Service 0.9
+  Service 9.5 → Service 17.6  call 35 ◐
+  Service 16.9 → Service 0.3  ◐
+  Service 4.5 → Service 1.6  call 33 ✓
+  Service 19.8 → Service 11.1  call 53 ◐
+  Service 19.8 ⇢ Service 13.1  call 53 ○
+  Service 3.2 → Service 18.3  ✓
+  Service 11.2 → Service 3.0  ○
+  Service 6.1 ⇢ Service 11.1  call 65 ○
+  Service 17.6 → Service 16.1  ○
+  Service 11.0 → Service 14.6  call 1
+  Service 15.9 → Service 4.9  ◐
+  Service 19.5 ⇢ Service 13.6  call 27
+  Service 11.4 → Service 4.0  call 53 ○
+  Service 5.7 → Service 13.7  ○
+  Service 5.9 → Service 11.3  call 23 ◐
+  Service 10.9 → Service 18.1  ○
+  Service 4.6 → Service 4.5  call 72 ✓
+  Service 16.1 → Service 16.0  ◐
+  Service 7.8 → Service 15.8  call 9 ◐
+  Service 0.4 → Service 14.9  call 46 ◐
+  Service 12.2 → Service 17.7  call 58
+  Service 17.8 ⇢ Service 17.1  call 88 ◐
+  Service 9.1 → Service 17.7
+  Service 0.3 → Service 12.6  ✓
+  Service 17.5 ⇢ Service 2.6
+  Service 17.2 ⇢ Service 13.0  call 36 ◐
+  Service 9.8 → Service 7.6  call 71 ○
+  Service 11.7 → Service 2.8  ◐
+  Service 9.3 ⇢ Service 6.0  ✓
+  Service 3.6 → Service 19.0
+  Service 4.4 ⇢ Service 12.4  call 69
+  Service 19.6 → Service 7.5  call 47 ◐
+  Service 16.3 ⇢ Service 7.4  ✓
+  Service 0.7 ⇢ Service 12.0  ◐
+  Service 5.5 → Service 7.1  ✓
+  Service 19.7 → Service 2.1  ○
+  Service 0.9 → Service 3.8  ◐
+  Service 1.2 → Service 18.3  call 8 ○
+  Service 7.5 → Service 4.3
+  Service 9.0 → Service 0.9  ◐
+  Service 11.8 → Service 12.2  ✓
+  Service 15.3 → Service 17.4  call 40 ◐
+  Service 7.1 → Service 8.0  call 38
+  Service 16.9 → Service 8.9  call 40
+  Service 1.8 → Service 9.8  ○
+  Service 18.7 → Service 1.7  call 88
+  Service 2.0 → Service 4.0  call 7
+  Service 12.1 → Service 11.8  call 14 ✓
+  Service 10.2 ⇢ Service 18.9
+  Service 13.1 ⇢ Service 14.8  ◐
+  Service 13.3 → Service 9.9  ✓
+  Service 9.4 → Service 5.9  call 24 ○
+  Service 5.0 → Service 19.7  call 83 ✓
+  Service 8.5 → Service 15.2  call 72 ○
+  Service 0.1 → Service 18.0
+  Service 14.6 → Service 2.0  ✓
+  Service 15.4 → Service 11.7  ◐
+  Service 4.8 → Service 14.0  ◐
+  Service 1.1 → Service 0.3  call 7 ✓
+  Service 5.9 → Service 15.8  call 12
+  Service 17.2 ⇢ Service 8.4  call 50
+  Service 0.5 ⇢ Service 5.5
+  Service 5.2 ⇢ Service 7.2  call 53
+  Service 11.0 → Service 12.3  call 74 ○
+  Service 16.1 → Service 2.6  ✓
+  Service 8.4 → Service 15.9  ○
+  Service 10.8 → Service 10.6  ✓
+  Service 19.7 ⇢ Service 8.8  ○
+  Service 0.3 → Service 18.1  ✓
+  Service 10.7 → Service 9.3  call 10 ◐
+  Service 9.1 → Service 13.0
+  Service 18.0 → Service 5.0  ◐
+  Service 4.3 → Service 11.5  ✓
+  Service 4.3 → Service 7.7  ✓
+  Service 12.5 → Service 9.8  call 65 ◐
+  Service 2.2 ⇢ Service 2.1  ○
+  Service 6.0 → Service 14.8  ✓
+  Service 0.6 → Service 3.5  ○
+  Service 6.3 → Service 3.0  ◐
+  Service 4.2 → Service 3.3  ◐
+  Service 3.3 ⇢ Service 16.3  call 54 ○
+  Service 2.7 → Service 19.4  call 42 ✓
+  Service 0.2 ⇢ Service 16.4  call 39
+  Service 4.2 → Service 7.6  call 26 ✓
+  Service 16.3 → Service 18.6  ○
+  Service 15.0 → Service 13.8  ◐
+  Service 5.5 ⇢ Service 14.1  call 32 ✓
+  Service 1.3 → Service 19.7  call 66
+  Service 8.5 → Service 2.4  ✓
+  Service 12.2 ⇢ Service 7.9  ✓
+  Service 17.1 ⇢ Service 0.4  ✓
+  Service 1.5 → Service 6.7
+  Service 3.8 → Service 1.8  call 61 ✓
+  Service 4.5 → Service 6.3  ◐
+  Service 17.3 → Service 13.4  call 89
+  Service 19.1 ⇢ Service 16.9
+  Service 8.3 → Service 4.6  call 85 ○
+  Service 8.4 ⇢ Service 5.3  call 15
+  Service 6.8 → Service 19.3  call 67 ✓
+  Service 4.6 ⇢ Service 18.9  ○
+  Service 0.6 ⇢ Service 14.8  ✓
+  Service 17.9 → Service 13.3  call 65 ✓
+  Service 18.2 → Service 15.1  ✓
+  Service 16.4 → Service 1.6  call 55 ◐
+  Service 10.1 → Service 19.1
+  Service 17.7 → Service 19.0  call 27 ◐
+  Service 5.6 → Service 7.8  call 21 ✓
+  Service 3.1 → Service 19.9  ✓
+  Service 11.3 ⇢ Service 16.7  call 19
+  Service 7.5 → Service 11.5  ✓
+  Service 5.2 → Service 1.1  call 24 ○
+  Service 19.9 ⇢ Service 11.8
+  Service 15.6 → Service 11.6  call 75
+  Service 19.4 → Service 5.9  call 10
+  Service 16.8 → Service 19.1  call 64 ◐
+  Service 7.2 → Service 11.3  call 66
+  Service 1.7 → Service 13.5  ◐
+  Service 17.7 ⇢ Service 6.0  ○
+  Service 12.5 → Service 6.4  ◐
+  Service 2.6 → Service 19.2  call 74
+  Service 2.4 ⇢ Service 11.4  call 17 ✓
+  Service 7.5 → Service 14.6
+  Service 13.1 → Service 2.6  ○
+  Service 3.4 ⇢ Service 18.0  ◐
+  Service 12.6 → Service 18.2  call 36 ✓
+  Service 9.3 → Service 6.4  call 29
+  Service 16.6 → Service 3.1  ◐
+  Service 18.6 ⇢ Service 2.1  ✓
+  Service 4.4 → Service 1.7  ○
+  Service 12.8 → Service 4.7
+  Service 0.3 ⇢ Service 7.5  call 55
+  Service 7.8 → Service 0.6  ✓
+  Service 2.8 → Service 3.7  call 41 ○
+  Service 19.9 ⇢ Service 0.8  call 60 ✓
+  Service 4.7 ⇢ Service 5.5
+  Service 5.4 → Service 8.0  call 7
+  Service 12.8 → Service 14.6
+  Service 2.0 → Service 13.0  call 42 ○
+  Service 16.5 → Service 7.7
+  Service 14.8 → Service 7.6  call 58 ✓
+  Service 5.6 → Service 19.7
+  Service 10.3 ⇢ Service 19.4
+  Service 19.5 → Service 11.4  call 49 ◐
+  Service 9.0 ⇢ Service 5.9  ✓
+  Service 6.8 → Service 15.5  call 9 ○
+  Service 19.7 → Service 12.0  call 74 ✓
+  Service 6.7 → Service 4.3  call 10
+  Service 15.3 → Service 11.1  call 13 ◐
+  Service 7.2 ⇢ Service 10.6  ○
+  Service 18.4 ⇢ Service 17.1
+  Service 8.6 ⇢ Service 17.8
+  Service 0.1 → Service 8.1  call 71 ○
+  Service 0.9 → Service 12.4  call 82 ◐
+  Service 13.8 → Service 19.4  call 34 ◐
+  Service 19.5 → Service 18.9  ◐
+  Service 17.8 → Service 7.8  call 49 ◐
+  Service 19.6 → Service 1.7  call 22 ✓
+  Service 5.5 → Service 14.4  ○
+  Service 14.6 ⇢ Service 2.9  ✓
+  Service 2.6 → Service 2.4  ○
+  Service 15.5 → Service 11.0  ✓
+  Service 6.5 ⇢ Service 17.9  ○
+  Service 7.3 ⇢ Service 12.3  call 20
+  Service 19.3 → Service 16.0  ◐
+  Service 2.6 → Service 14.4
+  Service 16.1 → Service 12.9  ○
+  Service 6.5 → Service 17.9  ○
+  Service 4.3 ⇢ Service 3.2  call 27
+  Service 0.4 → Service 13.9  ✓
+  Service 2.6 → Service 5.8  ○
+  Service 0.4 → Service 8.1  ✓
+  Service 19.7 → Service 4.4
+  Service 8.0 ⇢ Service 17.5
+  Service 13.5 → Service 4.1  call 82 ✓
+  Service 12.9 → Service 8.0  call 4 ○
+  Service 16.8 → Service 19.4  call 33 ◐
+  Service 17.6 → Service 1.0  call 68 ○
+  Service 6.5 → Service 0.8  ✓
+  Service 2.0 ⇢ Service 4.8
+  Service 0.5 → Service 10.7  call 58 ○
+  Service 13.1 → Service 13.9  call 46 ◐
+  Service 7.5 → Service 13.4  ○
+  Service 5.6 → Service 3.7  ○
+  Service 5.7 → Service 13.0  ○
+  Service 12.5 → Service 0.9  ◐
+  Service 11.6 ⇢ Service 11.2  call 65 ○
+  Service 8.3 → Service 0.5
+  Service 0.3 → Service 2.0  call 43 ◐
+  Service 10.9 → Service 10.3  ◐
+  Service 5.7 → Service 18.8  call 9 ✓
+  Service 0.2 → Service 16.3  call 23 ◐
+  Service 16.2 ⇢ Service 5.5  call 29 ○
+  Service 13.2 → Service 16.3  ✓
+  Service 6.0 → Service 19.4  ○
+  Service 16.1 ⇢ Service 9.1  call 51 ○
+  Service 6.8 → Service 18.9  ○
+  Service 15.4 → Service 15.8  call 15
+  Service 10.7 → Service 16.5  ◐
+  Service 4.7 ⇢ Service 17.2  call 1
+  Service 3.0 → Service 18.8  call 81 ○
+  Service 14.9 → Service 11.7  ○
+  Service 18.3 → Service 18.9  call 21 ◐
+  Service 15.3 → Service 8.9  ○
+  Service 10.6 → Service 0.9  call 74 ✓
+  Service 5.3 → Service 2.0  ◐
+  Service 17.0 → Service 12.2  call 77 ◐
+  Service 19.2 → Service 3.3  call 82 ◐
+  Service 8.6 → Service 6.9  call 76
+  Service 3.0 ⇢ Service 0.7  call 26 ◐
+  Service 8.7 → Service 0.5
+  Service 11.9 → Service 3.4  ✓
+  Service 2.7 ⇢ Service 11.8
+  Service 6.4 ⇢ Service 2.2  call 56 ◐
+  Service 3.0 → Service 17.6  call 15 ○
+  Service 10.5 → Service 12.0  ◐
+  Service 16.9 ⇢ Service 10.4  ✓
+  Service 0.8 → Service 17.0
+  Service 14.4 ⇢ Service 8.0  call 33
+  Service 8.8 → Service 11.9  call 79 ◐
+  Service 3.9 ⇢ Service 14.2  ✓
+  Service 1.9 ⇢ Service 16.4  ◐
+  Service 10.7 → Service 8.3  ✓
+  Service 0.9 → Service 12.9  ○
+  Service 13.3 → Service 1.8  ◐
+  Service 8.0 → Service 7.5  call 10 ○
+  Service 13.5 → Service 3.9
+  Service 7.0 → Service 10.1  ◐
+  Service 1.0 → Service 6.2  ✓
+  Service 14.9 → Service 19.4  call 50 ◐
+  Service 18.7 → Service 4.4  call 62
+  Service 8.5 → Service 2.1  call 30
+  Service 7.8 → Service 12.6  ○
+  Service 2.3 → Service 10.1  call 2
+  Service 1.6 → Service 14.0  call 59
+  Service 11.7 → Service 7.4  call 20 ✓
+  Service 7.4 ⇢ Service 3.3
+  Service 3.1 ⇢ Service 5.6  ◐
+  Service 9.7 → Service 16.7  ✓
+  Service 8.2 → Service 3.9  call 10 ○
+  Service 5.4 → Service 10.5  call 11 ✓
+  Service 12.1 → Service 2.8  call 56 ○
+  Service 2.1 → Service 12.8
+  Service 14.2 → Service 3.2  ✓
+  Service 15.8 → Service 15.3  ◐
+  Service 6.0 → Service 19.2  ◐
+  Service 3.1 → Service 18.3  call 79 ✓
+  Service 14.3 → Service 2.6  call 76
+  Service 6.4 ⇢ Service 16.8  call 80
+  Service 9.7 ⇢ Service 7.5
+  Service 4.8 ⇢ Service 9.2  call 27
+  Service 9.8 → Service 8.7  call 28 ○
+  Service 19.7 → Service 3.0  ✓
+  Service 8.8 → Service 10.7  ○
+  Service 12.0 → Service 15.8  ✓
+  Service 8.9 ⇢ Service 9.2  ○
+  Service 7.1 → Service 14.5  ✓
+  Service 14.3 → Service 8.1  call 10 ◐
+  Service 19.9 → Service 6.2
+  Service 3.2 → Service 8.6  ◐
+  Service 15.9 → Service 3.9  ✓
+  Service 18.3 → Service 11.3  ✓
+  Service 8.9 → Service 13.4  call 51 ◐
+  Service 5.0 ⇢ Service 9.7  ○
+  Service 10.3 → Service 8.5  call 17 ○
+  Service 18.3 → Service 19.9  call 59 ○
+  Service 9.4 → Service 11.0  call 33 ◐
+  Service 6.9 ⇢ Service 10.3  call 80 ○
+  Service 1.5 → Service 19.8  call 18 ✓
+  Service 19.8 ⇢ Service 6.4  call 1
+
+✓ done   ◐ in progress   ○ planned

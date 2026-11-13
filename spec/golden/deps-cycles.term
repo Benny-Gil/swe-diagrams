@@ -1,0 +1,32 @@
+dependencies
+Crate graph of the harness
+
+outline: the drawing needs 126 columns, and the limit is 100.
+
+• main.rs  binary
+[src]
+  • render.rs
+  • parse.rs
+  • model.rs
+  • svg.rs ~
+  • svg_shapes.rs +
+  • layout_graph.rs
+  • text.rs
+• serde ○
+
+Edges
+  main.rs → render.rs
+  render.rs → parse.rs
+  parse.rs → model.rs
+  render.rs → layout_graph.rs
+  layout_graph.rs → model.rs
+  render.rs → svg.rs
+  svg.rs → layout_graph.rs
+  svg.rs → svg_shapes.rs
+  svg_shapes.rs → svg.rs
+  svg.rs → text.rs
+  layout_graph.rs → text.rs
+  model.rs ⇢ serde  derive
+  model.rs ⇢ parse.rs  types
+
+○ planned   + added   ~ changed
