@@ -139,6 +139,8 @@ const GLYPHS: [&str; 5] = [
 const CYCLE_STYLE: (&str, &str) =
     (".e.cy{stroke:#cc3340}.a.cy{fill:#cc3340}", ".e.cy{stroke:#f0626c}.a.cy{fill:#f0626c}");
 
+const LABEL_END_STYLE: (&str, &str) = (".le{text-anchor:end}", "");
+
 const PAD: i64 = 24; // page padding
 const INNER: i64 = 32; // canvas padding
 const GAP: i64 = 4; // clear space between a line end and its target
@@ -444,6 +446,40 @@ pub(crate) fn card_text(label: &str, sub: &str, status: usize, cx: i64, cy: i64)
     )
 }
 
+/// Moves the end of the route `p` at item `i` from the box side to the
+/// outline of a slanted shape. The end keeps room for the arrowhead.
+fn to_outline(d: &Diagram, l: &GraphLayout, i: usize, p: &mut [i64]) {
+    if !svg_shapes::slanted(d, i) {
+        return;
+    }
+    let b = [l.x[i], l.y[i], l.bw[i], l.bh[i]];
+    let on_box = |x: i64, y: i64| x >= b[0] && x <= b[0] + b[2] && y >= b[1] && y <= b[1] + b[3];
+    let z = p.len();
+    // (end, the point before it)
+    let (k, j) = if on_box(p[0], p[1]) {
+        (0, 2)
+    } else if on_box(p[z - 2], p[z - 1]) {
+        (z - 2, z - 4)
+    } else {
+        return;
+    };
+    let m = usize::from(d.down); // index of the main coordinate
+    let run = (p[k + m] - p[j + m]).abs();
+    let inset = svg_shapes::outline_inset(d, i, b, p[k], p[k + 1]).min(run - 12).max(0);
+    p[k + m] -= inset * (p[k + m] - p[j + m]).signum();
+}
+
+/// True when the route `p` starts in the left half of its first node.
+fn left_of_centre(l: &GraphLayout, p: &[i64], from: usize, to: usize) -> bool {
+    let i =
+        if p[1] >= l.y[from] && p[1] <= l.y[from] + l.bh[from] && p[0] >= l.x[from] && p[0] <= l.x[from] + l.bw[from] {
+            from
+        } else {
+            to
+        };
+    p[0] < l.x[i] + idiv(l.bw[i], 2)
+}
+
 pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> String {
     let tiles = d.dtype.has_tiles();
     let kicker = match d.dtype {
@@ -494,7 +530,12 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
 
     for ge in &l.edges {
         let e = &d.edges[ge.edge];
-        let p: Vec<i64> = ge.pts.as_chunks::<2>().0.iter().flat_map(|c| [c[0] + ox, c[1] + oy]).collect();
+        let mut p: Vec<i64> = ge.pts.clone();
+        if svg_shapes::draws(d.dtype) {
+            to_outline(d, l, e.from, &mut p);
+            to_outline(d, l, e.to, &mut p);
+        }
+        let p: Vec<i64> = p.as_chunks::<2>().0.iter().flat_map(|c| [c[0] + ox, c[1] + oy]).collect();
         let z = p.len();
         if e.status > 0 {
             f.used[e.status] = true;
@@ -649,7 +690,12 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
         let lm = if e.main { " lm" } else { "" };
         // Across the layers the label sits above the line. Along a vertical
         // line it sits at the right of the line.
-        let (ls, dx, dy) = if d.down { (" ls", 8, 4) } else { ("", 0, -7) };
+        let (mut ls, mut dx, dy) = if d.down { (" ls", 8, 4) } else { ("", 0, -7) };
+        if d.down && svg_shapes::draws(d.dtype) && left_of_centre(l, &ge.pts, e.from, e.to) {
+            // Two edges that leave one node get their labels on opposite sides.
+            (ls, dx) = (" le", -8);
+            f.style(LABEL_END_STYLE);
+        }
         let _ = write!(
             f.body,
             "<text class=\"el mo{ls}{lm}\" x=\"{}\" y=\"{}\">{}</text>",
@@ -657,7 +703,7 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
             ge.label_y + oy + dy,
             esc(&e.label)
         );
-        if d.down {
+        if d.down && dx > 0 {
             inner_w = inner_w.max(ge.label_x + 8 + ge.label_w);
         }
     }

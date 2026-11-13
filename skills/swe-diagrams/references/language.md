@@ -46,6 +46,7 @@ Put spaces around an arrow. Write `a -> b`, not `a->b`.
 | `seq` | Messages between participants, in time order | none |
 | `plan` | Tasks, phases, and the order of the work | down |
 | `deps` | Modules and packages, and what each one imports | down |
+| `flow` | The steps and the decisions of a process | down |
 
 In `seq`, each node is a participant and each edge is a message. The order of
 the lines is the order in time. `a -> a` is a message to self. `seq` has no
@@ -81,6 +82,38 @@ dependency. The arrows `=>` and `<->` are errors in `deps`.
 The harness finds the import cycles. Each edge in a cycle is red. The
 summary line adds `cycles=<count>`, the count of the cycles. A cycle is a
 set of two or more nodes that can each reach the others.
+
+### flow
+
+```
+flow "Checkout"
+start "Cart" :start
+pay "Pay" :io
+ok "Paid?" :decision
+ship "Create shipment"
+fail "Show error"
+done "Done" :end
+start -> pay -> ok
+ok -> ship "yes"
+ok -> fail "no"
+fail -> pay
+ship -> done
+```
+
+Each node is a step, and `a -> b` means that `b` comes after `a`. Use `=>`
+for the main path and `-->` for a path that is not usual. The arrow `<->`
+is an error in `flow`.
+
+| Kind | Shape | Use |
+|---|---|---|
+| `:step` | A box. This is the default. | An action |
+| `:start`, `:end` | A pill | The start or the end of the process |
+| `:decision` | A diamond, with the label in it | A question with two or more answers |
+| `:io` | A parallelogram | An input or an output |
+| `:sub` | A box with a double line at each side | A process that has its own diagram |
+
+Put the answer of a decision on each edge that leaves it, for example
+`ok -> ship "yes"`. The diamond is as wide as its label needs.
 
 ## Edges
 

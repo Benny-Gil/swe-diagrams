@@ -1,0 +1,12 @@
+flow "Checkout"   # the example of the design
+start "Cart" :start
+pay "Pay" :io
+ok "Paid?" :decision
+ship "Create shipment"
+fail "Show error"
+done "Done" :end
+start -> pay -> ok
+ok -> ship "yes"
+ok -> fail "no"
+fail -> pay
+ship -> done

@@ -39,6 +39,7 @@ Otherwise use a temporary directory.
 | In what order do the parts talk for one request? | `seq` |
 | What are the steps of the work, and where is the work now? | `plan` |
 | What imports what? Is there an import cycle? | `deps` |
+| What are the steps and the decisions of a process? | `flow` |
 
 ## The language
 
