@@ -1,13 +1,30 @@
-//! Command line entry: swe-diagrams render <file|-> [-o out.svg] [--icons dir] [--offline]
+//! Command line entry: swe-diagrams render <file|-> [-o out] [--format F]
+//! [--theme T] [--scale N] [--icons dir] [--offline]
 
 use std::ffi::OsString;
 use std::io::{self, Read, Write};
 use std::process::ExitCode;
 
-use swe_diagrams::{render, IconOptions};
+use swe_diagrams::{apply_theme, html, png, render, Format, IconOptions, Rendered, Theme};
 
-const USAGE: &str = "usage: swe-diagrams render <file.sd|-> [-o out.svg] [--icons dir] [--offline]\n";
+const USAGE: &str = "usage: swe-diagrams render <file.sd|-> [-o out] [--format svg|html|png|txt|gif|mp4] [--theme auto|light|dark] [--scale N] [--icons dir] [--offline]\n";
 const VERSION: &str = concat!("swe-diagrams ", env!("CARGO_PKG_VERSION"), "\n");
+
+/// The bytes of the output in format `format`.
+fn produce(r: &Rendered, format: Format, theme: Option<Theme>, scale: f32) -> Result<Vec<u8>, String> {
+    match format {
+        Format::Svg => Ok(apply_theme(&r.svg, theme.unwrap_or(Theme::Auto)).into_bytes()),
+        Format::Html => Ok(html(r, theme.unwrap_or(Theme::Auto)).into_bytes()),
+        // A PNG has one palette. Light is the default.
+        Format::Png => png(&apply_theme(&r.svg, theme.unwrap_or(Theme::Light)), scale),
+        f => Err(format!("the {} format is not ready", f.name())),
+    }
+}
+
+/// True for the formats that this build can write.
+fn ready(format: Format) -> bool {
+    matches!(format, Format::Svg | Format::Png | Format::Html)
+}
 
 // A closed pipe must not cause a panic, so the two functions report a
 // failure to the caller.
@@ -44,9 +61,42 @@ fn run(argv: &[OsString]) -> u8 {
     let mut opts =
         IconOptions { dir: None, offline: std::env::var_os("SWE_DIAGRAMS_OFFLINE").is_some_and(|v| v == "1") };
     let mut output: Option<&OsString> = None;
+    let mut format: Option<Format> = None;
+    let mut theme: Option<Theme> = None;
+    let mut scale: f32 = 2.0;
     let mut k = 2;
     while k < argv.len() {
-        if argv[k] == "-o" && k + 1 < argv.len() {
+        let value = argv.get(k + 1).and_then(|v| v.to_str());
+        if argv[k] == "--format" && k + 1 < argv.len() {
+            let Some(f) = value.and_then(Format::from_name) else {
+                to_stderr(&format!(
+                    "error: unknown format {}; use svg, html, png, txt, gif, or mp4\n",
+                    argv[k + 1].to_string_lossy()
+                ));
+                return 1;
+            };
+            format = Some(f);
+            k += 2;
+        } else if argv[k] == "--theme" && k + 1 < argv.len() {
+            let Some(t) = value.and_then(Theme::from_name) else {
+                to_stderr(&format!(
+                    "error: unknown theme {}; use auto, light, or dark\n",
+                    argv[k + 1].to_string_lossy()
+                ));
+                return 1;
+            };
+            theme = Some(t);
+            k += 2;
+        } else if argv[k] == "--scale" && k + 1 < argv.len() {
+            match value.and_then(|v| v.parse::<f32>().ok()) {
+                Some(n) if (0.1..=16.0).contains(&n) => scale = n,
+                _ => {
+                    to_stderr("error: the scale must be a number from 0.1 to 16\n");
+                    return 1;
+                }
+            }
+            k += 2;
+        } else if argv[k] == "-o" && k + 1 < argv.len() {
             // An empty output name means standard output.
             output = Some(&argv[k + 1]).filter(|o| !o.is_empty());
             k += 2;
@@ -61,6 +111,15 @@ fn run(argv: &[OsString]) -> u8 {
             return 1;
         }
     }
+    let format = format.unwrap_or_else(|| output.map_or(Format::Svg, |o| Format::from_path(std::path::Path::new(o))));
+    if !ready(format) {
+        to_stderr(&format!("error: the {} format is not ready\n", format.name()));
+        return 1;
+    }
+    if format.binary() && output.is_none() {
+        to_stderr(&format!("error: the {} format needs -o <file>\n", format.name()));
+        return 1;
+    }
     let Ok(bytes) = read_input(input) else {
         to_stderr(&format!("error: cannot read {shown}\n"));
         return 1;
@@ -68,28 +127,16 @@ fn run(argv: &[OsString]) -> u8 {
     // A byte sequence that is not UTF-8 becomes U+FFFD.
     let src = String::from_utf8_lossy(&bytes);
     match render(&src, &opts) {
-        Ok(r) => match output {
-            None => {
-                let ok = to_stdout(&r.svg);
-                to_stderr(&format!("{}\n", r.summary));
-                if ok {
-                    0
-                } else {
-                    1
-                }
-            }
-            Some(output) => {
-                if std::fs::write(output, &r.svg).is_err() {
-                    to_stderr(&format!("error: cannot write {}\n", output.to_string_lossy()));
+        Ok(r) => {
+            let data = match produce(&r, format, theme, scale) {
+                Ok(data) => data,
+                Err(msg) => {
+                    to_stderr(&format!("error: {msg}\n"));
                     return 1;
                 }
-                if to_stdout(&format!("{} {}\n", r.summary, output.to_string_lossy())) {
-                    0
-                } else {
-                    1
-                }
-            }
-        },
+            };
+            write_output(&r, output, &data)
+        }
         Err(err) => {
             let mut text = String::new();
             for m in &err.errors {
@@ -97,6 +144,35 @@ fn run(argv: &[OsString]) -> u8 {
             }
             to_stderr(&text);
             2
+        }
+    }
+}
+
+/// Writes the output to the file or to standard output, and the summary.
+fn write_output(r: &Rendered, output: Option<&OsString>, data: &[u8]) -> u8 {
+    match output {
+        None => {
+            let ok = {
+                let mut out = io::stdout().lock();
+                out.write_all(data).and_then(|()| out.flush()).is_ok()
+            };
+            to_stderr(&format!("{}\n", r.summary));
+            if ok {
+                0
+            } else {
+                1
+            }
+        }
+        Some(output) => {
+            if std::fs::write(output, data).is_err() {
+                to_stderr(&format!("error: cannot write {}\n", output.to_string_lossy()));
+                return 1;
+            }
+            if to_stdout(&format!("{} {}\n", r.summary, output.to_string_lossy())) {
+                0
+            } else {
+                1
+            }
         }
     }
 }

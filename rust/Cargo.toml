@@ -23,3 +23,10 @@ lto = true
 codegen-units = 1
 panic = "abort"
 strip = true
+
+[dependencies]
+resvg = { version = "0.50.0", default-features = false, features = ["text", "raster-images"] }
+
+# The rasterizer is slow without optimization, and the tests draw each fixture.
+[profile.dev.package."*"]
+opt-level = 3

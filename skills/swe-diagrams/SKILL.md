@@ -27,7 +27,20 @@ layout is deterministic, and the summary line reports what the harness drew.
    you did not intend is a typing error. A `noicon=` list names logos that
    no source has; use another name or remove the `@name`. On an error line
    (`file:line: message`), correct that line and render again.
-5. Give the user the path of the SVG file, and one sentence on what it shows.
+5. Give the user the path of the output file, and one sentence on what it
+   shows.
+
+## Choose the format
+
+The extension of `-o` gives the format.
+
+- `.svg`: for a README, a pull request, or a doc. It has a light and a
+  dark theme. This is the default.
+- `.html`: for a big diagram that the user explores, or for a Claude
+  artifact. The page pans, zooms, and highlights a node and its
+  neighbours. It loads nothing from the network.
+- `.png`: for a chat, a slide, or an issue that does not show SVG. Add
+  `--theme dark` for a dark picture, and `--scale N` for more pixels.
 
 Keep the files in `docs/diagrams/` when the user wants to keep them.
 Otherwise use a temporary directory.

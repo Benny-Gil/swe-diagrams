@@ -253,7 +253,7 @@ pub fn self_loop(d: &Diagram, i: usize, b: [i64; 4], line: &str, head: &str, lm:
         let cy = y + idiv(h, 2);
         let _ = write!(
             out,
-            "<path class=\"{line}\" d=\"M{r} {}C{} {} {} {} {} {}\"/><path class=\"{head}\" d=\"M{} {}l7 -3v6z\"/>",
+            "<path class=\"{line} rt\" d=\"M{r} {}C{} {} {} {} {} {}\"/><path class=\"{head}\" d=\"M{} {}l7 -3v6z\"/>",
             cy - 9,
             r + LOOP_W + 4,
             cy - 18,
@@ -278,7 +278,7 @@ pub fn self_loop(d: &Diagram, i: usize, b: [i64; 4], line: &str, head: &str, lm:
         let cx = x + idiv(w, 2);
         let _ = write!(
             out,
-            "<path class=\"{line}\" d=\"M{} {y}C{} {} {} {} {} {}\"/><path class=\"{head}\" d=\"M{} {}l-3 -7h6z\"/>",
+            "<path class=\"{line} rt\" d=\"M{} {y}C{} {} {} {} {} {}\"/><path class=\"{head}\" d=\"M{} {}l-3 -7h6z\"/>",
             cx - 9,
             cx - 18,
             y - LOOP - 4,

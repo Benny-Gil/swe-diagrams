@@ -5,7 +5,7 @@ use std::fmt::Write;
 
 use crate::layout_timeline::{TimelineLayout, AXIS_Y, BAND_H, BAND_Y};
 use crate::model::Diagram;
-use crate::svg::{esc, quiet, st, Frame};
+use crate::svg::{esc, open_part, quiet, st, Frame};
 
 /// The index of `:milestone` in `TIMELINE_KINDS`.
 const MILESTONE: usize = 1;
@@ -31,6 +31,7 @@ pub fn render_timeline(d: &Diagram, l: &TimelineLayout) -> String {
         let x = ox + b.x;
         let y = oy + BAND_Y;
         let gv = if it.vendor { " gv" } else { "" };
+        open_part(&mut f.body, "group", &it.id, it.status);
         let _ = write!(
             f.body,
             "<rect class=\"g{gv}{}\" x=\"{x}\" y=\"{y}\" width=\"{}\" height=\"{BAND_H}\" rx=\"8\"/>",
@@ -42,6 +43,7 @@ pub fn render_timeline(d: &Diagram, l: &TimelineLayout) -> String {
         if it.status > 0 {
             f.badge(it.status, x + b.w - 2, y + 2);
         }
+        f.body.push_str("</g>");
     }
 
     if !l.order.is_empty() {
@@ -64,9 +66,10 @@ pub fn render_timeline(d: &Diagram, l: &TimelineLayout) -> String {
         }
         let x = ox + l.x[i];
         let ty = if l.above[i] { ay + 25 } else { ay - 18 };
+        open_part(&mut f.body, "node", &d.items[i].id, 2);
         let _ = write!(
             f.body,
-            "<path class=\"e em\" d=\"M{x} {}V{}\"/><text class=\"el mo lm\" x=\"{x}\" y=\"{ty}\">now</text>",
+            "<path class=\"e em\" d=\"M{x} {}V{}\"/><text class=\"el mo lm\" x=\"{x}\" y=\"{ty}\">now</text></g>",
             ay - 14,
             ay + 14
         );
@@ -75,6 +78,7 @@ pub fn render_timeline(d: &Diagram, l: &TimelineLayout) -> String {
     for &i in &l.order {
         let it = &d.items[i];
         let x = ox + l.x[i];
+        open_part(&mut f.body, "node", &it.id, it.status);
         if it.kind == MILESTONE {
             if it.status > 0 {
                 f.used[it.status] = true;
@@ -103,6 +107,7 @@ pub fn render_timeline(d: &Diagram, l: &TimelineLayout) -> String {
         if !it.sub.is_empty() {
             let _ = write!(f.body, "<text class=\"ro mo\" x=\"{x}\" y=\"{sub_y}\">{}</text>", esc(&it.sub));
         }
+        f.body.push_str("</g>");
     }
     f.finish(l.w, l.h)
 }
