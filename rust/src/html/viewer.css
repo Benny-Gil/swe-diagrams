@@ -23,4 +23,5 @@ body{background:var(--bg);color:var(--fg);font:14px/1.4 ui-sans-serif,system-ui,
 .sd-crumbs button:focus-visible,[data-z]:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .sd-crumbs>span[aria-hidden]{color:var(--mute)}
 [data-z]{cursor:zoom-in}
+.sd-levels .sd-view{top:calc(max(12px,env(safe-area-inset-top)) + 44px)}
 @media (prefers-reduced-motion:reduce){[data-k]{transition:none}}

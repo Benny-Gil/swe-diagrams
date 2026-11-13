@@ -205,6 +205,7 @@
     sync();
   });
   nav.hidden = false;
+  document.body.classList.add("sd-levels");
   if (!location.hash && data.start) open(data.start);
   put(wanted());
   trail.push(cur);
