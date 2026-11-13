@@ -2,8 +2,8 @@
 
 use std::fmt;
 
-pub const TYPES: [&str; 11] =
-    ["arch", "seq", "plan", "deps", "flow", "state", "dataflow", "change", "erd", "class", "timeline"];
+pub const TYPES: [&str; 12] =
+    ["arch", "seq", "plan", "deps", "flow", "state", "dataflow", "change", "erd", "class", "timeline", "journey"];
 pub const STATUS_WORDS: [&str; 7] = ["", "done", "wip", "plan", "add", "mod", "del"];
 pub const STATUS_NAMES: [&str; 7] = ["", "done", "in progress", "planned", "added", "changed", "removed"];
 /// The kinds of `arch`, `change`, `seq`, and `plan`.
@@ -15,6 +15,7 @@ pub const DATAFLOW_KINDS: [&str; 5] = ["transform", "source", "sink", "store", "
 pub const ERD_KINDS: [&str; 1] = ["entity"];
 pub const CLASS_KINDS: [&str; 4] = ["class", "interface", "abstract", "enum"];
 pub const TIMELINE_KINDS: [&str; 2] = ["event", "milestone"];
+pub const JOURNEY_KINDS: [&str; 3] = ["page", "modal", "external"];
 
 pub const ARROWS: [&str; 4] = ["=>", "->", "-->", "<->"];
 pub const LINK_ARROWS: [&str; 2] = ["->", "-->"];
@@ -41,6 +42,7 @@ pub enum DiagramType {
     Erd,
     Class,
     Timeline,
+    Journey,
 }
 
 impl DiagramType {
@@ -51,7 +53,8 @@ impl DiagramType {
 
     pub fn from_name(name: &str) -> Option<DiagramType> {
         use DiagramType::*;
-        const ALL: [DiagramType; 11] = [Arch, Seq, Plan, Deps, Flow, State, Dataflow, Change, Erd, Class, Timeline];
+        const ALL: [DiagramType; 12] =
+            [Arch, Seq, Plan, Deps, Flow, State, Dataflow, Change, Erd, Class, Timeline, Journey];
         TYPES.iter().position(|&t| t == name).map(|i| ALL[i])
     }
 
@@ -66,6 +69,7 @@ impl DiagramType {
             DiagramType::Erd => &ERD_KINDS,
             DiagramType::Class => &CLASS_KINDS,
             DiagramType::Timeline => &TIMELINE_KINDS,
+            DiagramType::Journey => &JOURNEY_KINDS,
         }
     }
 
@@ -74,7 +78,7 @@ impl DiagramType {
         match self {
             DiagramType::Arch | DiagramType::Seq | DiagramType::Plan | DiagramType::Change => &ARROWS,
             DiagramType::Deps | DiagramType::State | DiagramType::Dataflow => &LINK_ARROWS,
-            DiagramType::Flow => &FLOW_ARROWS,
+            DiagramType::Flow | DiagramType::Journey => &FLOW_ARROWS,
             DiagramType::Erd => &ERD_ARROWS,
             DiagramType::Class => &CLASS_ARROWS,
             DiagramType::Timeline => &[],
@@ -139,6 +143,18 @@ pub struct Item {
     pub vendor: bool,
     /// The fields and methods of an `erd` or `class` node, in line order.
     pub members: Vec<Member>,
+    pub zoom: Zoom,
+}
+
+/// The place of an item in a diagram with levels.
+#[derive(Debug, Default, Clone)]
+pub struct Zoom {
+    /// The file after `>` on the node line, or empty.
+    pub link: String,
+    /// True when the node has a detail level.
+    pub detail: bool,
+    /// True for a node of the parent level in a detail level (`^name`).
+    pub context: bool,
 }
 
 #[derive(Debug)]
@@ -165,6 +181,29 @@ pub struct Diagram {
     pub items: Vec<Item>,
     pub edges: Vec<Edge>,
     pub roots: Vec<usize>,
+    /// The `story` blocks, in line order.
+    pub stories: Vec<StoryDef>,
+}
+
+/// A `story` block of the source.
+#[derive(Debug)]
+pub struct StoryDef {
+    pub title: String,
+    pub line: usize,
+    /// The steps in order. The steps of one entry run at the same time.
+    pub beats: Vec<Vec<StepDef>>,
+}
+
+/// One step of a story: a token moves along an edge.
+#[derive(Debug)]
+pub struct StepDef {
+    pub edge: usize,
+    /// True when the token moves from `to` to `from` of the edge.
+    pub back: bool,
+    /// `-->`: a hollow token, for a reply or an event.
+    pub hollow: bool,
+    pub caption: String,
+    pub line: usize,
 }
 
 /// All errors of one source text. Each error starts with the line number.

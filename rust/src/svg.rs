@@ -9,7 +9,7 @@ use crate::cycles::find_cycles;
 use crate::icons::Icon;
 use crate::layout_graph::GraphLayout;
 use crate::layout_seq::SeqLayout;
-use crate::model::{idiv, Diagram, DiagramType, STATUS_NAMES};
+use crate::model::{idiv, Diagram, DiagramType, STATUS_NAMES, STATUS_WORDS};
 use crate::svg_shapes;
 use crate::text::{measure, measure_mono};
 
@@ -111,7 +111,7 @@ const CSS: &str = concat!(
 );
 
 /// Status badges, drawn around the origin. Index = status.
-const BADGES: [&str; 7] = [
+pub(crate) const BADGES: [&str; 7] = [
     "<circle r=\"7.4\" class=\"bq\"/>",
     "<circle r=\"8\" class=\"b s1\"/><path class=\"k\" d=\"M-3.6 .3l2.5 2.5 4.7-5.3\"/>",
     "<circle r=\"8\" class=\"b s2\"/><circle r=\"4.2\" class=\"k\"/><path class=\"kf\" d=\"M0-4.2a4.2 4.2 0 0 1 0 8.4z\"/>",
@@ -142,6 +142,14 @@ const CYCLE_STYLE: (&str, &str) =
 /// In a change diagram, a part with no status is quiet.
 const QUIET_STYLE: (&str, &str) = (".q{opacity:.38}", "");
 
+/// The zoom mark of a node with a detail level, and the quiet look of a
+/// node of the parent level in a detail level.
+const ZOOM_STYLE: (&str, &str) = (
+    ".zm{fill:#fff;stroke:#1f6feb;stroke-width:1.2}.zk{fill:none;stroke:#1f6feb;stroke-width:1.5;stroke-linecap:round}",
+    ".zm{fill:#161b21;stroke:#569fff}.zk{stroke:#569fff}",
+);
+const CONTEXT_STYLE: (&str, &str) = (".cx{opacity:.5}.cx .ti,.cx .cd{stroke-dasharray:4 3}", "");
+
 const LABEL_END_STYLE: (&str, &str) = (".le{text-anchor:end}", "");
 
 const PAD: i64 = 24; // page padding
@@ -168,6 +176,24 @@ pub(crate) fn st(status: usize) -> String {
     } else {
         String::new()
     }
+}
+
+/// Opens the group of a node or a group. A script finds the part by these
+/// attributes. `kind` is `node` or `group`.
+pub(crate) fn open_part(out: &mut String, kind: &str, id: &str, status: usize) {
+    let _ = write!(out, "<g data-k=\"{kind}\" data-id=\"{}\" data-s=\"{}\">", esc(id), STATUS_WORDS[status]);
+}
+
+/// Opens the group of edge `k`. `kind` is `edge` or `msg`.
+pub(crate) fn open_edge(out: &mut String, kind: &str, d: &Diagram, k: usize) {
+    let e = &d.edges[k];
+    let _ = write!(
+        out,
+        "<g data-k=\"{kind}\" data-i=\"{k}\" data-from=\"{}\" data-to=\"{}\" data-s=\"{}\">",
+        esc(&d.items[e.from].id),
+        esc(&d.items[e.to].id),
+        STATUS_WORDS[e.status]
+    );
 }
 
 /// The class of the text of a part with a status that makes the text quiet.
@@ -241,6 +267,37 @@ impl Frame {
     pub(crate) fn badge(&mut self, status: usize, x: i64, y: i64) {
         self.used[status] = true;
         let _ = write!(self.body, "<use href=\"#b{status}\" x=\"{x}\" y=\"{y}\"/>");
+    }
+
+    /// The zoom mark of a node with a detail level. (x, y) is the corner of
+    /// the box at the bottom right. The mark sits on the corner, as a badge
+    /// does, so it does not cover the text in the box.
+    pub(crate) fn zoom_mark(&mut self, x: i64, y: i64) {
+        self.style(ZOOM_STYLE);
+        let (cx, cy) = (x - 2, y - 2);
+        let _ = write!(
+            self.body,
+            "<g class=\"zz\"><rect class=\"zm\" x=\"{}\" y=\"{}\" width=\"16\" height=\"16\" rx=\"4\"/><path class=\"zk\" d=\"M{} {}a3.2 3.2 0 1 0 .01 0M{} {}l2.6 2.6\"/></g>",
+            cx - 8,
+            cy - 8,
+            cx - 1,
+            cy - 4,
+            cx + 1,
+            cy + 1
+        );
+    }
+
+    /// Opens the group of a node, with the class of a context node.
+    pub(crate) fn open_node(&mut self, it: &crate::model::Item) {
+        let at = self.body.len();
+        open_part(&mut self.body, if it.group { "group" } else { "node" }, &it.id, it.status);
+        if it.zoom.context {
+            self.style(CONTEXT_STYLE);
+            self.body.insert_str(at + 2, " class=\"cx\"");
+        }
+        if it.zoom.detail {
+            self.body.insert_str(self.body.len() - 1, " data-z=\"1\"");
+        }
     }
 
     pub(crate) fn finish(self, inner_w: i64, inner_h: i64) -> String {
@@ -495,17 +552,6 @@ fn to_outline(d: &Diagram, l: &GraphLayout, i: usize, p: &mut [i64]) {
     p[k + m] += inset * (p[k + m] - p[j + m]).signum();
 }
 
-/// True when the route `p` starts in the left half of its first node.
-fn left_of_centre(l: &GraphLayout, p: &[i64], from: usize, to: usize) -> bool {
-    let i =
-        if p[1] >= l.y[from] && p[1] <= l.y[from] + l.bh[from] && p[0] >= l.x[from] && p[0] <= l.x[from] + l.bw[from] {
-            from
-        } else {
-            to
-        };
-    p[0] < l.x[i] + idiv(l.bw[i], 2)
-}
-
 /// The count of the nodes and groups with `add`, `mod`, and `del`.
 pub fn change_counts(d: &Diagram) -> [usize; 3] {
     let mut out = [0; 3];
@@ -521,8 +567,9 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
     let tiles = d.dtype.has_tiles();
     let kicker = match d.dtype {
         DiagramType::Plan => {
-            let total = d.items.iter().filter(|it| !it.group).count();
-            let done = d.items.iter().filter(|it| !it.group && it.status == 1).count();
+            let tasks = || d.items.iter().filter(|it| !it.group && !it.zoom.context);
+            let total = tasks().count();
+            let done = tasks().filter(|it| it.status == 1).count();
             format!("plan / {done} of {total} done")
         }
         DiagramType::Deps => "dependencies".to_string(),
@@ -531,6 +578,7 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
         DiagramType::Erd => "entities".to_string(),
         DiagramType::Class => "classes".to_string(),
         DiagramType::Arch => "architecture".to_string(),
+        DiagramType::Journey => "user journey".to_string(),
         DiagramType::Change => {
             let [add, m, del] = change_counts(d);
             format!("change / +{add} ~{m} -{del}")
@@ -538,44 +586,6 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
         t => t.name().to_string(),
     };
     let mut f = Frame::new(&d.title, kicker);
-    // When the layers go down, the label of an edge that leaves the left
-    // half of a node goes at the left of the line, so the labels of two
-    // edges that leave one node do not touch. The canvas grows to the left.
-    // A dataflow pill stays on its line, unless it touches another pill.
-    let pill = d.dtype == DiagramType::Dataflow;
-    let pill_w = |ge: &crate::layout_graph::GEdge| if pill { ge.label_w + 14 } else { ge.label_w };
-    let touches = |a: &crate::layout_graph::GEdge| {
-        l.edges.iter().any(|b| {
-            !std::ptr::eq(a, b) && b.label_w > 0 && b.label_y == a.label_y && {
-                (a.label_x - b.label_x).abs() < idiv(pill_w(a) + pill_w(b), 2) + 8
-            }
-        })
-    };
-    // -1: at the left of the line, 0: on the line, 1: at the right.
-    let side: Vec<i64> = l
-        .edges
-        .iter()
-        .map(|ge| {
-            let e = &d.edges[ge.edge];
-            if ge.label_w == 0 || !d.down || !svg_shapes::draws(d.dtype) || (pill && !touches(ge)) {
-                return i64::from(!pill);
-            }
-            if left_of_centre(l, &ge.pts, e.from, e.to) {
-                -1
-            } else {
-                1
-            }
-        })
-        .collect();
-    let shift = l
-        .edges
-        .iter()
-        .zip(&side)
-        .filter(|p| *p.1 < 0)
-        .map(|(ge, _)| 8 + pill_w(ge) - ge.label_x)
-        .max()
-        .unwrap_or(0)
-        .max(0);
     let records = d.dtype.has_members();
     if records {
         f.style((crate::records::LIGHT, crate::records::DARK));
@@ -585,13 +595,14 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
         }
     }
     let (ox, oy) = f.origin();
-    let ox = ox + shift;
-    let mut inner_w = l.w + shift;
     if d.dtype == DiagramType::State {
         f.style(svg_shapes::STATE_STYLE);
     }
     if d.dtype == DiagramType::Dataflow {
         f.style(svg_shapes::DATAFLOW_STYLE);
+    }
+    if d.dtype == DiagramType::Journey {
+        f.style(crate::svg_journey::STYLE);
     }
     let change = d.dtype == DiagramType::Change;
     if change {
@@ -619,9 +630,10 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
         if change && it.status == 0 {
             class.push_str(" q");
         }
+        open_part(&mut f.body, "group", &it.id, it.status);
         let _ = write!(
             f.body,
-            "<rect class=\"{class}\" x=\"{}\" y=\"{}\" width=\"{}\" height=\"{}\" rx=\"12\"/>",
+            "<rect class=\"{class}\" x=\"{}\" y=\"{}\" width=\"{}\" height=\"{}\" rx=\"12\"/></g>",
             ox + l.x[i],
             oy + l.y[i],
             l.bw[i],
@@ -641,9 +653,11 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
         if e.status > 0 {
             f.used[e.status] = true;
         }
+        open_edge(&mut f.body, "edge", d, ge.edge);
         if records {
             // The end marks tell the kind of a relation, so no line legend.
             crate::records::draw_edge(&mut f.body, d.dtype, e, &p, ge.arrow_start);
+            f.body.push_str("</g>");
             continue;
         }
         f.lines[if e.main {
@@ -665,7 +679,7 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
         if quiet_edge {
             f.body.push_str("<g class=\"q\">");
         }
-        let _ = write!(f.body, "<path class=\"{lc}\" d=\"{}\"/>", route_path(&p, ge.arrow_start, ge.arrow_end));
+        let _ = write!(f.body, "<path class=\"{lc} rt\" d=\"{}\"/>", route_path(&p, ge.arrow_start, ge.arrow_end));
         if ge.arrow_end {
             let head = arrow_head(p[z - 2], p[z - 1], (p[z - 2] - p[z - 4]).signum(), (p[z - 1] - p[z - 3]).signum());
             let _ = write!(f.body, "<path class=\"{ac}\" d=\"{head}\"/>");
@@ -677,6 +691,7 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
         if quiet_edge {
             f.body.push_str("</g>");
         }
+        f.body.push_str("</g>");
     }
 
     for (i, it) in d.items.iter().enumerate() {
@@ -690,6 +705,7 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
                 f.sources.push(ic.source.clone());
             }
         }
+        f.open_node(it);
         if it.group {
             let mut tx = x + 12;
             if let Some(ic) = icon {
@@ -715,6 +731,7 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
             if it.status > 0 {
                 f.badge(it.status, x + w - 2, y + 2);
             }
+            f.body.push_str("</g>");
             continue;
         }
         if records {
@@ -724,6 +741,10 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
             if it.status > 0 {
                 f.badge(it.status, x + w - 2, y + 2);
             }
+            if it.zoom.detail {
+                f.zoom_mark(x + w, y + h);
+            }
+            f.body.push_str("</g>");
             continue;
         }
         if svg_shapes::draws(d.dtype) {
@@ -733,7 +754,12 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
             if it.status > 0 {
                 f.badge(it.status, bx, by);
             }
+            if it.zoom.detail {
+                f.zoom_mark(sx + ox + sw, sy + oy + sh);
+            }
+            f.body.push_str("</g>");
             if let Some(k) = svg_shapes::first_loop(d, i) {
+                open_edge(&mut f.body, "edge", d, k);
                 let e = &d.edges[k];
                 let lm = if e.main { " lm" } else { "" };
                 if e.status > 0 {
@@ -748,6 +774,7 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
                     &edge_class("a", e.main, false, e.status),
                     lm,
                 ));
+                f.body.push_str("</g>");
             }
             continue;
         }
@@ -758,6 +785,10 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
             let cy = y + idiv(h, 2);
             f.badge(it.status, x + 18, cy);
             f.body.push_str(&card_text(&it.label, &it.sub, it.status, x + 11 + idiv(w, 2), cy));
+            if it.zoom.detail {
+                f.zoom_mark(x + w, y + h);
+            }
+            f.body.push_str("</g>");
             continue;
         }
 
@@ -828,23 +859,27 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
         if it.status > 0 {
             f.badge(it.status, tx + tw - 2, y + 2);
         }
+        if it.zoom.detail {
+            f.zoom_mark(tx + tw, y + th);
+        }
         if quiet_node {
             f.body.push_str("</g>");
         }
+        f.body.push_str("</g>");
     }
 
-    for (k, ge) in l.edges.iter().enumerate() {
+    for ge in &l.edges {
         if ge.label_w == 0 {
             continue;
         }
         let e = &d.edges[ge.edge];
         let lm = if e.main { " lm" } else { "" };
+        open_edge(&mut f.body, "edge", d, ge.edge);
         if d.dtype == DiagramType::Dataflow {
             // The label is the data that moves, in a pill on the line.
             let (mut cx, cy) = (ge.label_x + ox, ge.label_y + oy);
-            if d.down && side[k] != 0 {
-                cx += side[k] * (8 + idiv(pill_w(ge), 2));
-                inner_w = inner_w.max(shift + ge.label_x + 8 + pill_w(ge));
+            if d.down && ge.label_side != 0 {
+                cx += ge.label_side * (8 + idiv(ge.label_w + 14, 2));
             }
             let _ = write!(
                 f.body,
@@ -855,13 +890,18 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
                 cy + 4,
                 esc(&e.label)
             );
+            f.body.push_str("</g>");
             continue;
         }
         // Across the layers the label sits above the line. Along a vertical
         // line it sits at the right of the line.
-        let (mut ls, mut dx, dy) = if d.down { (" ls", 8, 4) } else { ("", 0, -7) };
-        if side[k] < 0 {
-            (ls, dx) = (" le", -8);
+        let (ls, dx, dy) = match (d.down, ge.label_side) {
+            (false, _) => ("", 0, -7),
+            (true, 0) => ("", 0, 4),
+            (true, s) if s < 0 => (" le", -8, 4),
+            _ => (" ls", 8, 4),
+        };
+        if ls == " le" {
             f.style(LABEL_END_STYLE);
         }
         let _ = write!(
@@ -872,11 +912,9 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
             ge.label_y + oy + dy,
             esc(&e.label)
         );
-        if d.down && dx > 0 {
-            inner_w = inner_w.max(shift + ge.label_x + 8 + ge.label_w);
-        }
+        f.body.push_str("</g>");
     }
-    f.finish(inner_w, l.h)
+    f.finish(l.w, l.h)
 }
 
 pub fn render_seq(d: &Diagram, l: &SeqLayout) -> String {
@@ -886,7 +924,8 @@ pub fn render_seq(d: &Diagram, l: &SeqLayout) -> String {
 
     for &i in &d.roots {
         let cx = ox + l.cx[i];
-        let _ = write!(f.body, "<path class=\"ll\" d=\"M{cx} {}V{bottom}\"/>", oy + l.head_h);
+        open_part(&mut f.body, "node", &d.items[i].id, d.items[i].status);
+        let _ = write!(f.body, "<path class=\"ll\" d=\"M{cx} {}V{bottom}\"/></g>", oy + l.head_h);
     }
     for (k, e) in d.edges.iter().enumerate() {
         if e.status > 0 {
@@ -897,10 +936,11 @@ pub fn render_seq(d: &Diagram, l: &SeqLayout) -> String {
         let lm = if e.main { " lm" } else { "" };
         let y = oy + l.my[k];
         let x1 = ox + l.cx[e.from];
+        open_edge(&mut f.body, "msg", d, k);
         if e.from == e.to {
             let _ = write!(
                 f.body,
-                "<path class=\"{lc}\" d=\"M{x1} {y}H{}Q{} {y} {} {}V{}Q{} {} {} {}H{}\"/>",
+                "<path class=\"{lc} rt\" d=\"M{x1} {y}H{}Q{} {y} {} {}V{}Q{} {} {} {}H{}\"/>",
                 x1 + 22,
                 x1 + 28,
                 x1 + 28,
@@ -922,13 +962,14 @@ pub fn render_seq(d: &Diagram, l: &SeqLayout) -> String {
                     esc(&e.label)
                 );
             }
+            f.body.push_str("</g>");
             continue;
         }
         let x2 = ox + l.cx[e.to];
         let dir = (x2 - x1).signum();
         if e.dashed {
             // A reply has an open arrowhead.
-            let _ = write!(f.body, "<path class=\"{lc}\" d=\"M{x1} {y}H{x2}\"/>");
+            let _ = write!(f.body, "<path class=\"{lc} rt\" d=\"M{x1} {y}H{x2}\"/>");
             let _ = write!(
                 f.body,
                 "<path class=\"{} oa\" d=\"M{} {}L{x2} {y}L{} {}\"/>",
@@ -939,7 +980,7 @@ pub fn render_seq(d: &Diagram, l: &SeqLayout) -> String {
                 y + 3
             );
         } else {
-            let _ = write!(f.body, "<path class=\"{lc}\" d=\"M{x1} {y}H{}\"/>", x2 - 5 * dir);
+            let _ = write!(f.body, "<path class=\"{lc} rt\" d=\"M{x1} {y}H{}\"/>", x2 - 5 * dir);
             let _ = write!(f.body, "<path class=\"{ac}\" d=\"M{x2} {y}l{} -3v6z\"/>", -7 * dir);
         }
         if e.bidir {
@@ -954,15 +995,21 @@ pub fn render_seq(d: &Diagram, l: &SeqLayout) -> String {
                 esc(&e.label)
             );
         }
+        f.body.push_str("</g>");
     }
     for &i in &d.roots {
         let it = &d.items[i];
         let x = ox + l.cx[i] - idiv(l.pw[i], 2);
+        f.open_node(it);
         f.body.push_str(&card(it.kind, it.status, x, oy, l.pw[i], l.head_h));
         f.body.push_str(&card_text(&it.label, &it.sub, it.status, ox + l.cx[i], oy + idiv(l.head_h, 2)));
         if it.status > 0 {
             f.badge(it.status, x + l.pw[i] - 2, oy + 2);
         }
+        if it.zoom.detail {
+            f.zoom_mark(x + l.pw[i], oy + l.head_h);
+        }
+        f.body.push_str("</g>");
     }
     f.finish(l.w, l.h)
 }

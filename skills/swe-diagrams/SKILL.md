@@ -29,7 +29,30 @@ layout is deterministic, and the summary line reports what the harness drew.
    you did not intend is a typing error. A `noicon=` list names logos that
    no source has; use another name or remove the `@name`. On an error line
    (`file:line: message`), correct that line and render again.
-5. Give the user the path of the SVG file, and one sentence on what it shows.
+5. Give the user the path of the output file, and one sentence on what it
+   shows.
+
+## Choose the format
+
+The extension of `-o` gives the format.
+
+- `.svg`: for a README, a pull request, or a doc. It has a light and a
+  dark theme. This is the default.
+- `.html`: for a big diagram that the user explores, or for a Claude
+  artifact. The page pans, zooms, and highlights a node and its
+  neighbours. It loads nothing from the network.
+- `.png`: for a chat, a slide, or an issue that does not show SVG. Add
+  `--theme dark` for a dark picture, and `--scale N` for more pixels.
+- `.svg` with `--animate`: motion in a README or a pull request. Tokens
+  move along the edges of the first story. It needs no script.
+- `.gif`: motion for a chat that does not show SVG. `.mp4` and `.webm`
+  need `ffmpeg`.
+
+To show the order of calls or the path of data, add a story: a
+`story "Title"` line, then one indented step for each edge, for example
+`web -> api "POST /cart"`. `-->` is a reply. `a -> b & a -> c` runs two
+steps at the same time. Without a story, the `=>` edges make one. The
+HTML page has a player for the stories.
 
 Keep the files in `docs/diagrams/` when the user wants to keep them.
 Otherwise use a temporary directory.
@@ -49,6 +72,7 @@ Otherwise use a temporary directory.
 | What happens in which order, and where are we now? | `timeline` |
 | What are the tables and the relations between them? | `erd` |
 | What are the types and their relations? | `class` |
+| How does a user move through the pages of the app? | `journey` |
 
 ## The language
 
@@ -82,6 +106,11 @@ cart --> queue "publish" plan        # -> is solid, --> is dashed, <-> has two a
   `erd` arrows are `a 1--* b`, with each end one of `1 ? * +`. `class`
   arrows are `--|>` `..|>` `*--` `o--` `->` `..>`.
 - `dir right` or `dir down` changes the direction of `arch` and `plan`.
+- Levels: `detail cart "Title"` at the left margin, with an indented body,
+  is the diagram of the parts of node `cart`. In the body, `^gw` is node
+  `gw` of the parent level. `cart >cart.sd` takes the detail level from a
+  file. A type word changes the type: `detail svc class`. Use `-o x.html`
+  so the reader can click into a node; `--level cart` writes one level.
 
 For the full rules, read [references/language.md](references/language.md).
 
@@ -104,3 +133,9 @@ For the full rules, read [references/language.md](references/language.md).
   `plan` for the rest. Render the plan again when the status changes.
 - For a change: use `change`, with `add`, `mod`, and `del` on the parts
   that the change adds, modifies, and removes.
+- For levels: draw the top level first, with 12 nodes or fewer. Add a
+  detail level only for the parts that the user asks about or that the
+  change touches, not for each node. Use `^name` for each parent edge that
+  reaches the zoomed node, so the reader sees where the request enters.
+  Leave the status off a node with a detail level: the harness takes it
+  from the parts.

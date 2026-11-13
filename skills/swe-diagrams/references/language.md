@@ -29,12 +29,14 @@ The file has one statement on each line. A `#` starts a comment.
 | Group | `group id "Label" @logo :vendor status`. The members are the lines with more indent. |
 | Edge | `a -> b "label" status` |
 | Direction | `dir right` or `dir down` |
+| Detail | `detail id type "Title"` at the left margin. The body is the lines with more indent. See [Levels](#levels). |
 
 Only the id is necessary on a node line. A node without a label shows its id.
 The order of the kind, the logo, and the status is free.
 
 An id is a word without spaces or quotes, for example `cart`, `src/api.ts`,
-or `auth-v2`. The words `group` and `dir` are not ids.
+or `auth-v2`. The words `group` and `dir` are not ids. The word `detail` is
+not an id at the left margin.
 
 Put spaces around an arrow. Write `a -> b`, not `a->b`.
 
@@ -53,6 +55,7 @@ Put spaces around an arrow. Write `a -> b`, not `a->b`.
 | `timeline` | Events and milestones on one axis, in line order | right |
 | `erd` | Tables, their fields, and the relations between them | right |
 | `class` | Types, their members, and the relations between them | down |
+| `journey` | The pages of an app, and the user actions between them | right |
 
 In `seq`, each node is a participant and each edge is a message. The order of
 the lines is the order in time. `a -> a` is a message to self. `seq` has no
@@ -171,8 +174,8 @@ wh -> dash "sql"
 
 Each node is a place where the data is, or a step that changes the data.
 `a -> b` means that data moves from `a` to `b`. Write the data that moves
-as the label. The label is a pill on the line. When two pills touch, they
-go beside their lines. The arrows are `->` and `-->`.
+as the label. The label is a pill on the line. When a pill touches another
+pill or line, it goes beside its line. The arrows are `->` and `-->`.
 
 | Kind | Shape |
 |---|---|
@@ -203,6 +206,30 @@ lower opacity, so the changed parts stand out.
 The title line counts the changed nodes and groups, for example
 `change / +1 ~1 -1`. The summary line adds
 `added=1 changed=1 removed=1`. The counts do not include the edges.
+
+### journey
+
+```
+journey "Sign up"
+home "Home" "/"
+signup "Sign up" "/signup"
+login "Sign in" "/login" :modal
+docs "Docs" "docs.example.com" :external
+home => signup "click Start"
+home -> login "click Sign in"
+signup --> docs "read terms"
+```
+
+Each node is a page, and each edge is a user action. Write the action as
+the label, for example `click Buy` or `submit form`. The second string is
+the route. It shows in mono in the bar of the page. Use `=>` for the main
+path. The arrows are `=>`, `->`, and `-->`.
+
+| Kind | Shape |
+|---|---|
+| `:page` | A browser frame with three dots and the route. This is the default. |
+| `:modal` | A smaller frame with a close mark |
+| `:external` | A browser frame with a dashed border, for a page that the app does not own |
 ## timeline
 
 ```
@@ -248,6 +275,67 @@ with that id as the label, in the group of the edge line. The summary line
 lists these ids after `implicit=`, so an id with a typing error is visible.
 
 An edge end can be a group. An edge cannot join a group and its own member.
+
+When the layers go down, a label is at one side of its line. The label
+takes the side with no other line, or moves along its line to a clear
+place. A group grows to hold the labels of its edges.
+
+## Stories
+
+A story shows motion: a request that goes from part to part, or data that
+moves through a pipeline. A story is a list of steps. Each step moves a
+token along one edge of the diagram.
+
+```
+arch "Checkout"
+user "Shopper" :actor
+web "Web app"
+gw "API gateway"
+cart "Cart service"
+db "Postgres" :store
+
+user => web => gw => cart => db
+
+story "Add an item"
+  user -> web "click Add"
+  web -> gw "POST /cart"
+  gw -> cart & cart -> db
+  db --> cart "row"
+  cart --> gw "200 OK"
+```
+
+- `story "Title"` starts a story. Each line with more indent is a step.
+  A line without more indent ends the story.
+- A step names an edge in either direction. `db --> cart` moves the token
+  from `db` to `cart` on the edge `cart => db`. A step between two nodes
+  with no edge is an error.
+- `->` gives a solid token. `-->` gives a hollow token, for a reply or an
+  event.
+- The string is the caption. The token carries it when it is not the
+  same text as the edge label.
+- `&` joins steps that run at the same time: `a -> b & a -> c`.
+- When two nodes have more than one edge, as in `seq`, a step takes the
+  next edge after the edge of the step before it.
+- A diagram can have many stories. Each title must be unique.
+- `timeline` has no stories, because it has no edges.
+
+With no story, each type has a default story. When the source has
+stories, the default story comes after them in the list.
+
+| Type | Default story |
+|---|---|
+| `seq` | "Messages": each message, one at a time. |
+| `flow` | "Main path": the `=>` edges. Without them, a walk from the `:start` node. |
+| `state` | "Walk": a walk from the `:initial` state. It takes each transition one time. The event is the caption. |
+| `dataflow` | "Stream": tokens move along each edge without stop. |
+| `plan`, `timeline` | "Progress": the items change from planned to in progress to done, in line order, up to their status. A `done` item goes to done. A `wip` item stops at in progress. The other items do not change. The done count in the kicker follows each frame and ends at the real count. With no `done` or `wip` item, there is no story. |
+| the other types | "Main path": the `=>` edges, in line order. With no `=>` edge, there is no story. |
+
+The time of a step comes from the length of its edge: 120 px each
+second, with 400 ms at minimum and 1600 ms at maximum. The steps of one
+line take the time of the longest step. A story stops for 1000 ms at the
+end, and then it starts again. A progress step takes 800 ms. `--speed`
+divides all times.
 
 ## Status
 
@@ -361,8 +449,9 @@ mem ..|> store
 A member line with `(` is a method. The other member lines are fields. The
 record shows the fields, then the methods, each in its own section. The
 harness keeps the text of a member line as it is, so write a visibility
-mark at the start: `+`, `-`, or `~`. A `#` starts a comment, so put a
-protected member in quotes: `"# origin Point"`.
+mark at the start: `+` (public), `-` (private), `#` (protected), or `~`
+(package). In a class member line, a `#` at the start is the protected
+mark. In all other places, a `#` starts a comment.
 
 The kinds are `:class` (the default), `:interface`, `:abstract`, and
 `:enum`. The kind shows above the name, for example `«interface»`. An
@@ -380,19 +469,193 @@ abstract name is italic.
 For `--|>` and `..|>`, the harness puts b above a, so a parent is above its
 children.
 
+## Levels
+
+A node can have a detail level: a diagram of its parts. The top level shows
+the large parts. The detail level of a node shows what is inside it. A
+diagram has four levels at most: the top level and three detail levels.
+
+```
+arch "Checkout"
+gw "API gateway"
+cart "Cart service" "go"
+pay "Payments" >payments.sd
+db "Postgres" :store
+
+gw => cart "add item"
+gw -> pay
+cart => db
+
+detail cart "Cart service modules"
+  handler "HTTP handler" "handler.go" done
+  svc "Cart logic" "cart.go" wip
+  ^gw => handler
+  handler => svc
+  svc => ^db "SQL"
+
+  detail svc class "Cart types"
+    Cart
+      + add(item) void
+```
+
+- `detail <id>` starts the detail level of node `id`. The line is at the
+  left margin of its level. The body is the lines under it with more
+  indent, and it uses the normal grammar.
+- The optional string is the title of the detail level. Without it, the
+  title is the label of the node.
+- The detail level has the type of its parent. A type word after the id
+  changes it: `detail svc class "Cart types"`.
+- A `detail` line in a body starts a level below that body.
+- `>path.sd` on a node line names a file that holds the detail level. The
+  path is relative to the source file. The file is a normal diagram file,
+  and it can have its own levels. A cycle of files is an error.
+- In a body, `^name` is node `name` of the parent level. Use it only in an
+  edge, and only for a node with an edge to the zoomed node.
+
+The harness adds the context of the parent level to a detail level:
+
+- Each node of the parent level with an edge to the zoomed node shows as a
+  quiet tile. The nodes with an edge in go at the start, and the nodes with
+  an edge out go at the end.
+- The parts of the detail level are in a frame, with the label of the
+  zoomed node.
+- A parent edge that no `^name` edge uses goes from the context tile to the
+  frame. A `^name` edge with no label takes the label of the parent edge.
+
+A node with a detail level gets a zoom mark at its bottom right corner. A
+node with no status takes a status from the parts of its detail level:
+
+| Parts of the detail level | Status of the node |
+|---|---|
+| `add`, `mod`, or `del` on a part | `mod` |
+| All parts `done` | `done` |
+| All parts with a status are `plan` | `plan` |
+| A part `wip`, or some parts `done` and some not | `wip` |
+| No part with a status | none |
+
+A status on the node line wins over this rule.
+
 ## Command
 
 ```
 swe-diagrams render diagram.sd -o diagram.svg
 swe-diagrams render - < diagram.sd > diagram.svg
 swe-diagrams render diagram.sd -o diagram.svg --icons ./icons --offline
+swe-diagrams render diagram.sd -o diagram.html
+swe-diagrams render diagram.sd -o diagram.png --theme dark --scale 3
+swe-diagrams render diagram.sd -o diagram.svg --animate --story "Add an item"
+swe-diagrams render diagram.sd -o diagram.gif --fps 15 --speed 1.5
+swe-diagrams render diagram.sd -o diagram.mp4
 ```
+
+The options:
+
+| Option | Effect |
+|---|---|
+| `-o <file>` | Writes the output to the file. Without `-o`, the output goes to standard output. |
+| `--format <F>` | Sets the format: `svg`, `html`, `png`, `txt`, `gif`, `mp4`, or `webm`. |
+| `--theme <T>` | Sets the palette: `auto`, `light`, or `dark`. |
+| `--scale <N>` | Sets the pixel scale of a PNG, a GIF, or a video, from 0.1 to 16. The default is 2 for a PNG and 1 for a GIF or a video. |
+| `--animate` | Adds motion to an SVG: the first story, or the story of `--story`. |
+| `--story <title>` | Selects the story of an animated SVG, a GIF, or a video. |
+| `--fps <N>` | Sets the frames each second of a GIF or a video, from 1 to 50. The default is 15. |
+| `--speed <X>` | Divides the times of a story, from 0.1 to 10. The default is 1. |
+| `--level <path>` | Writes the detail level at the path, for example `cart` or `cart/svc`. For HTML, the page opens at that level. |
+| `--icons <dir>` | Looks for logos in the directory first. |
+| `--offline` | Does not use the network for logos. |
+
+## Output formats
+
+Without `--format`, the extension of `-o` gives the format. An unknown
+extension gives SVG. Without `-o`, the format is SVG.
+
+| Format | Output | Theme default |
+|---|---|---|
+| `svg` | One SVG file. It works in a README, a pull request, and a browser. | `auto` |
+| `html` | One page with the SVG, a stylesheet, and a script. It loads nothing from the network. | `auto` |
+| `png` | A PNG image. It needs `-o`. | `light` |
+| `gif` | A GIF that loops one time through the story. It needs `-o`. | `light` |
+| `mp4`, `webm` | A video of the story, made with `ffmpeg`. It needs `-o`, and `ffmpeg` on the PATH. | `light` |
+| `txt` | Not ready. The command gives an error. | |
+
+An SVG with `--animate` moves without a script, with SMIL motion on the
+edge paths. It works where an SVG works as an image, for example in a
+GitHub README. With `prefers-reduced-motion`, the viewer sees the still
+diagram. Without `--animate`, the SVG has no motion.
+
+A GIF or a video of a diagram with no story is one still frame. The
+summary then says `story=none`.
+
+The themes:
+
+- `auto` keeps the light palette and the dark palette. The viewer picks
+  one with its colour setting.
+- `light` removes the dark palette.
+- `dark` always uses the dark palette.
+
+The HTML page also follows the `data-theme` attribute (`light` or `dark`)
+on its root element. The attribute wins over the system setting. In the
+page:
+
+- Drag to pan. Use the wheel, a pinch, or the `+` and `-` keys to zoom.
+  The `0` key and the "fit" button show all of the diagram.
+- Hover over a node: its edges and its neighbours stay bright, and the
+  rest dims.
+- Click a status in the legend: only the parts with that status stay
+  bright. Click it again to clear it.
+- The arrow keys step through the diagram: the messages of a `seq`, and
+  the nodes of the other types in line order. `Escape` clears the step.
+- A diagram with a story gets a player: a list of the stories, play and
+  pause, step back, step forward, and the speed. The active edge is
+  bright, the other edges are quiet, and the node at the end of a step
+  pulses. A caption panel shows the step number, the caption, and the
+  edge label. The space key plays and pauses. In a page with a player,
+  the left and right arrow keys step through the story.
+- A click on a node with a zoom mark opens its detail level. `Tab` moves
+  to such a node, and `Enter` opens it. The view zooms into the node, and
+  the detail level grows from the node box. With `prefers-reduced-motion`,
+  the view changes with no motion.
+- The breadcrumb at the top left shows the path of levels. A click on a
+  part of it goes up to that level. `Escape` goes up one level.
+- The hash of the address holds the path, for example `#cart/svc`. A link
+  with a hash opens that level. The back button goes up.
+
+The PNG uses the bundled fonts Geist and JetBrains Mono, and no system
+font, so each machine gives the same picture.
+
+In the SVG and the HTML, each part is in a group with data attributes:
+`data-k` (`node`, `group`, `edge`, or `msg`), `data-id` and `data-s` (the
+status word) for a node or a group, and `data-i`, `data-from`, and
+`data-to` for an edge or a message. The line of an edge has the class
+`rt`. A node with a detail level has `data-z`. In a detail level, a context
+node has the id `^name` and the class `cx`, and the frame group has the id
+`^`.
+
+The data of the page (`#sd-data`) has a `levels` list when the diagram has
+more than one level. Each entry has the `path`, the `title`, the `type`,
+the `order` of steps, and the `svg` text. The `svg` of the top level is
+`null`, because the page holds it. The data holds the stories in
+`stories`, with the times at speed 1.
+
+## Summary and errors
 
 On success, the harness prints one summary line:
 
 ```
 ok arch nodes=4 edges=3 diagram.svg
 ```
+
+An animated output adds the story, and a GIF or a video adds the frame
+count:
+
+```
+ok arch nodes=5 edges=4 frames=66 story="Add an item" diagram.gif
+```
+
+The counts are the counts of the top level. A diagram with detail levels
+adds the count of levels and the ids of the nodes with a detail level:
+`levels=3 details=cart,svc`. An error in a linked file names the link line
+and the file: `top.sd:4: in cart.sd:7: unknown word 'x'`.
 
 On a diagram error, the harness prints one line for each error and exits
 with code 2:

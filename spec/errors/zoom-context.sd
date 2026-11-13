@@ -1,0 +1,12 @@
+arch
+a -> b
+^a -> b
+
+detail a
+  ^c -> x
+  ^b "B again"
+
+detail b nope "B"
+  y
+
+detail

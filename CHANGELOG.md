@@ -17,8 +17,47 @@ This file lists the changes in each version. The project uses
   `cargo install swe-diagrams` works after the first `cargo publish`.
 - `scripts/bump-version.sh` sets the version in each file that holds it.
 - Release steps in `docs/release.md`.
+- Output formats: `--format svg|html|png`, or the extension of `-o`.
+- HTML output: one self-contained page with pan, zoom, a fit button,
+  hover highlights, a status filter in the legend, and arrow-key steps.
+  The page follows `prefers-color-scheme` and the `data-theme` attribute.
+- PNG output with resvg and bundled fonts (Geist, JetBrains Mono).
+  `--scale` sets the pixel scale.
+- `--theme auto|light|dark` sets the palette of each format.
+- The `journey` type: pages as small browser frames with the title and
+  the route, and user actions as edges. Kinds: `:page`, `:modal`,
+  `:external`.
+- Each part of the SVG is in a group with `data-k` and other data
+  attributes, so a script can find it.
+- Stories: `story "Title"` blocks with steps along the edges, `->` and
+  `-->` tokens, captions, and `&` for steps at the same time. Each type
+  has a default story.
+- `--animate` writes an SVG with SMIL motion and no script.
+  `prefers-reduced-motion` shows the still diagram.
+- GIF output (`-o x.gif`) and video output (`-o x.mp4`, `-o x.webm`,
+  with `ffmpeg`). `--fps`, `--speed`, and `--story` set the motion.
+- A story player in the HTML page: play, pause, steps, speed, a story
+  list, a caption panel, and keys.
+- A progress story of a `plan` or a `timeline` moves each item up to its
+  status, and the done count of the kicker follows each frame.
+- Zoom levels: `detail <id> [type] ["Title"]` blocks, `>file.sd` links,
+  and `^name` for a node of the parent level. A detail level shows the
+  context of the parent level, and a node with a detail level gets a zoom
+  mark. `--level cart/svc` writes one level. The HTML page opens a level
+  with a click or `Enter`, and has a breadcrumb, `Escape`, and a hash path.
+  A node with no status takes a status from its detail level. The summary
+  line adds `levels=` and `details=`.
 
 ### Changed
+
+- A class member line that starts with `#` is a protected member, not
+  a comment.
+- In a layout that goes down, an edge label takes the free side of its
+  line, or moves along the line, so it does not sit on another line. A
+  node gets a wider port for a label with no free place. A group grows
+  to hold the labels of its edges.
+- Text widths come from the bundled Geist faces, with a margin for
+  fallback faces, so a long title or label does not clip.
 
 - The README shows pictures and install steps first. The diagram language
   is in the language reference only.

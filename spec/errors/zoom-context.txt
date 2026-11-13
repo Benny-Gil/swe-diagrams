@@ -1,0 +1,5 @@
+3: '^a' names a node of the parent level, but the top level has no parent
+9: unknown type 'nope' in the detail line. Types: arch, seq, plan, deps, flow, state, dataflow, change, erd, class, timeline, journey
+12: write a detail block as: detail <id> [type] ["Title"]
+6: '^c': the parent level has no node 'c'
+7: '^b' names a node of the parent level, so it has no node line here. Use it in an edge

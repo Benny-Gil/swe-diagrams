@@ -1,6 +1,7 @@
 # Design: animate how data and calls move
 
-Issue: #3. Status: plan. Nothing in this document is built yet.
+Issue: #3. Status: built, except the `journey` type and the steps into
+detail levels. The language reference has the final rules.
 
 ## Goal
 
@@ -31,7 +32,8 @@ story "Add an item"
   gw -> cart
   cart -> db "INSERT"
   db --> cart "row"
-  cart --> web "200 OK"
+  cart --> gw "200 OK"
+  gw --> web
 ```
 
 - `story "Title"` starts a story. The indented lines are its steps.
@@ -129,8 +131,8 @@ milliseconds, so the output stays deterministic. `--speed` scales the times.
 
 ## Open questions
 
-- A GIF or a video file for chat apps that do not show SVG: this needs a
-  browser to record. The plan is an optional command that uses a local
-  Chrome when one is present.
+- A GIF or a video file for chat apps that do not show SVG: built. The
+  harness draws each frame as SVG and rasterizes it with resvg, so it
+  needs no browser. A video needs `ffmpeg`.
 - Tokens that carry a data label can hide other labels on a dense diagram.
   The plan is to show the label only on the active step.

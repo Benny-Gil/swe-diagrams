@@ -9,7 +9,7 @@ readme = "../README.md"
 keywords = ["diagram", "svg", "architecture", "agent", "cli"]
 categories = ["command-line-utilities", "visualization"]
 # The tests read files in ../spec, so the crate does not include them.
-include = ["src/**/*.rs", "Cargo.toml", "Cargo.lock", "LICENSE", "README.md"]
+include = ["src/**/*", "fonts/*", "Cargo.toml", "Cargo.lock", "LICENSE", "README.md"]
 
 [lib]
 name = "swe_diagrams"
@@ -25,3 +25,12 @@ lto = true
 codegen-units = 1
 panic = "abort"
 strip = true
+
+[dependencies]
+color_quant = "1.1"
+gif = "0.14"
+resvg = { version = "0.50.0", default-features = false, features = ["text", "raster-images"] }
+
+# The rasterizer is slow without optimization, and the tests draw each fixture.
+[profile.dev.package."*"]
+opt-level = 3

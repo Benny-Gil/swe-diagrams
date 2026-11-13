@@ -1,0 +1,2 @@
+6: no edge joins 'web' and 'db'. A step must follow an edge of the diagram
+7: the step names 'cache', which is not a node of the diagram

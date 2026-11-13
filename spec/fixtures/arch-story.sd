@@ -1,0 +1,22 @@
+arch "Add an item"   # the example of the animation design
+user "Shopper" :actor
+web "Web app"
+gw "API gateway"
+cart "Cart service"
+db "Postgres" :store
+
+user => web => gw => cart => db
+
+story "Add an item"
+  user -> web "click Add"
+  web -> gw "POST /cart"
+  gw -> cart
+  cart -> db "INSERT"
+  db --> cart "row"
+  cart --> gw "200 OK"
+  gw --> web
+
+story "Cache read"
+  gw -> cart & cart -> db
+  db --> cart
+  cart --> gw

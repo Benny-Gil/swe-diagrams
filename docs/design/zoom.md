@@ -1,6 +1,7 @@
 # Design: zoom into a node
 
-Issue: #2. Status: plan. Nothing in this document is built yet.
+Issue: #2. Status: built. The notes at the end tell where the build
+differs from the plan.
 
 ## Goal
 
@@ -145,3 +146,20 @@ that have a detail level: `details=cart,svc`.
 - Should the SVG output have an option that draws all levels on one large
   canvas, with each detail level inside its parent node? This is a
   different layout. The plan is to wait for user demand.
+
+## Notes on the build
+
+- The limit of four levels counts the top level. A path has three ids at
+  most, for example `cart/svc/repo`.
+- "The border of the canvas" is the border of a frame group. The frame
+  holds the parts of the detail level and has the label (and the logo) of
+  the zoomed node. A parent edge with no `^name` ends at the frame.
+- The zoom mark is on the bottom right corner of a tile or a card. A
+  `timeline` node gets no mark.
+- In a `seq` detail level, a `^name` is a participant with the look of the
+  parent node. A `seq` or `timeline` detail level has no frame.
+- The status rule: a part with `add`, `mod`, or `del` gives `mod` first.
+  Parts with no status do not count for `plan`, but they do count against
+  `done`.
+- The HTML page holds one SVG at a time. The data holds the SVG text of
+  the other levels, so the style rules of two diagram types do not mix.
