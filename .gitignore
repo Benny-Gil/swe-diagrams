@@ -1,2 +1,5 @@
 target/
 .DS_Store
+
+# A common global rule (Icon?) hides this folder on macOS. The tests need it.
+!/spec/icons/
