@@ -25,6 +25,7 @@ pub mod svg_timeline;
 pub mod text;
 pub mod text_out;
 pub mod theme;
+pub mod tour;
 pub mod video;
 
 pub use html::{html, html_at};
