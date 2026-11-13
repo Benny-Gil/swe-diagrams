@@ -28,6 +28,8 @@ This file lists the changes in each version. The project uses
   with `ffmpeg`). `--fps`, `--speed`, and `--story` set the motion.
 - A story player in the HTML page: play, pause, steps, speed, a story
   list, a caption panel, and keys.
+- A progress story of a `plan` or a `timeline` moves each item up to its
+  status, and the done count of the kicker follows each frame.
 
 ### Changed
 

@@ -5,6 +5,8 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output, Stdio};
 
+use swe_diagrams::anim;
+
 fn spec(rel: &str) -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("spec").join(rel)
 }
@@ -68,8 +70,33 @@ fn a_progress_svg_keeps_the_still_nodes() {
     let out = run(&["render", file.to_str().unwrap(), "--animate"], None);
     let svg = text(&out.stdout);
     // Two tasks go to done (three variants) and two stop in progress (two).
-    assert_eq!(svg.matches("<g class=\"sd-st\">").count(), 4);
-    assert_eq!(svg.matches("<g opacity=\"0\"><animate ").count(), 10);
+    // The kicker has one copy for each done count: 0, 1, and 2.
+    assert_eq!(svg.matches("<g class=\"sd-st\">").count(), 5);
+    assert_eq!(svg.matches("<g opacity=\"0\"><animate ").count(), 13);
+    for n in 0..=2 {
+        assert!(svg.contains(&format!("y=\"36\">plan / {n} of 8 done</text>")), "{n}");
+    }
+}
+
+#[test]
+fn the_kicker_of_a_frame_counts_the_done_badges() {
+    let src = fs::read_to_string(spec("fixtures/plan-ratelimit.sd")).unwrap();
+    let r = swe_diagrams::render(&src, &swe_diagrams::IconOptions { dir: None, offline: true }).unwrap();
+    let story = &r.stories[0];
+    let routes = anim::routes(&r.svg);
+    let tm = anim::timing(story, &routes, 1.0);
+    let at = |t: i64| anim::frame_svg(&r.svg, &r.variants, &routes, &anim::scene(story, &tm, &routes, t));
+    // Each beat takes 800 ms. The first task is done at 800 ms.
+    assert!(at(0).contains(">plan / 0 of 8 done<"));
+    assert!(at(900).contains(">plan / 1 of 8 done<"));
+    assert!(at(tm.total - 1).contains(">plan / 2 of 8 done<"));
+    let src = fs::read_to_string(spec("fixtures/timeline-rollout.sd")).unwrap();
+    let r = swe_diagrams::render(&src, &swe_diagrams::IconOptions { dir: None, offline: true }).unwrap();
+    let story = &r.stories[0];
+    let tm = anim::timing(story, &[], 1.0);
+    let at = |t: i64| anim::frame_svg(&r.svg, &r.variants, &[], &anim::scene(story, &tm, &[], t));
+    assert!(at(0).contains(">timeline / 0 of 6 done<"));
+    assert!(at(tm.total - 1).contains(">timeline / 2 of 6 done<"));
 }
 
 #[test]

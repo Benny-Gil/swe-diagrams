@@ -346,11 +346,33 @@ fn before_end(svg: &str, text: &str) -> String {
     }
 }
 
+/// The done count of the kicker when the shown statuses are `shown`, or
+/// `None` when the kicker has no count.
+fn kicker_count(svg: &str, variants: &[Variant], shown: &[(String, usize)]) -> Option<(std::ops::Range<usize>, i64)> {
+    let open = svg.find("<text class=\"kk mo\"")?;
+    let start = open + svg[open..].find('>')? + 1;
+    let end = start + svg[start..].find("</text>")?;
+    let text = &svg[start..end];
+    let slash = text.find(" / ")? + 3;
+    let num = slash + text[slash..].find(" of ")?;
+    let real: i64 = text[slash..num].parse().ok()?;
+    let mut n = real;
+    for (id, s) in shown {
+        let Some(v) = variants.iter().find(|v| v.id == *id) else { continue };
+        n += i64::from(*s == 1) - i64::from(v.status == 1);
+    }
+    Some((start + slash..start + num, n))
+}
+
 /// A still SVG of the scene: the bright edges, the tokens, and the node
 /// statuses of a progress story.
 pub fn frame_svg(svg: &str, variants: &[Variant], routes: &[Option<Route>], sc: &Scene) -> String {
     let mut out = with_style(svg, "");
     if !sc.nodes.is_empty() {
+        // The done count follows the badges of the frame.
+        if let Some((r, n)) = kicker_count(&out, variants, &sc.nodes) {
+            out.replace_range(r, &n.to_string());
+        }
         out = with_badges(&out);
         let ids: Vec<&str> = sc.nodes.iter().map(|n| n.0.as_str()).collect();
         out = swap_nodes(&out, variants, &ids, |v| {
@@ -408,6 +430,33 @@ fn show_between(s: i64, e: i64, total: i64) -> String {
     format!("<animate attributeName=\"opacity\" values=\"{values}\" keyTimes=\"{times}\" dur=\"{total}ms\" calcMode=\"discrete\" repeatCount=\"indefinite\"/>")
 }
 
+/// Puts a copy of the kicker for each done count, each shown while the
+/// count holds. The still kicker shows without motion.
+fn animate_kicker(svg: &str, variants: &[Variant], story: &Story, tm: &Timing) -> String {
+    let total = tm.total;
+    // The count changes at the end of each beat of a task that goes to done.
+    let mut times = vec![0];
+    for (b, &(s, d)) in story.beats.iter().zip(&tm.beats) {
+        if b.node.as_ref().is_some_and(|n| n.1 == 1) {
+            times.push(s + d);
+        }
+    }
+    let Some(open) = svg.find("<text class=\"kk mo\"") else { return svg.to_string() };
+    let Some(close) = svg[open..].find("</text>").map(|e| open + e + 7) else { return svg.to_string() };
+    let tag = &svg[open..close];
+    let mut g = format!("<g class=\"sd-st\">{tag}</g><g class=\"sd-a\">");
+    for (k, &t0) in times.iter().enumerate() {
+        let t1 = times.get(k + 1).copied().unwrap_or(total);
+        let sc = scene(story, tm, &[], t0);
+        let Some((r, n)) = kicker_count(tag, variants, &sc.nodes) else { return svg.to_string() };
+        let mut text = tag.to_string();
+        text.replace_range(r, &n.to_string());
+        let _ = write!(g, "<g opacity=\"0\">{}{text}</g>", show_between(t0, t1, total));
+    }
+    g.push_str("</g>");
+    format!("{}{g}{}", &svg[..open], &svg[close..])
+}
+
 /// An SVG that plays the story without a script. Without motion, as with
 /// `prefers-reduced-motion`, it is the still diagram.
 pub fn animate_svg(svg: &str, variants: &[Variant], routes: &[Option<Route>], story: &Story, tm: &Timing) -> String {
@@ -421,6 +470,7 @@ pub fn animate_svg(svg: &str, variants: &[Variant], routes: &[Option<Route>], st
             .zip(&tm.beats)
             .filter_map(|(b, &(s, d))| b.node.as_ref().map(|(id, last)| (id.as_str(), s, s + d, *last)))
             .collect();
+        out = animate_kicker(&out, variants, story, tm);
         let ids: Vec<&str> = nodes.iter().map(|n| n.0).collect();
         let original = out.clone();
         out = swap_nodes(&out, variants, &ids, |v| {

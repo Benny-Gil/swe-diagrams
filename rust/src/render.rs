@@ -35,6 +35,8 @@ pub struct Variant {
     pub planned: String,
     pub wip: String,
     pub done: String,
+    /// The status of the source, for the done count of the kicker.
+    pub status: usize,
 }
 
 impl Variant {
@@ -88,6 +90,8 @@ fn variants(d: &mut Diagram, stories: &[Story], icons: &[Option<Icon>]) -> Vec<V
         return Vec::new();
     }
     let real: Vec<usize> = d.items.iter().map(|it| it.status).collect();
+    let status_of = |id: &str| d.items.iter().position(|it| it.id == id).map_or(0, |i| real[i]);
+    let statuses: Vec<usize> = ids.iter().map(|id| status_of(id)).collect();
     let mut texts: [Vec<String>; 3] = Default::default();
     for (k, status) in [3, 2, 1].into_iter().enumerate() {
         for it in d.items.iter_mut().filter(|it| !it.group) {
@@ -96,14 +100,20 @@ fn variants(d: &mut Diagram, stories: &[Story], icons: &[Option<Icon>]) -> Vec<V
         let svg = draw(d, icons);
         texts[k] = ids.iter().map(|id| node_groups(&svg, id).concat()).collect();
     }
-    for (it, s) in d.items.iter_mut().zip(real) {
+    for (it, &s) in d.items.iter_mut().zip(&real) {
         it.status = s;
     }
     let [planned, wip, done] = texts;
     let mut out: Vec<Variant> = Vec::new();
     for (k, id) in ids.into_iter().enumerate() {
         if !out.iter().any(|v| v.id == id) {
-            out.push(Variant { id, planned: planned[k].clone(), wip: wip[k].clone(), done: done[k].clone() });
+            out.push(Variant {
+                id,
+                planned: planned[k].clone(),
+                wip: wip[k].clone(),
+                done: done[k].clone(),
+                status: statuses[k],
+            });
         }
     }
     out

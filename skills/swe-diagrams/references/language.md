@@ -297,7 +297,7 @@ stories, the default story comes after them in the list.
 | `flow` | "Main path": the `=>` edges. Without them, a walk from the `:start` node. |
 | `state` | "Walk": a walk from the `:initial` state. It takes each transition one time. The event is the caption. |
 | `dataflow` | "Stream": tokens move along each edge without stop. |
-| `plan`, `timeline` | "Progress": the items change from planned to in progress to done, in line order. A done item, or an item with no status, goes to done. A `wip` item stops at in progress. A `plan` item does not change. |
+| `plan`, `timeline` | "Progress": the items change from planned to in progress to done, in line order, up to their status. A `done` item goes to done. A `wip` item stops at in progress. The other items do not change. The done count in the kicker follows each frame and ends at the real count. With no `done` or `wip` item, there is no story. |
 | the other types | "Main path": the `=>` edges, in line order. With no `=>` edge, there is no story. |
 
 The time of a step comes from the length of its edge: 120 px each

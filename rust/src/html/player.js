@@ -15,6 +15,8 @@
   var playBtn = box.querySelector("[data-p=play]");
   var speedBtn = box.querySelector("[data-p=speed]");
   var cap = box.querySelector(".sd-cap");
+  var kick = svg.querySelector(".kk");
+  var kickText = kick ? kick.textContent : "";
   var layer = document.createElementNS(NS, "g");
   svg.appendChild(layer);
 
@@ -125,9 +127,14 @@
       return;
     }
     if (s.mode === "progress" && active) {
+      // The done count of the kicker follows the shown statuses.
+      var m = /( \/ )(\d+)( of )/.exec(kickText), n = m ? +m[2] : 0;
       s.beats.forEach(function (b) {
-        status(b.node.id, phase(b));
+        var p = phase(b), v = data.variants[b.node.id] || [];
+        status(b.node.id, p);
+        n += (p === 1) - (v[3] === 1);
       });
+      if (m) kick.textContent = kickText.replace(m[0], m[1] + n + m[3]);
     }
     if (k !== beat) {
       var old = s.beats[beat];
@@ -197,6 +204,7 @@
     Object.keys(orig).forEach(function (id) {
       status(id, 0);
     });
+    if (kick) kick.textContent = kickText;
   }
 
   // Plays one beat and stops at its end. With reduced motion, it jumps.

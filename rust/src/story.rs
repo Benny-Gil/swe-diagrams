@@ -129,15 +129,14 @@ pub fn default_story(d: &Diagram) -> Option<Story> {
     Some(Story { title: title.to_string(), mode, beats })
 }
 
-/// The tasks in line order. A done task or a task with no status goes to
-/// done. A task in progress stops there. A planned task does not move.
+/// The tasks in line order, up to the status of the source: a done task
+/// goes to done, and a task in progress stops there. The other tasks do
+/// not move, so the last frame shows the real done count.
 fn progress(d: &Diagram) -> Vec<Beat> {
-    let mut nodes: Vec<&crate::model::Item> = d.items.iter().filter(|it| !it.group && it.status != 3).collect();
+    let mut nodes: Vec<&crate::model::Item> =
+        d.items.iter().filter(|it| !it.group && matches!(it.status, 1 | 2)).collect();
     nodes.sort_by_key(|it| it.line);
-    nodes
-        .into_iter()
-        .map(|it| Beat { moves: Vec::new(), node: Some((it.id.clone(), if it.status == 2 { 2 } else { 1 })) })
-        .collect()
+    nodes.into_iter().map(|it| Beat { moves: Vec::new(), node: Some((it.id.clone(), it.status)) }).collect()
 }
 
 /// A walk from the first node of kind `first` (else the first node in
@@ -210,7 +209,12 @@ mod tests {
         let s = &stories(&d)[0];
         assert_eq!(s.mode, Mode::Progress);
         let nodes: Vec<(String, usize)> = s.beats.iter().filter_map(|b| b.node.clone()).collect();
-        assert_eq!(nodes, [("a".into(), 1), ("b".into(), 2), ("d".into(), 1)]);
+        assert_eq!(nodes, [("a".into(), 1), ("b".into(), 2)]);
+    }
+
+    #[test]
+    fn a_plan_with_no_progress_has_no_story() {
+        assert!(stories(&parse("plan\na\nb plan\n").unwrap()).is_empty());
     }
 
     #[test]

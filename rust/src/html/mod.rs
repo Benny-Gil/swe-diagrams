@@ -112,18 +112,19 @@ fn stories_json(r: &Rendered) -> String {
 }
 
 /// The node groups of each progress node at the statuses planned, in
-/// progress, and done.
+/// progress, and done, then the status of the source.
 fn variants_json(r: &Rendered) -> String {
     let list: Vec<String> = r
         .variants
         .iter()
         .map(|v| {
             format!(
-                "{}:[{},{},{}]",
+                "{}:[{},{},{},{}]",
                 json_str(&v.id),
                 json_str(&inline_badges(&v.planned)),
                 json_str(&inline_badges(&v.wip)),
-                json_str(&inline_badges(&v.done))
+                json_str(&inline_badges(&v.done)),
+                v.status
             )
         })
         .collect();

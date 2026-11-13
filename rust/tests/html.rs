@@ -74,6 +74,8 @@ fn the_stories_have_steps_with_times() {
 fn a_plan_page_has_the_status_drawings() {
     let out = page("plan-ratelimit", Theme::Auto);
     assert!(out.contains("\"mode\":\"progress\""));
+    // The status of the source follows the drawings, for the done count.
+    assert!(out.contains("\\u003c/g\\u003e\",1],\"bucket\":["));
     assert!(out.contains(
         "\"variants\":{\"spec\":[\"\\u003cg data-k=\\\"node\\\" data-id=\\\"spec\\\" data-s=\\\"plan\\\"\\u003e"
     ));
