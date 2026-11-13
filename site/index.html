@@ -4,13 +4,172 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>swe-diagrams: diagrams of software that an agent draws in seconds</title>
-<meta name="description" content="An agent writes a few lines of text. swe-diagrams turns them into a diagram of what it built, is building, or plans. Install it with one line.">
-<meta property="og:title" content="swe-diagrams">
-<meta property="og:description" content="Diagrams of software that an agent draws in seconds.">
-<meta property="og:type" content="website">
-<meta property="og:url" content="https://swe-diagrams.bennygil.me/">
+<meta name="description" content="Open-source CLI and agent skill. Claude Code, Codex, or Cursor writes a few lines, and swe-diagrams draws architecture, sequence, plan, and nine more diagram types.">
+<meta name="robots" content="index, follow, max-image-preview:large, max-video-preview:-1">
+<meta name="author" content="Benny Gil">
 <link rel="canonical" href="https://swe-diagrams.bennygil.me/">
+<link rel="sitemap" type="application/xml" href="/sitemap.xml">
+<meta name="theme-color" content="#0e1217" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f8fafd" media="(prefers-color-scheme: light)">
+<meta property="og:site_name" content="swe-diagrams">
+<meta property="og:title" content="swe-diagrams: diagrams of software that an agent draws in seconds">
+<meta property="og:description" content="Open-source CLI and agent skill. Claude Code, Codex, or Cursor writes a few lines, and swe-diagrams draws architecture, sequence, plan, and nine more diagram types.">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="en_US">
+<meta property="og:url" content="https://swe-diagrams.bennygil.me/">
 <meta property="og:image" content="https://swe-diagrams.bennygil.me/poster.jpg">
+<meta property="og:image:width" content="1920">
+<meta property="og:image:height" content="1080">
+<meta property="og:image:alt" content="A diagram of a checkout service that swe-diagrams drew from six lines of text">
+<meta property="og:video" content="https://swe-diagrams.bennygil.me/brag.mp4">
+<meta property="og:video:type" content="video/mp4">
+<meta property="og:video:width" content="1920">
+<meta property="og:video:height" content="1080">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="swe-diagrams: diagrams of software that an agent draws in seconds">
+<meta name="twitter:description" content="Open-source CLI and agent skill. Claude Code, Codex, or Cursor writes a few lines, and swe-diagrams draws architecture, sequence, plan, and nine more diagram types.">
+<meta name="twitter:image" content="https://swe-diagrams.bennygil.me/poster.jpg">
+<meta name="twitter:image:alt" content="A diagram of a checkout service that swe-diagrams drew from six lines of text">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "WebSite",
+   "@id": "https://swe-diagrams.bennygil.me/#site",
+   "url": "https://swe-diagrams.bennygil.me/",
+   "name": "swe-diagrams",
+   "inLanguage": "en"
+  },
+  {
+   "@type": "SoftwareApplication",
+   "@id": "https://swe-diagrams.bennygil.me/#app",
+   "name": "swe-diagrams",
+   "url": "https://swe-diagrams.bennygil.me/",
+   "description": "Open-source CLI and agent skill. Claude Code, Codex, or Cursor writes a few lines, and swe-diagrams draws architecture, sequence, plan, and nine more diagram types.",
+   "applicationCategory": "DeveloperApplication",
+   "operatingSystem": "macOS, Linux, Windows",
+   "softwareVersion": "0.2.0",
+   "license": "https://opensource.org/licenses/MIT",
+   "isAccessibleForFree": true,
+   "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+   },
+   "downloadUrl": "https://github.com/Benny-Gil/swe-diagrams/releases/latest",
+   "installUrl": "https://github.com/Benny-Gil/swe-diagrams/blob/main/docs/install.md",
+   "screenshot": "https://swe-diagrams.bennygil.me/img/stack.svg",
+   "author": {
+    "@type": "Person",
+    "name": "Benny Gil",
+    "url": "https://bennygil.me"
+   },
+   "sameAs": [
+    "https://github.com/Benny-Gil/swe-diagrams",
+    "https://crates.io/crates/swe-diagrams",
+    "https://www.npmjs.com/package/swe-diagrams"
+   ],
+   "featureList": [
+    "Twelve diagram types for software",
+    "Status on each part: done, in progress, planned, added, changed, removed",
+    "Real product logos and AWS, Google Cloud, and Azure icons",
+    "Deterministic layout in about 3 ms",
+    "SVG, HTML, PNG, GIF, MP4, WebM, and terminal output",
+    "Animated stories without a script"
+   ]
+  },
+  {
+   "@type": "SoftwareSourceCode",
+   "name": "swe-diagrams",
+   "codeRepository": "https://github.com/Benny-Gil/swe-diagrams",
+   "programmingLanguage": "Rust",
+   "license": "https://opensource.org/licenses/MIT",
+   "targetProduct": {
+    "@id": "https://swe-diagrams.bennygil.me/#app"
+   }
+  },
+  {
+   "@type": "VideoObject",
+   "name": "swe-diagrams demo",
+   "description": "An agent writes six lines of text, one command runs, and a diagram appears. Then a plan fills in and the view zooms into one service.",
+   "thumbnailUrl": "https://swe-diagrams.bennygil.me/poster.jpg",
+   "contentUrl": "https://swe-diagrams.bennygil.me/brag.mp4",
+   "uploadDate": "2026-11-13",
+   "duration": "PT22S"
+  },
+  {
+   "@type": "FAQPage",
+   "mainEntity": [
+    {
+     "@type": "Question",
+     "name": "What is swe-diagrams?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "swe-diagrams is an open-source program and agent skill that draws diagrams of software. A coding agent writes 10 to 30 short lines of text, and the program turns them into a diagram in about 3 milliseconds. Each part can show a status: done, in progress, planned, added, changed, or removed."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Which coding agents can use it?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Claude Code, Codex, Cursor, and other coding agents that can run a command. The skill tells the agent when to draw a diagram and how to write it. Claude Code can also get the skill as a plugin."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Which diagram types does it draw?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Twelve types: architecture, sequence, plan, dependencies, flow, state, data flow, change map, entities, classes, timeline, and journey. An architecture diagram can show the logos of real products, such as Next.js, Postgres, Stripe, or AWS services."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Which output formats does it make?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "SVG with a light and a dark theme, an interactive HTML page with pan and zoom, PNG, GIF, MP4, WebM, and box drawing for the terminal. An SVG made with --animate moves without a script, so it also moves in a README."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "How do I install it?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Paste this into your coding agent: “Install swe-diagrams for me. Follow the steps in https://github.com/Benny-Gil/swe-diagrams/blob/main/docs/install.md”. You can also run npx swe-diagrams, cargo install swe-diagrams, or the install script for macOS and Linux, or download a prebuilt binary."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Why does the agent not look at the picture?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "The layout is deterministic. The program places each part and each line, and prints a one-line summary. The agent reads the summary, so it does not render an image to check it. This keeps the output tokens low."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Does it need the network?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Only to get a logo the first time a diagram names it. The program keeps each logo in ~/.cache/swe-diagrams/icons. With --offline, it does not use the network, and a node without a logo keeps a plain icon."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Is it free?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Yes. swe-diagrams is open source under the MIT License. The code is on GitHub, and the program is on crates.io and npm."
+     }
+    }
+   ]
+  }
+ ]
+}
+</script>
 <meta name="color-scheme" content="dark light">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <style>
@@ -70,7 +229,7 @@ h2{font:700 clamp(26px,4vw,36px)/1.15 var(--sans);letter-spacing:-.025em;margin:
 .card h3{margin:0;font:600 18px var(--sans)}
 .card p{margin:0;color:var(--mute);font-size:15.5px}
 .tag{font:400 12px var(--mono);color:var(--acc);border:1px solid color-mix(in srgb,var(--acc) 40%,transparent);border-radius:999px;padding:2px 10px;align-self:flex-start}
-.cmd{position:relative;background:var(--code);border:1px solid var(--line);border-radius:10px;padding:14px 84px 14px 16px;font:400 14px/1.55 var(--mono);overflow-x:auto;white-space:pre;color:var(--ink)}
+.cmd{position:relative;background:var(--code);border:1px solid var(--line);border-radius:10px;padding:14px 84px 14px 16px;font:400 14px/1.55 var(--mono);white-space:pre-wrap;overflow-wrap:anywhere;color:var(--ink)}
 .cmd button{position:absolute;top:8px;right:8px;font:600 13px var(--sans);color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:5px 12px;cursor:pointer}
 .cmd button:hover{border-color:var(--acc)}
 /* Examples */
@@ -79,6 +238,15 @@ figure{margin:0;border:1px solid var(--line);border-radius:14px;background:var(-
 figure img{width:100%;height:240px;object-fit:contain}
 figcaption{font-size:15px;color:var(--mute)}
 figcaption b{color:var(--ink);font-weight:600}
+/* Featured diagram: the picture and its source side by side */
+figure.feature{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:18px;margin-bottom:16px;padding:18px;align-items:start}
+figure.feature img{height:auto;border-radius:10px}
+.feature .src{display:flex;flex-direction:column;gap:12px;min-width:0}
+.feature pre{margin:0;background:var(--code);border:1px solid var(--line);border-radius:10px;padding:14px 16px;font:400 13px/1.6 var(--mono);overflow-x:auto;color:var(--ink)}
+.feature .note{margin:0;font-size:14.5px;color:var(--mute);overflow-wrap:anywhere}
+@media (max-width:860px){figure.feature{grid-template-columns:minmax(0,1fr)}}
+/* Questions */
+.qa h3{font-size:17px}
 footer{border-top:1px solid var(--line);padding-block:36px 48px;color:var(--mute);font-size:14.5px}
 footer p{margin:0 0 8px;max-width:78ch}
 @media (max-width:640px){.links a:not(.cta){padding:6px 8px;font-size:14px}.hero{padding-top:40px}}
@@ -93,6 +261,7 @@ footer p{margin:0 0 8px;max-width:78ch}
       <a href="#demo">Demo</a>
       <a href="#get">How to get it</a>
       <a href="#examples">Examples</a>
+      <a href="#faq">FAQ</a>
       <a href="https://github.com/Benny-Gil/swe-diagrams">GitHub</a>
       <a class="cta" href="#get">Get it</a>
     </div>
@@ -172,7 +341,41 @@ https://github.com/Benny-Gil/swe-diagrams/blob/main/docs/install.md</div>
   <section id="examples">
     <div class="wrap">
       <h2>What it draws</h2>
-      <p class="sub">Every picture comes from a few lines of text. The program places everything, so the agent never looks at the picture to fix it. One diagram takes about 3 milliseconds. Pictures follow your light or dark setting.</p>
+      <p class="sub">Every picture comes from a few lines of text. The program places everything, so the agent never looks at the picture to fix it. One diagram takes about 3 milliseconds. The moving dots show the story of each diagram. Pictures follow your light or dark setting.</p>
+      <figure class="feature" id="stack">
+        <img src="img/stack.svg" width="895" height="808" alt="Animated tech stack diagram: a customer, a Next.js web app and a Hono API on Vercel, Clerk and Stripe services, Postgres on Neon, Redis, and GitHub Actions. Dots move along the lines to show an order." fetchpriority="low">
+        <div class="src">
+          <figcaption><b>Tech stack.</b> Real product logos, a group for each vendor, and a status on each part. The dots play the story &ldquo;Place an order&rdquo;: the request goes from the customer to the database and to Stripe, and the replies come back.</figcaption>
+          <pre aria-label="The source of the tech stack diagram"><code>arch &quot;Tech stack&quot;
+user &quot;Customer&quot; :actor
+group app &quot;Vercel&quot; @vercel :vendor
+  web &quot;Web app&quot; &quot;next.js&quot; @nextjs done
+  api &quot;API&quot; &quot;hono&quot; @hono done
+group svc &quot;Services&quot; :vendor
+  auth &quot;Auth&quot; &quot;clerk&quot; @clerk done
+  pay &quot;Payments&quot; &quot;stripe&quot; @stripe wip
+group data &quot;Data&quot;
+  db &quot;Postgres&quot; &quot;neon&quot; :store @neon done
+  cache &quot;Cache&quot; &quot;redis&quot; :store @redis plan
+ci &quot;CI&quot; &quot;github actions&quot; @githubactions done
+
+user =&gt; web =&gt; api =&gt; db
+web -&gt; auth &quot;sign in&quot;
+api -&gt; pay &quot;charge&quot;
+api -&gt; cache &quot;sessions&quot;
+ci -&gt; app &quot;deploy&quot;
+
+story &quot;Place an order&quot;
+  user -&gt; web &quot;click Buy&quot;
+  web -&gt; auth &quot;check session&quot;
+  web -&gt; api &quot;POST /orders&quot;
+  api -&gt; db &quot;insert order&quot; &amp; api -&gt; pay &quot;charge card&quot;
+  pay --&gt; api &quot;paid&quot;
+  api --&gt; web &quot;201 Created&quot;
+  web --&gt; user &quot;order page&quot;</code></pre>
+          <p class="note">These 27 lines are the whole input. The command is <code>swe-diagrams render stack.sd -o stack.svg --animate</code>.</p>
+        </div>
+      </figure>
       <div class="ex">
         <figure><img src="img/arch-checkout.svg" alt="Architecture diagram of a checkout service with the status of each part" loading="lazy"><figcaption><b>Architecture.</b> Which parts exist, which one the agent works on, and which are planned.</figcaption></figure>
         <figure><img src="img/plan-ratelimit.svg" alt="Plan graph for a rate limit feature" loading="lazy"><figcaption><b>Plan.</b> The order of the tasks, and where the work is now.</figcaption></figure>
@@ -182,6 +385,22 @@ https://github.com/Benny-Gil/swe-diagrams/blob/main/docs/install.md</div>
         <figure><img src="img/state-order.svg" alt="State machine of an order" loading="lazy"><figcaption><b>State.</b> States, events, and the start and end marks.</figcaption></figure>
       </div>
       <p class="sub" style="margin-top:28px">Twelve types in all: architecture, sequence, plan, dependencies, flow, state, data flow, change map, entities, classes, timeline, and journey. Output goes to SVG, an interactive HTML page, PNG, GIF, MP4, and terminal text. A node can open a detail level, and a story can play the motion of a request.</p>
+    </div>
+  </section>
+  <section id="faq">
+    <div class="wrap">
+      <h2>Questions</h2>
+      <p class="sub">Short answers about what swe-diagrams does and how to get it.</p>
+      <div class="grid">
+        <div class="card qa"><h3>What is swe-diagrams?</h3><p>swe-diagrams is an open-source program and agent skill that draws diagrams of software. A coding agent writes 10 to 30 short lines of text, and the program turns them into a diagram in about 3 milliseconds. Each part can show a status: done, in progress, planned, added, changed, or removed.</p></div>
+        <div class="card qa"><h3>Which coding agents can use it?</h3><p>Claude Code, Codex, Cursor, and other coding agents that can run a command. The skill tells the agent when to draw a diagram and how to write it. Claude Code can also get the skill as a plugin.</p></div>
+        <div class="card qa"><h3>Which diagram types does it draw?</h3><p>Twelve types: architecture, sequence, plan, dependencies, flow, state, data flow, change map, entities, classes, timeline, and journey. An architecture diagram can show the logos of real products, such as Next.js, Postgres, Stripe, or AWS services.</p></div>
+        <div class="card qa"><h3>Which output formats does it make?</h3><p>SVG with a light and a dark theme, an interactive HTML page with pan and zoom, PNG, GIF, MP4, WebM, and box drawing for the terminal. An SVG made with --animate moves without a script, so it also moves in a README.</p></div>
+        <div class="card qa"><h3>How do I install it?</h3><p>Paste this into your coding agent: “Install swe-diagrams for me. Follow the steps in https://github.com/Benny-Gil/swe-diagrams/blob/main/docs/install.md”. You can also run npx swe-diagrams, cargo install swe-diagrams, or the install script for macOS and Linux, or download a prebuilt binary.</p></div>
+        <div class="card qa"><h3>Why does the agent not look at the picture?</h3><p>The layout is deterministic. The program places each part and each line, and prints a one-line summary. The agent reads the summary, so it does not render an image to check it. This keeps the output tokens low.</p></div>
+        <div class="card qa"><h3>Does it need the network?</h3><p>Only to get a logo the first time a diagram names it. The program keeps each logo in ~/.cache/swe-diagrams/icons. With --offline, it does not use the network, and a node without a logo keeps a plain icon.</p></div>
+        <div class="card qa"><h3>Is it free?</h3><p>Yes. swe-diagrams is open source under the MIT License. The code is on GitHub, and the program is on crates.io and npm.</p></div>
+      </div>
     </div>
   </section>
 </main>
