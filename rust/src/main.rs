@@ -9,6 +9,7 @@ use std::process::ExitCode;
 use swe_diagrams::anim::{self, FrameOptions};
 use swe_diagrams::text_out::to_text;
 use swe_diagrams::tour::{tour_frames, TourOptions};
+use swe_diagrams::vendor::{self, Cloud};
 use swe_diagrams::video::{encode_gif, encode_video};
 use swe_diagrams::{apply_theme, html_at, png, render_path, Format, IconOptions, Rendered, Theme};
 
@@ -139,6 +140,9 @@ fn read_input(input: &OsString) -> io::Result<Vec<u8>> {
 fn run(argv: &[OsString]) -> u8 {
     if argv.len() == 1 && argv[0] == "--version" {
         return if to_stdout(VERSION) { 0 } else { 1 };
+    }
+    if argv.first().is_some_and(|a| a == "icons") {
+        return list_icons(&argv[1..]);
     }
     if argv.len() < 2 || argv[0] != "render" {
         to_stderr(USAGE);
@@ -328,6 +332,45 @@ fn run(argv: &[OsString]) -> u8 {
             }
             to_stderr(&text);
             2
+        }
+    }
+}
+
+/// `swe-diagrams icons <aws|gcp|azure> [filter] [--icons dir] [--offline]`
+fn list_icons(argv: &[OsString]) -> u8 {
+    const ICONS_USAGE: &str = "usage: swe-diagrams icons <aws|gcp|azure> [filter] [--icons dir] [--offline]\n";
+    let mut opts =
+        IconOptions { dir: None, offline: std::env::var_os("SWE_DIAGRAMS_OFFLINE").is_some_and(|v| v == "1") };
+    let mut words: Vec<String> = Vec::new();
+    let mut k = 0;
+    while k < argv.len() {
+        if argv[k] == "--icons" && k + 1 < argv.len() {
+            opts.dir = Some(std::path::PathBuf::from(&argv[k + 1]));
+            k += 2;
+        } else if argv[k] == "--offline" {
+            opts.offline = true;
+            k += 1;
+        } else {
+            words.push(argv[k].to_string_lossy().into_owned());
+            k += 1;
+        }
+    }
+    let cloud = words.first().and_then(|w| Cloud::from_name(w));
+    let (Some(cloud), true) = (cloud, words.len() <= 2) else {
+        to_stderr(ICONS_USAGE);
+        return 1;
+    };
+    match vendor::list(cloud, words.get(1).map_or("", String::as_str), &opts) {
+        Ok(lines) => {
+            let mut text = lines.join("\n");
+            if !text.is_empty() {
+                text.push('\n');
+            }
+            u8::from(!to_stdout(&text))
+        }
+        Err(err) => {
+            to_stderr(&format!("error: {err}\n"));
+            1
         }
     }
 }

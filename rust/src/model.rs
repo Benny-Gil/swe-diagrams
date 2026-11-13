@@ -14,6 +14,10 @@ pub const STATE_KINDS: [&str; 4] = ["state", "initial", "final", "choice"];
 pub const DATAFLOW_KINDS: [&str; 5] = ["transform", "source", "sink", "store", "queue"];
 pub const ERD_KINDS: [&str; 1] = ["entity"];
 pub const CLASS_KINDS: [&str; 4] = ["class", "interface", "abstract", "enum"];
+/// The kinds of a group in `arch` and `change`. The first three are the
+/// vendor clouds, and the others draw in the vendor look inside them.
+pub const GROUP_KINDS: [&str; 12] =
+    ["", "aws", "gcp", "azure", "region", "az", "vpc", "vnet", "subnet", "public", "private", "rg"];
 pub const TIMELINE_KINDS: [&str; 2] = ["event", "milestone"];
 pub const JOURNEY_KINDS: [&str; 3] = ["page", "modal", "external"];
 
@@ -141,6 +145,8 @@ pub struct Item {
     pub icon: String,
     /// A group with the `:vendor` kind gets the warm palette.
     pub vendor: bool,
+    /// Index in `GROUP_KINDS`.
+    pub group_kind: usize,
     /// The fields and methods of an `erd` or `class` node, in line order.
     pub members: Vec<Member>,
     pub zoom: Zoom,

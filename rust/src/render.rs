@@ -12,6 +12,7 @@ use crate::model::{Diagram, DiagramError, DiagramType};
 use crate::story::{stories, Story};
 use crate::svg::{change_counts, render_graph, render_seq};
 use crate::svg_timeline::render_timeline;
+use crate::svg_vendor::group_icon;
 
 pub struct Rendered {
     pub svg: String,
@@ -179,10 +180,16 @@ fn icons_of(d: &Diagram, opts: &IconOptions, missing: &mut Vec<String>) -> Vec<O
     let mut icons: Vec<Option<Icon>> = d.items.iter().map(|_| None).collect();
     // Only a diagram with tiles draws logos. The other types draw cards.
     if d.dtype.has_tiles() {
-        let wanted: Vec<usize> = (0..d.items.len()).filter(|&i| !d.items[i].icon.is_empty()).collect();
-        let names: Vec<String> = wanted.iter().map(|&i| d.items[i].icon.clone()).collect();
+        // An AWS group with no `@` icon gets the group icon of its kind.
+        let name = |i: usize| match group_icon(&d.items, i) {
+            Some(g) if d.items[i].icon.is_empty() => g.to_string(),
+            _ => d.items[i].icon.clone(),
+        };
+        let wanted: Vec<usize> = (0..d.items.len()).filter(|&i| !name(i).is_empty()).collect();
+        let names: Vec<String> = wanted.iter().map(|&i| name(i)).collect();
         for (&i, found) in wanted.iter().zip(resolve(&names, opts)) {
-            if found.is_none() && !missing.contains(&d.items[i].icon) {
+            let asked = !d.items[i].icon.is_empty();
+            if found.is_none() && asked && !missing.contains(&d.items[i].icon) {
                 missing.push(d.items[i].icon.clone());
             }
             icons[i] = found;

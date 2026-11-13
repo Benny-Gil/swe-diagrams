@@ -24,10 +24,12 @@ pub mod svg;
 pub mod svg_journey;
 pub mod svg_shapes;
 pub mod svg_timeline;
+pub mod svg_vendor;
 pub mod text;
 pub mod text_out;
 pub mod theme;
 pub mod tour;
+pub mod vendor;
 pub mod video;
 
 pub use html::{html, html_at};

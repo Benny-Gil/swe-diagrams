@@ -1,0 +1,13 @@
+change "Move the shop to AKS"
+
+group a "Azure" :azure
+  group rg "rg-shop" :rg
+    group net "vnet-shop" :vnet
+      aks "Cluster" @azure/aks add
+      vm "Old VM" @azure/vm del
+    db "Cosmos" @azure/cosmos
+    blob "Blobs" @azure/blob mod
+    rgs "Groups" @azure/resource-group
+aks -> db add
+vm -> db del
+aks -> blob

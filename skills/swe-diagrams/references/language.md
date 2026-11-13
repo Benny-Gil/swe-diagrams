@@ -399,6 +399,57 @@ runs do not.
 - The harness does not change the colours of a logo. A white logo gets a
   dark tile. The logos are the trademarks of their owners.
 
+## Cloud vendor icons
+
+In `arch` and `change`, `@aws/<name>`, `@gcp/<name>`, and `@azure/<name>`
+put an icon from the official package of the vendor on a node:
+
+```
+group cloud "AWS Cloud" :aws
+  group reg "us-east-1" :region
+    group vpc "VPC" :vpc
+      group pub "Public subnet" :public
+        alb "ALB" @aws/alb
+      group priv "Private subnet" :private
+        app "App" @aws/ecs
+        db "Orders" @aws/rds
+    bucket "Assets" @aws/s3
+```
+
+The first use of a vendor downloads its package from the vendor page with
+`curl` and keeps it in `<icon dir>/vendor/`, with an index of the names.
+The next runs do not use the network. The packages are AWS Architecture
+Icons, the Google Cloud core product and category icons, and Azure Public
+Service Icons. The credit line under the canvas names the package. To get
+a new release of a package, delete its files in `<icon dir>/vendor/`.
+
+- The name is the file name of the icon. The match ignores case and the
+  characters `-`, `_`, and space. The vendor prefix (`Amazon`, `AWS`,
+  `Cloud`, `Azure`) and a plural `s` are optional: `@aws/simple-queue-service`,
+  `@aws/ec2`, `@azure/virtual-network`.
+- Short names work: `s3` `ec2` `rds` `vpc` `alb` `nlb` `iam` `sqs` `sns`
+  `ecs` `eks` `lambda` for AWS, `gke` `gcs` `bq` `gce` `run` `sql` for
+  Google Cloud, and `aks` `vm` `vnet` `cosmos` `blob` `sql` for Azure.
+- Google gives an icon only to its core products. Another product gets the
+  icon of its category, as the Google guide says: `@gcp/pubsub` gives the
+  Integration Services icon.
+- `swe-diagrams icons aws s3` prints the names that match, with the best
+  match first. Without a filter, it prints all names.
+- When the package has no icon, the node keeps the icon of its kind, and
+  the summary line lists `noicon=aws/<name>`.
+
+These group kinds give the vendor look: `:aws`, `:gcp`, and `:azure` for
+the cloud, and inside them `:region`, `:az`, `:vpc`, `:vnet`, `:subnet`,
+`:public`, `:private`, and `:rg`. The look applies only inside a vendor
+group.
+
+- In `:aws`, an icon has no tile, because the icon has its own square.
+  Each group has square corners and an outline only, with its icon in the
+  top left corner. A region and an availability zone are dashed teal, a
+  VPC is purple, a public subnet is green, and a private subnet is teal.
+- In `:gcp` and `:azure`, the nodes keep their tiles. The cloud group has
+  the vendor blue. A group inside it has a plain outline.
+
 ## Records: erd and class
 
 In `erd` and `class`, a node is a record: a header with the label, and one
@@ -544,6 +595,7 @@ A status on the node line wins over this rule.
 swe-diagrams render diagram.sd -o diagram.svg
 swe-diagrams render - < diagram.sd > diagram.svg
 swe-diagrams render diagram.sd -o diagram.svg --icons ./icons --offline
+swe-diagrams icons aws load-balancer
 swe-diagrams render diagram.sd -o diagram.html
 swe-diagrams render diagram.sd -o diagram.png --theme dark --scale 3
 swe-diagrams render diagram.sd -o diagram.svg --animate --story "Add an item"

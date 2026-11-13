@@ -105,6 +105,10 @@ cart --> queue "publish" plan        # -> is solid, --> is dashed, <-> has two a
 - Logos (`arch` only): `@name` puts a product logo on the tile, for example
   `@nextjs`, `@postgres`, `@redis`, `@stripe`. The first use of a logo gets
   it from the network. A node without a logo keeps the icon of its kind.
+- Cloud icons (`arch`, `change`): `@aws/s3`, `@gcp/bq`, `@azure/aks` use the
+  official vendor packages. Put the nodes in a `group ... :aws` (or `:gcp`,
+  `:azure`), with `:region` `:az` `:vpc` `:public` `:private` groups inside,
+  for the vendor look. `swe-diagrams icons aws <filter>` lists the names.
 - An edge can use an id that has no node line. The label is then the id.
 - `seq`: nodes are participants, edges are messages in time order, `-->` is
   a reply, `a -> a` is a message to self. No groups.

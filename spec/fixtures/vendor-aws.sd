@@ -1,0 +1,25 @@
+arch "Web app on AWS"
+
+user "User" :actor
+group cloud "AWS Cloud" :aws
+  group reg "us-east-1" :region
+    cdn "CloudFront" @aws/cloudfront
+    group vpc "VPC" :vpc
+      group az1 "Availability Zone A" :az
+        group pub "Public subnet" :public
+          alb "ALB" @aws/alb
+        group priv "Private subnet" :private
+          app "App" "EC2 fleet" @aws/ec2s
+          db "Orders DB" @aws/Amazon-RDS
+    bucket "Assets" @aws/s3
+    jobs "Jobs" @aws/sqs
+    worker "Worker" @aws/lambda
+    legacy "Legacy" @aws/no-such-icon
+group home "Home office" :vendor
+  laptop "Laptop" @aws/ec2
+
+user => cdn => alb => app
+app -> db "sql"
+app --> jobs
+jobs -> worker
+cdn -> bucket

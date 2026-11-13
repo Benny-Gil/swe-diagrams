@@ -4,7 +4,7 @@ use std::borrow::Cow;
 use std::collections::HashMap;
 
 use crate::model::{
-    is_arrow_word, Diagram, DiagramError, DiagramType, Edge, Item, Member, ERD_FLAGS, STATUS_WORDS, TYPES,
+    is_arrow_word, Diagram, DiagramError, DiagramType, Edge, Item, Member, ERD_FLAGS, GROUP_KINDS, STATUS_WORDS, TYPES,
 };
 use crate::parse_story::StoryLines;
 
@@ -154,6 +154,7 @@ fn add(d: &mut Diagram, id: &str, group: bool, parent: Option<usize>, ln: usize,
         implicit,
         icon: String::new(),
         vendor: false,
+        group_kind: 0,
         members: Vec::new(),
         zoom: Default::default(),
     });
@@ -430,6 +431,7 @@ pub fn parse(src: &str) -> Result<Diagram, DiagramError> {
             member_of = Some((Some(idx), indent));
         }
         let kinds = d.dtype.kinds();
+        let tiles = d.dtype.has_tiles();
         let it = &mut d.items[idx];
         let mut strings = 0;
         for t in &toks[k..] {
@@ -453,8 +455,12 @@ pub fn parse(src: &str) -> Result<Diagram, DiagramError> {
                 match kinds.iter().position(|&x| x == name) {
                     Some(kind) if !is_group => it.kind = kind,
                     None if is_group && name == "vendor" => it.vendor = true,
+                    None if is_group && tiles && GROUP_KINDS[1..].contains(&name) => {
+                        it.group_kind = GROUP_KINDS.iter().position(|&x| x == name).unwrap_or(0);
+                    }
                     _ => {
-                        let list: Vec<String> = kinds.iter().map(|x| format!(":{x}")).collect();
+                        let words = if is_group && tiles { &GROUP_KINDS[1..] } else { kinds };
+                        let list: Vec<String> = words.iter().map(|x| format!(":{x}")).collect();
                         errs.push(format!("{ln}: unknown kind '{v}'. Kinds: {}", list.join(" ")));
                     }
                 }

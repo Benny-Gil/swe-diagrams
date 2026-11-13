@@ -357,6 +357,7 @@ fn new_item(id: &str, line: usize) -> Item {
         implicit: false,
         icon: String::new(),
         vendor: false,
+        group_kind: 0,
         members: Vec::new(),
         zoom: Zoom::default(),
     }
