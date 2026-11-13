@@ -10,6 +10,13 @@ This file lists the changes in each version. The project uses
 - Easy install: steps for an agent (`docs/install.md`), a Claude Code
   plugin, an install script, and prebuilt binaries for each release.
 - A CI check for each pull request.
+- The npm package `swe-diagrams`: a launcher with no dependencies. The
+  first run downloads the release binary and checks its SHA-256 sum.
+  `npx swe-diagrams` works on Linux, macOS, and Windows.
+- The crate `swe-diagrams` is ready for crates.io, so
+  `cargo install swe-diagrams` works after the first `cargo publish`.
+- `scripts/bump-version.sh` sets the version in each file that holds it.
+- Release steps in `docs/release.md`.
 
 ### Changed
 
