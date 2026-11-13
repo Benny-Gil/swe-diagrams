@@ -1,0 +1,15 @@
+seq "Login with refresh token"
+
+u "User" :actor
+app "Web app"
+api "Auth API" wip
+db "Sessions" "postgres" :store
+
+u -> app "submit credentials"
+app -> api "POST /login" done
+api -> db "find user" done
+db --> api "row" done
+api -> api "verify hash" done
+api -> db "insert session" wip
+api --> app "access + refresh token" wip
+app --> u "redirect" plan

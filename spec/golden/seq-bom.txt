@@ -1,0 +1,1 @@
+ok seq nodes=2 edges=1 implicit=a,b

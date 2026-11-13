@@ -1,0 +1,540 @@
+arch "Synthetic system, 200 nodes"
+
+group g0 "Domain 0"
+  n0_0 "Service 0.0" "pkg/n0_0" :store done
+  n0_1 "Service 0.1" "pkg/n0_1" :store done
+  n0_2 "Service 0.2" "pkg/n0_2" :queue
+  n0_3 "Service 0.3" "pkg/n0_3" done
+  n0_4 "Service 0.4" "pkg/n0_4" :store plan
+  n0_5 "Service 0.5" "pkg/n0_5" wip
+  n0_6 "Service 0.6" "pkg/n0_6" :queue done
+  n0_7 "Service 0.7" "pkg/n0_7" :store done
+  n0_8 "Service 0.8" "pkg/n0_8" :store
+  n0_9 "Service 0.9" "pkg/n0_9" wip
+group g1 "Domain 1"
+  n1_0 "Service 1.0" "pkg/n1_0" wip
+  n1_1 "Service 1.1" "pkg/n1_1" :queue done
+  n1_2 "Service 1.2" "pkg/n1_2" :store
+  n1_3 "Service 1.3" "pkg/n1_3" done
+  n1_4 "Service 1.4" "pkg/n1_4" wip
+  n1_5 "Service 1.5" "pkg/n1_5" :queue plan
+  n1_6 "Service 1.6" "pkg/n1_6" :store plan
+  n1_7 "Service 1.7" "pkg/n1_7" :queue plan
+  n1_8 "Service 1.8" "pkg/n1_8" done
+  n1_9 "Service 1.9" "pkg/n1_9" :store done
+group g2 "Domain 2"
+  n2_0 "Service 2.0" "pkg/n2_0" :queue wip
+  n2_1 "Service 2.1" "pkg/n2_1" :queue
+  n2_2 "Service 2.2" "pkg/n2_2" wip
+  n2_3 "Service 2.3" "pkg/n2_3" done
+  n2_4 "Service 2.4" "pkg/n2_4" plan
+  n2_5 "Service 2.5" "pkg/n2_5"
+  n2_6 "Service 2.6" "pkg/n2_6" plan
+  n2_7 "Service 2.7" "pkg/n2_7" done
+  n2_8 "Service 2.8" "pkg/n2_8" plan
+  n2_9 "Service 2.9" "pkg/n2_9" plan
+group g3 "Domain 3"
+  n3_0 "Service 3.0" "pkg/n3_0" :store plan
+  n3_1 "Service 3.1" "pkg/n3_1" plan
+  n3_2 "Service 3.2" "pkg/n3_2" :store wip
+  n3_3 "Service 3.3" "pkg/n3_3" :queue done
+  n3_4 "Service 3.4" "pkg/n3_4" :store done
+  n3_5 "Service 3.5" "pkg/n3_5" done
+  n3_6 "Service 3.6" "pkg/n3_6"
+  n3_7 "Service 3.7" "pkg/n3_7" wip
+  n3_8 "Service 3.8" "pkg/n3_8" :queue plan
+  n3_9 "Service 3.9" "pkg/n3_9" done
+group g4 "Domain 4"
+  n4_0 "Service 4.0" "pkg/n4_0" wip
+  n4_1 "Service 4.1" "pkg/n4_1" wip
+  n4_2 "Service 4.2" "pkg/n4_2"
+  n4_3 "Service 4.3" "pkg/n4_3" :store done
+  n4_4 "Service 4.4" "pkg/n4_4" :queue wip
+  n4_5 "Service 4.5" "pkg/n4_5" done
+  n4_6 "Service 4.6" "pkg/n4_6" :store
+  n4_7 "Service 4.7" "pkg/n4_7" plan
+  n4_8 "Service 4.8" "pkg/n4_8" :store done
+  n4_9 "Service 4.9" "pkg/n4_9" :queue plan
+group g5 "Domain 5"
+  n5_0 "Service 5.0" "pkg/n5_0" :store wip
+  n5_1 "Service 5.1" "pkg/n5_1" done
+  n5_2 "Service 5.2" "pkg/n5_2" plan
+  n5_3 "Service 5.3" "pkg/n5_3"
+  n5_4 "Service 5.4" "pkg/n5_4"
+  n5_5 "Service 5.5" "pkg/n5_5" done
+  n5_6 "Service 5.6" "pkg/n5_6" done
+  n5_7 "Service 5.7" "pkg/n5_7" :queue
+  n5_8 "Service 5.8" "pkg/n5_8" done
+  n5_9 "Service 5.9" "pkg/n5_9" done
+group g6 "Domain 6"
+  n6_0 "Service 6.0" "pkg/n6_0" done
+  n6_1 "Service 6.1" "pkg/n6_1" plan
+  n6_2 "Service 6.2" "pkg/n6_2" :queue done
+  n6_3 "Service 6.3" "pkg/n6_3" plan
+  n6_4 "Service 6.4" "pkg/n6_4"
+  n6_5 "Service 6.5" "pkg/n6_5" done
+  n6_6 "Service 6.6" "pkg/n6_6" plan
+  n6_7 "Service 6.7" "pkg/n6_7" done
+  n6_8 "Service 6.8" "pkg/n6_8" :queue wip
+  n6_9 "Service 6.9" "pkg/n6_9" :store wip
+group g7 "Domain 7"
+  n7_0 "Service 7.0" "pkg/n7_0" done
+  n7_1 "Service 7.1" "pkg/n7_1" done
+  n7_2 "Service 7.2" "pkg/n7_2" :store plan
+  n7_3 "Service 7.3" "pkg/n7_3" wip
+  n7_4 "Service 7.4" "pkg/n7_4" wip
+  n7_5 "Service 7.5" "pkg/n7_5" :queue
+  n7_6 "Service 7.6" "pkg/n7_6"
+  n7_7 "Service 7.7" "pkg/n7_7" done
+  n7_8 "Service 7.8" "pkg/n7_8" :store done
+  n7_9 "Service 7.9" "pkg/n7_9" :store plan
+group g8 "Domain 8"
+  n8_0 "Service 8.0" "pkg/n8_0" :queue plan
+  n8_1 "Service 8.1" "pkg/n8_1" plan
+  n8_2 "Service 8.2" "pkg/n8_2"
+  n8_3 "Service 8.3" "pkg/n8_3"
+  n8_4 "Service 8.4" "pkg/n8_4" done
+  n8_5 "Service 8.5" "pkg/n8_5" :store
+  n8_6 "Service 8.6" "pkg/n8_6" :queue wip
+  n8_7 "Service 8.7" "pkg/n8_7" done
+  n8_8 "Service 8.8" "pkg/n8_8" wip
+  n8_9 "Service 8.9" "pkg/n8_9"
+group g9 "Domain 9"
+  n9_0 "Service 9.0" "pkg/n9_0" :store plan
+  n9_1 "Service 9.1" "pkg/n9_1"
+  n9_2 "Service 9.2" "pkg/n9_2" plan
+  n9_3 "Service 9.3" "pkg/n9_3" plan
+  n9_4 "Service 9.4" "pkg/n9_4" wip
+  n9_5 "Service 9.5" "pkg/n9_5" :store plan
+  n9_6 "Service 9.6" "pkg/n9_6" :queue wip
+  n9_7 "Service 9.7" "pkg/n9_7" :queue done
+  n9_8 "Service 9.8" "pkg/n9_8" done
+  n9_9 "Service 9.9" "pkg/n9_9" :queue
+group g10 "Domain 10"
+  n10_0 "Service 10.0" "pkg/n10_0" :queue
+  n10_1 "Service 10.1" "pkg/n10_1" :store wip
+  n10_2 "Service 10.2" "pkg/n10_2" :queue plan
+  n10_3 "Service 10.3" "pkg/n10_3" :store done
+  n10_4 "Service 10.4" "pkg/n10_4" :queue done
+  n10_5 "Service 10.5" "pkg/n10_5" :store wip
+  n10_6 "Service 10.6" "pkg/n10_6" :queue plan
+  n10_7 "Service 10.7" "pkg/n10_7" :store
+  n10_8 "Service 10.8" "pkg/n10_8" :queue done
+  n10_9 "Service 10.9" "pkg/n10_9" done
+group g11 "Domain 11"
+  n11_0 "Service 11.0" "pkg/n11_0" :queue plan
+  n11_1 "Service 11.1" "pkg/n11_1" :store plan
+  n11_2 "Service 11.2" "pkg/n11_2" :queue done
+  n11_3 "Service 11.3" "pkg/n11_3" :store plan
+  n11_4 "Service 11.4" "pkg/n11_4" :queue wip
+  n11_5 "Service 11.5" "pkg/n11_5" :store
+  n11_6 "Service 11.6" "pkg/n11_6" plan
+  n11_7 "Service 11.7" "pkg/n11_7" plan
+  n11_8 "Service 11.8" "pkg/n11_8"
+  n11_9 "Service 11.9" "pkg/n11_9" :queue done
+group g12 "Domain 12"
+  n12_0 "Service 12.0" "pkg/n12_0"
+  n12_1 "Service 12.1" "pkg/n12_1" plan
+  n12_2 "Service 12.2" "pkg/n12_2" :store
+  n12_3 "Service 12.3" "pkg/n12_3"
+  n12_4 "Service 12.4" "pkg/n12_4"
+  n12_5 "Service 12.5" "pkg/n12_5" :store wip
+  n12_6 "Service 12.6" "pkg/n12_6"
+  n12_7 "Service 12.7" "pkg/n12_7" :store plan
+  n12_8 "Service 12.8" "pkg/n12_8" :store
+  n12_9 "Service 12.9" "pkg/n12_9"
+group g13 "Domain 13"
+  n13_0 "Service 13.0" "pkg/n13_0" plan
+  n13_1 "Service 13.1" "pkg/n13_1" :store
+  n13_2 "Service 13.2" "pkg/n13_2" wip
+  n13_3 "Service 13.3" "pkg/n13_3" done
+  n13_4 "Service 13.4" "pkg/n13_4"
+  n13_5 "Service 13.5" "pkg/n13_5" :store
+  n13_6 "Service 13.6" "pkg/n13_6" :store plan
+  n13_7 "Service 13.7" "pkg/n13_7" :queue done
+  n13_8 "Service 13.8" "pkg/n13_8" done
+  n13_9 "Service 13.9" "pkg/n13_9"
+group g14 "Domain 14"
+  n14_0 "Service 14.0" "pkg/n14_0" plan
+  n14_1 "Service 14.1" "pkg/n14_1"
+  n14_2 "Service 14.2" "pkg/n14_2" :queue done
+  n14_3 "Service 14.3" "pkg/n14_3" wip
+  n14_4 "Service 14.4" "pkg/n14_4" :queue wip
+  n14_5 "Service 14.5" "pkg/n14_5" wip
+  n14_6 "Service 14.6" "pkg/n14_6" :queue
+  n14_7 "Service 14.7" "pkg/n14_7" :queue
+  n14_8 "Service 14.8" "pkg/n14_8" :store done
+  n14_9 "Service 14.9" "pkg/n14_9" :queue plan
+group g15 "Domain 15"
+  n15_0 "Service 15.0" "pkg/n15_0" done
+  n15_1 "Service 15.1" "pkg/n15_1"
+  n15_2 "Service 15.2" "pkg/n15_2" wip
+  n15_3 "Service 15.3" "pkg/n15_3" :queue plan
+  n15_4 "Service 15.4" "pkg/n15_4" :store wip
+  n15_5 "Service 15.5" "pkg/n15_5"
+  n15_6 "Service 15.6" "pkg/n15_6" wip
+  n15_7 "Service 15.7" "pkg/n15_7" wip
+  n15_8 "Service 15.8" "pkg/n15_8" wip
+  n15_9 "Service 15.9" "pkg/n15_9" wip
+group g16 "Domain 16"
+  n16_0 "Service 16.0" "pkg/n16_0" :store done
+  n16_1 "Service 16.1" "pkg/n16_1"
+  n16_2 "Service 16.2" "pkg/n16_2"
+  n16_3 "Service 16.3" "pkg/n16_3"
+  n16_4 "Service 16.4" "pkg/n16_4" plan
+  n16_5 "Service 16.5" "pkg/n16_5" done
+  n16_6 "Service 16.6" "pkg/n16_6" :queue wip
+  n16_7 "Service 16.7" "pkg/n16_7"
+  n16_8 "Service 16.8" "pkg/n16_8" done
+  n16_9 "Service 16.9" "pkg/n16_9" :queue done
+group g17 "Domain 17"
+  n17_0 "Service 17.0" "pkg/n17_0" :queue plan
+  n17_1 "Service 17.1" "pkg/n17_1"
+  n17_2 "Service 17.2" "pkg/n17_2" :store done
+  n17_3 "Service 17.3" "pkg/n17_3" :queue
+  n17_4 "Service 17.4" "pkg/n17_4" plan
+  n17_5 "Service 17.5" "pkg/n17_5" wip
+  n17_6 "Service 17.6" "pkg/n17_6"
+  n17_7 "Service 17.7" "pkg/n17_7" :queue wip
+  n17_8 "Service 17.8" "pkg/n17_8" done
+  n17_9 "Service 17.9" "pkg/n17_9"
+group g18 "Domain 18"
+  n18_0 "Service 18.0" "pkg/n18_0" :store wip
+  n18_1 "Service 18.1" "pkg/n18_1" plan
+  n18_2 "Service 18.2" "pkg/n18_2" plan
+  n18_3 "Service 18.3" "pkg/n18_3"
+  n18_4 "Service 18.4" "pkg/n18_4"
+  n18_5 "Service 18.5" "pkg/n18_5" plan
+  n18_6 "Service 18.6" "pkg/n18_6" :store
+  n18_7 "Service 18.7" "pkg/n18_7"
+  n18_8 "Service 18.8" "pkg/n18_8"
+  n18_9 "Service 18.9" "pkg/n18_9" wip
+group g19 "Domain 19"
+  n19_0 "Service 19.0" "pkg/n19_0"
+  n19_1 "Service 19.1" "pkg/n19_1" wip
+  n19_2 "Service 19.2" "pkg/n19_2" plan
+  n19_3 "Service 19.3" "pkg/n19_3" :queue
+  n19_4 "Service 19.4" "pkg/n19_4" wip
+  n19_5 "Service 19.5" "pkg/n19_5" :store
+  n19_6 "Service 19.6" "pkg/n19_6" :store done
+  n19_7 "Service 19.7" "pkg/n19_7" done
+  n19_8 "Service 19.8" "pkg/n19_8"
+  n19_9 "Service 19.9" "pkg/n19_9"
+
+n2_2 -> n15_8
+n2_5 -> n18_2 "call 65" wip
+n11_6 --> n11_1 wip
+n18_9 -> n18_2 "call 50" plan
+n19_6 -> n15_1 "call 81" plan
+n16_0 -> n16_5 "call 62" done
+n6_0 --> n18_3 "call 83" plan
+n3_9 --> n19_4 "call 20" done
+n8_3 --> n3_8 wip
+n18_0 --> n19_0 plan
+n7_6 --> n19_1
+n16_2 --> n7_0
+n4_5 -> n12_5 "call 21" plan
+n8_5 -> n12_8 "call 0" wip
+n15_8 -> n3_8 "call 60" wip
+n13_5 -> n7_3 wip
+n6_2 -> n5_8 "call 39" wip
+n4_8 -> n19_7 "call 26" done
+n12_3 -> n9_2 plan
+n11_8 --> n8_1 done
+n16_6 -> n18_8 plan
+n1_5 -> n3_4 done
+n10_1 --> n15_1 plan
+n3_7 --> n0_7 "call 70"
+n10_1 -> n16_4 wip
+n9_4 -> n19_6
+n19_7 -> n18_1 plan
+n10_9 -> n2_3 plan
+n14_3 --> n12_4 "call 75"
+n10_4 -> n15_9 done
+n4_6 -> n1_4 plan
+n17_6 -> n17_3 done
+n1_7 -> n5_6
+n0_4 --> n9_9
+n15_5 -> n9_3 "call 86" done
+n11_7 -> n12_4 "call 42" plan
+n9_2 -> n15_8 "call 87" wip
+n9_2 -> n11_0 "call 8" plan
+n16_5 -> n15_6 done
+n4_8 --> n3_6
+n10_5 -> n2_3 "call 16" plan
+n16_7 -> n7_9 "call 14" wip
+n0_7 -> n13_8 plan
+n12_4 -> n17_7 plan
+n10_1 -> n12_6 plan
+n12_9 -> n13_3 wip
+n16_8 --> n14_0 "call 41" plan
+n19_1 -> n0_9
+n9_5 -> n17_6 "call 35" wip
+n16_9 -> n0_3 wip
+n4_5 -> n1_6 "call 33" done
+n19_8 -> n11_1 "call 53" wip
+n19_8 --> n13_1 "call 53" plan
+n3_2 -> n18_3 done
+n11_2 -> n3_0 plan
+n6_1 --> n11_1 "call 65" plan
+n17_6 -> n16_1 plan
+n11_0 -> n14_6 "call 1"
+n15_9 -> n4_9 wip
+n19_5 --> n13_6 "call 27"
+n11_4 -> n4_0 "call 53" plan
+n5_7 -> n13_7 plan
+n5_9 -> n11_3 "call 23" wip
+n10_9 -> n18_1 plan
+n4_6 -> n4_5 "call 72" done
+n16_1 -> n16_0 wip
+n7_8 -> n15_8 "call 9" wip
+n0_4 -> n14_9 "call 46" wip
+n12_2 -> n17_7 "call 58"
+n17_8 --> n17_1 "call 88" wip
+n9_1 -> n17_7
+n0_3 -> n12_6 done
+n17_5 --> n2_6
+n17_2 --> n13_0 "call 36" wip
+n9_8 -> n7_6 "call 71" plan
+n11_7 -> n2_8 wip
+n9_3 --> n6_0 done
+n3_6 -> n19_0
+n4_4 --> n12_4 "call 69"
+n19_6 -> n7_5 "call 47" wip
+n16_3 --> n7_4 done
+n0_7 --> n12_0 wip
+n5_5 -> n7_1 done
+n19_7 -> n2_1 plan
+n0_9 -> n3_8 wip
+n1_2 -> n18_3 "call 8" plan
+n7_5 -> n4_3
+n9_0 -> n0_9 wip
+n11_8 -> n12_2 done
+n15_3 -> n17_4 "call 40" wip
+n7_1 -> n8_0 "call 38"
+n16_9 -> n8_9 "call 40"
+n1_8 -> n9_8 plan
+n18_7 -> n1_7 "call 88"
+n2_0 -> n4_0 "call 7"
+n12_1 -> n11_8 "call 14" done
+n10_2 --> n18_9
+n13_1 --> n14_8 wip
+n13_3 -> n9_9 done
+n9_4 -> n5_9 "call 24" plan
+n5_0 -> n19_7 "call 83" done
+n8_5 -> n15_2 "call 72" plan
+n0_1 -> n18_0
+n14_6 -> n2_0 done
+n15_4 -> n11_7 wip
+n4_8 -> n14_0 wip
+n1_1 -> n0_3 "call 7" done
+n5_9 -> n15_8 "call 12"
+n17_2 --> n8_4 "call 50"
+n0_5 --> n5_5
+n5_2 --> n7_2 "call 53"
+n11_0 -> n12_3 "call 74" plan
+n16_1 -> n2_6 done
+n8_4 -> n15_9 plan
+n10_8 -> n10_6 done
+n19_7 --> n8_8 plan
+n0_3 -> n18_1 done
+n10_7 -> n9_3 "call 10" wip
+n9_1 -> n13_0
+n18_0 -> n5_0 wip
+n4_3 -> n11_5 done
+n4_3 -> n7_7 done
+n12_5 -> n9_8 "call 65" wip
+n2_2 --> n2_1 plan
+n6_0 -> n14_8 done
+n0_6 -> n3_5 plan
+n6_3 -> n3_0 wip
+n4_2 -> n3_3 wip
+n3_3 --> n16_3 "call 54" plan
+n2_7 -> n19_4 "call 42" done
+n0_2 --> n16_4 "call 39"
+n4_2 -> n7_6 "call 26" done
+n16_3 -> n18_6 plan
+n15_0 -> n13_8 wip
+n5_5 --> n14_1 "call 32" done
+n1_3 -> n19_7 "call 66"
+n8_5 -> n2_4 done
+n12_2 --> n7_9 done
+n17_1 --> n0_4 done
+n1_5 -> n6_7
+n3_8 -> n1_8 "call 61" done
+n4_5 -> n6_3 wip
+n17_3 -> n13_4 "call 89"
+n19_1 --> n16_9
+n8_3 -> n4_6 "call 85" plan
+n8_4 --> n5_3 "call 15"
+n6_8 -> n19_3 "call 67" done
+n4_6 --> n18_9 plan
+n0_6 --> n14_8 done
+n17_9 -> n13_3 "call 65" done
+n18_2 -> n15_1 done
+n16_4 -> n1_6 "call 55" wip
+n10_1 -> n19_1
+n17_7 -> n19_0 "call 27" wip
+n5_6 -> n7_8 "call 21" done
+n3_1 -> n19_9 done
+n11_3 --> n16_7 "call 19"
+n7_5 -> n11_5 done
+n5_2 -> n1_1 "call 24" plan
+n19_9 --> n11_8
+n15_6 -> n11_6 "call 75"
+n19_4 -> n5_9 "call 10"
+n16_8 -> n19_1 "call 64" wip
+n7_2 -> n11_3 "call 66"
+n1_7 -> n13_5 wip
+n17_7 --> n6_0 plan
+n12_5 -> n6_4 wip
+n2_6 -> n19_2 "call 74"
+n2_4 --> n11_4 "call 17" done
+n7_5 -> n14_6
+n13_1 -> n2_6 plan
+n3_4 --> n18_0 wip
+n12_6 -> n18_2 "call 36" done
+n9_3 -> n6_4 "call 29"
+n16_6 -> n3_1 wip
+n18_6 --> n2_1 done
+n4_4 -> n1_7 plan
+n12_8 -> n4_7
+n0_3 --> n7_5 "call 55"
+n7_8 -> n0_6 done
+n2_8 -> n3_7 "call 41" plan
+n19_9 --> n0_8 "call 60" done
+n4_7 --> n5_5
+n5_4 -> n8_0 "call 7"
+n12_8 -> n14_6
+n2_0 -> n13_0 "call 42" plan
+n16_5 -> n7_7
+n14_8 -> n7_6 "call 58" done
+n5_6 -> n19_7
+n10_3 --> n19_4
+n19_5 -> n11_4 "call 49" wip
+n9_0 --> n5_9 done
+n6_8 -> n15_5 "call 9" plan
+n19_7 -> n12_0 "call 74" done
+n6_7 -> n4_3 "call 10"
+n15_3 -> n11_1 "call 13" wip
+n7_2 --> n10_6 plan
+n18_4 --> n17_1
+n8_6 --> n17_8
+n0_1 -> n8_1 "call 71" plan
+n0_9 -> n12_4 "call 82" wip
+n13_8 -> n19_4 "call 34" wip
+n19_5 -> n18_9 wip
+n17_8 -> n7_8 "call 49" wip
+n19_6 -> n1_7 "call 22" done
+n5_5 -> n14_4 plan
+n14_6 --> n2_9 done
+n2_6 -> n2_4 plan
+n15_5 -> n11_0 done
+n6_5 --> n17_9 plan
+n7_3 --> n12_3 "call 20"
+n19_3 -> n16_0 wip
+n2_6 -> n14_4
+n16_1 -> n12_9 plan
+n6_5 -> n17_9 plan
+n4_3 --> n3_2 "call 27"
+n0_4 -> n13_9 done
+n2_6 -> n5_8 plan
+n0_4 -> n8_1 done
+n19_7 -> n4_4
+n8_0 --> n17_5
+n13_5 -> n4_1 "call 82" done
+n12_9 -> n8_0 "call 4" plan
+n16_8 -> n19_4 "call 33" wip
+n17_6 -> n1_0 "call 68" plan
+n6_5 -> n0_8 done
+n2_0 --> n4_8
+n0_5 -> n10_7 "call 58" plan
+n13_1 -> n13_9 "call 46" wip
+n7_5 -> n13_4 plan
+n5_6 -> n3_7 plan
+n5_7 -> n13_0 plan
+n12_5 -> n0_9 wip
+n11_6 --> n11_2 "call 65" plan
+n8_3 -> n0_5
+n0_3 -> n2_0 "call 43" wip
+n10_9 -> n10_3 wip
+n5_7 -> n18_8 "call 9" done
+n0_2 -> n16_3 "call 23" wip
+n16_2 --> n5_5 "call 29" plan
+n13_2 -> n16_3 done
+n6_0 -> n19_4 plan
+n16_1 --> n9_1 "call 51" plan
+n6_8 -> n18_9 plan
+n15_4 -> n15_8 "call 15"
+n10_7 -> n16_5 wip
+n4_7 --> n17_2 "call 1"
+n3_0 -> n18_8 "call 81" plan
+n14_9 -> n11_7 plan
+n18_3 -> n18_9 "call 21" wip
+n15_3 -> n8_9 plan
+n10_6 -> n0_9 "call 74" done
+n5_3 -> n2_0 wip
+n17_0 -> n12_2 "call 77" wip
+n19_2 -> n3_3 "call 82" wip
+n8_6 -> n6_9 "call 76"
+n3_0 --> n0_7 "call 26" wip
+n8_7 -> n0_5
+n11_9 -> n3_4 done
+n2_7 --> n11_8
+n6_4 --> n2_2 "call 56" wip
+n3_0 -> n17_6 "call 15" plan
+n10_5 -> n12_0 wip
+n16_9 --> n10_4 done
+n0_8 -> n17_0
+n14_4 --> n8_0 "call 33"
+n8_8 -> n11_9 "call 79" wip
+n3_9 --> n14_2 done
+n1_9 --> n16_4 wip
+n10_7 -> n8_3 done
+n0_9 -> n12_9 plan
+n13_3 -> n1_8 wip
+n8_0 -> n7_5 "call 10" plan
+n13_5 -> n3_9
+n7_0 -> n10_1 wip
+n1_0 -> n6_2 done
+n14_9 -> n19_4 "call 50" wip
+n18_7 -> n4_4 "call 62"
+n8_5 -> n2_1 "call 30"
+n7_8 -> n12_6 plan
+n2_3 -> n10_1 "call 2"
+n1_6 -> n14_0 "call 59"
+n11_7 -> n7_4 "call 20" done
+n7_4 --> n3_3
+n3_1 --> n5_6 wip
+n9_7 -> n16_7 done
+n8_2 -> n3_9 "call 10" plan
+n5_4 -> n10_5 "call 11" done
+n12_1 -> n2_8 "call 56" plan
+n2_1 -> n12_8
+n14_2 -> n3_2 done
+n15_8 -> n15_3 wip
+n6_0 -> n19_2 wip
+n3_1 -> n18_3 "call 79" done
+n14_3 -> n2_6 "call 76"
+n6_4 --> n16_8 "call 80"
+n9_7 --> n7_5
+n4_8 --> n9_2 "call 27"
+n9_8 -> n8_7 "call 28" plan
+n19_7 -> n3_0 done
+n8_8 -> n10_7 plan
+n12_0 -> n15_8 done
+n8_9 --> n9_2 plan
+n7_1 -> n14_5 done
+n14_3 -> n8_1 "call 10" wip
+n19_9 -> n6_2
+n3_2 -> n8_6 wip
+n15_9 -> n3_9 done
+n18_3 -> n11_3 done
+n8_9 -> n13_4 "call 51" wip
+n5_0 --> n9_7 plan
+n10_3 -> n8_5 "call 17" plan
+n18_3 -> n19_9 "call 59" plan
+n9_4 -> n11_0 "call 33" wip
+n6_9 --> n10_3 "call 80" plan
+n1_5 -> n19_8 "call 18" done
+n19_8 --> n6_4 "call 1"

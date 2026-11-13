@@ -1,0 +1,9 @@
+seq
+a
+b "B" "worker" :queue plan
+c "Last" del
+a -> c "a long message that spans two columns and makes them wider"
+c -> c "self at the last column"
+a <-> b "both ways"
+b -> b
+c --> a del

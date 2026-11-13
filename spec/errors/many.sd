@@ -1,0 +1,11 @@
+arch "x"
+a "A" :db done
+b "B" todo
+a -> a
+group g "G"
+  c
+c -> g
+a ->
+b "B2"
+dir up
+q "unclosed

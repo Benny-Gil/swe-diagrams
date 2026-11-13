@@ -1,0 +1,1 @@
+4: an edge cannot join a group and its own member

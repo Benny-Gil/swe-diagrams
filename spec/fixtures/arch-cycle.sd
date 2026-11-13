@@ -1,0 +1,9 @@
+arch
+a -> b -> c -> a
+c -> d
+b <-> e "sync"
+group g "Workers"
+  w1
+  w2
+d -> g "dispatch"
+g -> a "report"

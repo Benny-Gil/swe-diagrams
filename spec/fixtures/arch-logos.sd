@@ -1,0 +1,11 @@
+arch "Logos from the icon directory"
+
+group cloud "Cloud" :vendor @orbit
+  app "App" "colour logo" @orbit done
+  db "Store" "second logo" :store @prism
+ghost "Ghost" "white logo, dark tile" :ext @ghost
+none "No logo" "name is not in the directory" @no-such-logo
+
+app => db "query"
+app -> ghost
+app --> none

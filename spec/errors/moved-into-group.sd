@@ -1,0 +1,5 @@
+arch
+a -> b
+group g
+  g -> a
+  a

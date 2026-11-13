@@ -1,0 +1,19 @@
+plan "Migrate the auth module"   # a plan with labels, nested phases, and a group end
+dir down
+group p1 "Phase 1: prepare"
+  audit "Audit call sites" "42 files" done
+  flag "Add feature flag" done
+  group p1b "Shadow mode"
+    shadow "Dual-write sessions" wip
+    cmp "Compare results" plan
+group p2 "Phase 2: switch"
+  cut "Cut over" plan
+  rm "Remove old module" del
+empty "No tasks yet" plan
+
+audit -> flag "list"
+flag -> shadow "enable 1%"
+shadow -> cmp
+cmp -> cut "0 diffs for 7 days"
+cut -> rm
+p1 --> empty "handoff"

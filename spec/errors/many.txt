@@ -1,0 +1,8 @@
+2: unknown kind ':db'. Kinds: :service :store :queue :actor :ext
+3: unknown word 'todo'. Statuses: done wip plan add mod del
+4: 'a' has an edge to itself
+7: an edge cannot join a group and its own member
+8: write an edge as: a -> b "label" status
+9: the id 'b' is already on line 3
+10: write the direction as: dir right, or dir down
+11: the string has no closing quote

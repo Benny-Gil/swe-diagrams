@@ -1,0 +1,13 @@
+arch "Edge cases: \"quotes\", <tags> & ampersands"
+dir down
+group outer "Outer"
+  group inner "Inner group with a long label that is wider than its content"
+    x "X"
+  y "Y" "日本語のラベル"
+group hollow "Empty group"
+z "Zed – naïve café" :ext
+x -> y
+x -> z "leaves two groups"
+z -> outer "into a group"
+inner <-> hollow
+y --> z del

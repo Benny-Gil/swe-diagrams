@@ -1,0 +1,22 @@
+plan "Add rate limiting"
+
+group design "Design"
+  spec "Write the spec" done
+  bucket "Choose the algorithm" done
+group build "Build"
+  mw "Middleware" "src/mw/limit.ts" wip
+  store "Redis store" wip
+  cfg "Config flags" plan
+group ship "Ship"
+  tests "Load tests" plan
+  docs "Docs" plan
+  rollout "Staged rollout" plan
+
+spec -> bucket
+bucket -> mw
+bucket -> store
+mw -> tests
+store -> tests
+cfg -> rollout
+tests -> rollout "gate"
+mw -> docs

@@ -1,0 +1,17 @@
+arch "Rate limit change"
+
+client "Client" :actor
+group api "API"
+  router "Router" mod
+  limiter "Rate limiter" "token bucket" add
+  legacy "IP throttle" del
+  handler "Handlers"
+store "Redis" :store add
+
+client -> router
+router -> limiter "check" add
+router -> legacy del
+limiter -> store "incr" add
+limiter -> handler "allow" add
+legacy -> handler del
+handler --> client "response"

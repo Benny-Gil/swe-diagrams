@@ -1,0 +1,24 @@
+arch "Checkout service"
+
+user "Shopper" "browser" :actor
+group edge "Edge"
+  web "Web app" "next.js" done
+  gw "API gateway" "rest" done
+group core "Core services" :vendor
+  cart "Cart service" "go" wip
+  pay "Payments" "worker" plan
+  group data "Data"
+    db "Postgres" "orders db" :store done
+    cache "Redis" "session cache" :store wip
+    q "Order events" "topic" :queue plan
+stripe "Stripe" "card processor" :ext
+
+user => web "browse"
+web => gw "REST"
+gw => cart "add item"
+gw -> pay "charge" plan
+cart => db "write"
+cart -> cache "read"
+cart --> q "publish" plan
+pay -> stripe "capture" plan
+q --> pay plan

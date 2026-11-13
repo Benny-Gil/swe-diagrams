@@ -1,0 +1,1 @@
+ok arch nodes=7 edges=7 implicit=a,b,c,d,e
