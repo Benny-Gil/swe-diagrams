@@ -11,6 +11,14 @@ use crate::text::{measure, measure_mono};
 const SKEW: i64 = 14; // horizontal offset of the top side of an `:io` shape
 const LOOP: i64 = 26; // height of a self-transition loop
 const LOOP_W: i64 = 24; // width of a self-transition loop on the right side
+const CAP: i64 = 7; // height of the top ellipse of a cylinder
+
+/// The style rules of the thick side of a source or a sink, light theme
+/// then dark theme.
+pub const DATAFLOW_STYLE: (&str, &str) = (
+    ".tk{fill:none;stroke:#535961;stroke-width:4;stroke-linecap:round}.pl{fill:#fff;stroke:#c3c8ce}.el.ip{stroke-width:0}",
+    ".tk{stroke:#a0a5ac}.pl{fill:#161b21;stroke:#3c434c}",
+);
 
 /// The style rules of the state dots, light theme then dark theme.
 pub const STATE_STYLE: (&str, &str) =
@@ -18,7 +26,7 @@ pub const STATE_STYLE: (&str, &str) =
 
 /// True for the types that this module draws.
 pub fn draws(t: DiagramType) -> bool {
-    matches!(t, DiagramType::Deps | DiagramType::Flow | DiagramType::State)
+    matches!(t, DiagramType::Deps | DiagramType::Flow | DiagramType::State | DiagramType::Dataflow)
 }
 
 /// The kind word of an item.
@@ -75,6 +83,8 @@ pub fn size(d: &Diagram, i: usize) -> (i64, i64) {
             }
             (w, th)
         }
+        (DiagramType::Dataflow, "store") => ((tw + 32).max(96), th + 2 * CAP),
+        (DiagramType::Dataflow, "source" | "sink" | "queue") => ((tw + 44).max(96), th),
         _ => ((tw + 32).max(96), th),
     };
     (w + (w & 1), h + (h & 1))
@@ -190,6 +200,37 @@ pub fn node(d: &Diagram, i: usize, x: i64, y: i64, w: i64, h: i64) -> (String, i
         }
         (DiagramType::State, _) => {
             rect(&mut out, "", 16);
+            out.push_str(&text);
+        }
+        (DiagramType::Dataflow, "store") => {
+            // A cylinder: the body, then the front half of the top ellipse.
+            let b = y + h - CAP;
+            let rx = idiv(w, 2);
+            let pts = format!("M{x} {}A{rx} {CAP} 0 0 1 {} {}V{b}A{rx} {CAP} 0 0 1 {x} {b}z", y + CAP, x + w, y + CAP);
+            poly(&mut out, &pts);
+            let _ =
+                write!(out, "<path class=\"cd{s}\" d=\"M{x} {}A{rx} {CAP} 0 0 0 {} {}\"/>", y + CAP, x + w, y + CAP);
+            out.push_str(&card_text(&it.label, &it.sub, it.status, cx, cy + idiv(CAP, 2)));
+            return (out, x + w - 2, y + CAP);
+        }
+        (DiagramType::Dataflow, "source") => {
+            rect(&mut out, "", 4);
+            let _ = write!(out, "<path class=\"tk\" d=\"M{} {}v{}\"/>", x + 1, y + 3, h - 6);
+            out.push_str(&card_text(&it.label, &it.sub, it.status, cx + 4, cy));
+        }
+        (DiagramType::Dataflow, "sink") => {
+            rect(&mut out, "", 4);
+            let _ = write!(out, "<path class=\"tk\" d=\"M{} {}v{}\"/>", x + w - 1, y + 3, h - 6);
+            out.push_str(&card_text(&it.label, &it.sub, it.status, cx - 4, cy));
+        }
+        (DiagramType::Dataflow, "queue") => {
+            // The two bars at the right end are the slots of a buffer.
+            rect(&mut out, "", 4);
+            let _ = write!(out, "<path class=\"cd{s}\" d=\"M{} {y}v{h}M{} {y}v{h}\"/>", x + w - 16, x + w - 9);
+            out.push_str(&card_text(&it.label, &it.sub, it.status, cx - 8, cy));
+        }
+        (DiagramType::Dataflow, _) => {
+            rect(&mut out, "", 4);
             out.push_str(&text);
         }
         _ => {

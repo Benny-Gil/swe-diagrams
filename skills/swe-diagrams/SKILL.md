@@ -41,6 +41,7 @@ Otherwise use a temporary directory.
 | What imports what? Is there an import cycle? | `deps` |
 | What are the steps and the decisions of a process? | `flow` |
 | What states can a thing be in, and what changes the state? | `state` |
+| Where does the data go, and what changes it? | `dataflow` |
 
 ## The language
 

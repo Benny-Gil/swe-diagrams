@@ -48,6 +48,7 @@ Put spaces around an arrow. Write `a -> b`, not `a->b`.
 | `deps` | Modules and packages, and what each one imports | down |
 | `flow` | The steps and the decisions of a process | down |
 | `state` | The states of a thing, and the events that change the state | right |
+| `dataflow` | Where the data goes, and what changes it | right |
 
 In `seq`, each node is a participant and each edge is a message. The order of
 the lines is the order in time. `a -> a` is a message to self. `seq` has no
@@ -148,6 +149,34 @@ label. The arrows are `->` and `-->`.
 on the top side of the card, with the label above it. When the layers go
 down, the loop is on the right side. Two self-transitions on one state
 share one loop, and the labels join with a comma.
+
+### dataflow
+
+```
+dataflow "Event pipeline"
+app "Web app" :source
+q "events" :queue
+etl "Normalize"
+wh "Warehouse" :store
+dash "Dashboards" :sink
+app -> q "click events"
+q -> etl "json"
+etl -> wh "rows"
+wh -> dash "sql"
+```
+
+Each node is a place where the data is, or a step that changes the data.
+`a -> b` means that data moves from `a` to `b`. Write the data that moves
+as the label. The label is a pill on the line. When two pills touch, they
+go beside their lines. The arrows are `->` and `-->`.
+
+| Kind | Shape |
+|---|---|
+| `:transform` | A box. This is the default. |
+| `:source` | A box with a thick left side |
+| `:sink` | A box with a thick right side |
+| `:store` | A cylinder |
+| `:queue` | A box with two bars at the right end |
 
 ## Edges
 
