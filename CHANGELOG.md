@@ -10,6 +10,9 @@ This file lists the changes in each version. The project uses
 - Easy install: steps for an agent (`docs/install.md`), a Claude Code
   plugin, an install script, and prebuilt binaries for each release.
 - A CI check for each pull request.
+- Terminal text output (`text_out::to_text`) for all eleven types. It
+  draws with Unicode box drawing, shows status symbols, and can add ANSI
+  colours. A drawing that is too wide becomes an outline.
 
 ### Changed
 

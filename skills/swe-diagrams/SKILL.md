@@ -29,6 +29,10 @@ layout is deterministic, and the summary line reports what the harness drew.
    (`file:line: message`), correct that line and render again.
 5. Give the user the path of the SVG file, and one sentence on what it shows.
 
+To show a diagram in the terminal, use the text output (`to_text`). It
+draws boxes and lines with Unicode characters. A wide diagram becomes an
+outline.
+
 Keep the files in `docs/diagrams/` when the user wants to keep them.
 Otherwise use a temporary directory.
 

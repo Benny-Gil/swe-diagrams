@@ -266,6 +266,9 @@ Use `done`, `wip`, and `plan` to show progress. Use `add`, `mod`, and `del`
 to show the effect of a change. A part without a status is neutral. The
 diagram gets a legend for the statuses that it uses.
 
+The terminal text shows a status as a symbol after the label: `✓` done,
+`◐` wip, `○` plan, `+` add, `~` mod, and `−` del.
+
 ## Kinds
 
 In `arch`, a node is a tile with an icon, and the label is below the tile.
@@ -400,3 +403,22 @@ with code 2:
 ```
 diagram.sd:7: unknown word 'todo'. Statuses: done wip plan add mod del
 ```
+
+## Terminal text
+
+The library function `text_out::to_text` draws a diagram for a terminal.
+It uses Unicode box drawing, and it supports all eleven types.
+
+- A node is a box. A card has round corners. A planned node has a dashed
+  border.
+- An edge is a line with an arrowhead. A dashed edge has a dashed line.
+- A record (`erd`, `class`) shows its rows. An `erd` line shows the end
+  marks `1`, `?`, `*`, and `+`.
+- A `seq` diagram shows lifelines and the messages in order.
+- A `timeline` shows one axis, with the labels above and below it.
+- A label that is too long for its box gets an ellipsis.
+- With colour, the status symbol and the box get ANSI colours.
+
+When the drawing is wider than the limit, the text is an outline: the
+groups as headings, the nodes with their status symbols, and the edges as
+`a → b  label` lines. The first line of the outline gives the reason.

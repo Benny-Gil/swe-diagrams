@@ -60,7 +60,7 @@ fn has_flag(m: &Member, flag: &str) -> bool {
 }
 
 /// The key mark of an `erd` field, or an empty text.
-fn key_mark(m: &Member) -> String {
+pub(crate) fn key_mark(m: &Member) -> String {
     let marks: Vec<&str> = [("pk", "PK"), ("fk", "FK"), ("uniq", "UQ")]
         .iter()
         .filter(|(f, _)| has_flag(m, f))
@@ -74,7 +74,7 @@ fn is_key(m: &Member) -> bool {
 }
 
 /// The type of an `erd` field. A field that can be null gets a `?`.
-fn field_type(m: &Member) -> String {
+pub(crate) fn field_type(m: &Member) -> String {
     let mut t = m.words.get(1).cloned().unwrap_or_default();
     if has_flag(m, "null") {
         t.push('?');
@@ -87,7 +87,7 @@ fn is_method(m: &Member) -> bool {
 }
 
 /// The text above the name of a class: the kind, if it is not `class`.
-fn stereotype(dt: DiagramType, it: &Item) -> Option<String> {
+pub(crate) fn stereotype(dt: DiagramType, it: &Item) -> Option<String> {
     (dt == DiagramType::Class && it.kind > 0).then(|| format!("«{}»", dt.kinds()[it.kind]))
 }
 
@@ -100,7 +100,7 @@ fn header_h(dt: DiagramType, it: &Item) -> i64 {
 }
 
 /// The row counts of the sections under the header, in draw order.
-fn sections(dt: DiagramType, it: &Item) -> Vec<Vec<&Member>> {
+pub(crate) fn sections(dt: DiagramType, it: &Item) -> Vec<Vec<&Member>> {
     if dt == DiagramType::Erd {
         return if it.members.is_empty() { Vec::new() } else { vec![it.members.iter().collect()] };
     }
@@ -283,7 +283,7 @@ fn end_mark(mark: &str, x: i64, y: i64, dx: i64, dy: i64, line: &str, fill: &str
 }
 
 /// The marks at the `from` end and at the `to` end of an edge.
-fn marks(dt: DiagramType, e: &Edge) -> (&str, &str) {
+pub(crate) fn marks(dt: DiagramType, e: &Edge) -> (&str, &str) {
     if dt == DiagramType::Erd {
         // An erd arrow is `<from>--<to>`, and each end is one character.
         return e.arrow.split_once("--").unwrap_or(("", ""));
