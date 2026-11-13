@@ -1,0 +1,2 @@
+5: unknown arrow '1--*'. Arrows of class: --|> ..|> *-- o-- -> ..>
+6: unknown arrow '-->'. Arrows of class: --|> ..|> *-- o-- -> ..>

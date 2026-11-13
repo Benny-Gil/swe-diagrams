@@ -1,4 +1,4 @@
-//! Layered layout for graph diagrams (arch, plan).
+//! Layered layout for graph diagrams (all types other than seq).
 //!
 //! Each container (the root, or a group) gets its own layered layout, from the
 //! deepest group up. An edge that leaves a group gets a port on the border of
@@ -8,7 +8,7 @@
 
 use std::collections::HashMap;
 
-use crate::model::{idiv, rdiv, Diagram, DiagramType};
+use crate::model::{idiv, rdiv, Diagram};
 use crate::text::{measure, measure_mono};
 
 const NODE_GAP: i64 = 28; // cross gap between two real nodes
@@ -919,7 +919,7 @@ pub fn layout_graph(d: &Diagram) -> GraphLayout {
     let n = items.len();
     let ne = d.edges.len();
     let down = d.down;
-    let is_plan = d.dtype == DiagramType::Plan;
+    let tiles = d.dtype.has_tiles();
 
     let mut ms = vec![0i64; n];
     let mut cs = vec![0i64; n];
@@ -931,8 +931,8 @@ pub fn layout_graph(d: &Diagram) -> GraphLayout {
         }
         let tw = measure(&it.label, 13, true).max(measure_mono(&it.sub, 95));
         let (mut w, h);
-        if is_plan {
-            // A task is a card with a status mark at the left.
+        if !tiles {
+            // A card has a status mark at the left.
             w = (tw + 28 + 22).max(96);
             h = if it.sub.is_empty() { 38 } else { 52 };
         } else {
@@ -959,6 +959,12 @@ pub fn layout_graph(d: &Diagram) -> GraphLayout {
     let mut pa: Vec<usize> = Vec::new();
     let mut pb: Vec<usize> = Vec::new();
     for (e, edge) in d.edges.iter().enumerate() {
+        if edge.from == edge.to {
+            // A self-transition does not take part in the layering.
+            ca[e] = edge.from;
+            cb[e] = edge.from;
+            continue;
+        }
         pa.clear();
         pb.clear();
         let mut p = Some(edge.from);
@@ -1088,6 +1094,9 @@ pub fn layout_graph(d: &Diagram) -> GraphLayout {
     // Border ports. An edge end inside a group leaves each group between the
     // end and the lowest common container.
     for e in 0..ne {
+        if d.edges[e].from == d.edges[e].to {
+            continue;
+        }
         for (end, list) in [(lend[e], &mut outs), (rend[e], &mut ins)] {
             let mut cur = end;
             if items[cur].group {
@@ -1165,6 +1174,9 @@ pub fn layout_graph(d: &Diagram) -> GraphLayout {
     let mut order: Vec<usize> = Vec::new();
     let mut raw: Vec<i64> = Vec::new();
     for (e, edge) in d.edges.iter().enumerate() {
+        if edge.from == edge.to {
+            continue;
+        }
         order.clear();
         order.extend_from_slice(by_edge.get(e));
         order.sort_by_key(|&p| g.piece_pts[g.piece_start[p]]);

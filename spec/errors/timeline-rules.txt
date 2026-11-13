@@ -1,0 +1,3 @@
+4: a timeline group cannot hold a group
+6: a timeline diagram has no edges
+7: unknown kind ':decision'. Kinds: :event :milestone

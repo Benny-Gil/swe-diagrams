@@ -1,0 +1,3 @@
+3: unknown arrow '=>'. Arrows of deps: -> -->
+4: unknown arrow '<->'. Arrows of deps: -> -->
+5: unknown arrow '1--*'. Arrows of deps: -> -->

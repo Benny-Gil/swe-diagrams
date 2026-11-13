@@ -1,0 +1,6 @@
+class "Arrows of erd in a class"
+a "A"
+b "B"
+a --|> b
+a 1--* b
+a --> b

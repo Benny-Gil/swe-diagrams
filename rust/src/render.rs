@@ -18,9 +18,9 @@ pub fn render(src: &str, opts: &IconOptions) -> Result<Rendered, DiagramError> {
     let svg = if d.dtype == DiagramType::Seq {
         render_seq(&d, &layout_seq(&d))
     } else {
-        // Only an arch diagram draws logos. A plan task is a card.
+        // Only a diagram with tiles draws logos. The other types draw cards.
         let mut icons: Vec<Option<Icon>> = d.items.iter().map(|_| None).collect();
-        if d.dtype == DiagramType::Arch {
+        if d.dtype.has_tiles() {
             let wanted: Vec<usize> = (0..d.items.len()).filter(|&i| !d.items[i].icon.is_empty()).collect();
             let names: Vec<String> = wanted.iter().map(|&i| d.items[i].icon.clone()).collect();
             for (&i, found) in wanted.iter().zip(resolve(&names, opts)) {

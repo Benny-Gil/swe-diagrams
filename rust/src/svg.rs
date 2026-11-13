@@ -396,13 +396,20 @@ fn card_text(label: &str, sub: &str, status: usize, cx: i64, cy: i64) -> String 
 }
 
 pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> String {
-    let is_plan = d.dtype == DiagramType::Plan;
-    let kicker = if is_plan {
-        let total = d.items.iter().filter(|it| !it.group).count();
-        let done = d.items.iter().filter(|it| !it.group && it.status == 1).count();
-        format!("plan / {done} of {total} done")
-    } else {
-        "architecture".to_string()
+    let tiles = d.dtype.has_tiles();
+    let kicker = match d.dtype {
+        DiagramType::Plan => {
+            let total = d.items.iter().filter(|it| !it.group).count();
+            let done = d.items.iter().filter(|it| !it.group && it.status == 1).count();
+            format!("plan / {done} of {total} done")
+        }
+        DiagramType::Deps => "dependencies".to_string(),
+        DiagramType::State => "state machine".to_string(),
+        DiagramType::Dataflow => "data flow".to_string(),
+        DiagramType::Erd => "entities".to_string(),
+        DiagramType::Class => "classes".to_string(),
+        DiagramType::Arch => "architecture".to_string(),
+        t => t.name().to_string(),
     };
     let mut f = Frame::new(&d.title, kicker);
     let (ox, oy) = f.origin();
@@ -495,8 +502,10 @@ pub fn render_graph(d: &Diagram, l: &GraphLayout, icons: &[Option<Icon>]) -> Str
             }
             continue;
         }
-        if is_plan {
-            f.body.push_str(&card(it.kind, it.status, x, y, w, h));
+        if !tiles {
+            // The plan card kinds are the arch kinds. Other types have their own.
+            let kind = if d.dtype == DiagramType::Plan { it.kind } else { 0 };
+            f.body.push_str(&card(kind, it.status, x, y, w, h));
             let cy = y + idiv(h, 2);
             f.badge(it.status, x + 18, cy);
             f.body.push_str(&card_text(&it.label, &it.sub, it.status, x + 11 + idiv(w, 2), cy));

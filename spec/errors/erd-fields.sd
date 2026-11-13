@@ -1,0 +1,7 @@
+erd "Fields"
+users "User"
+  id uuid pk
+  email text unique
+  name
+  age int null del
+users -> orders
